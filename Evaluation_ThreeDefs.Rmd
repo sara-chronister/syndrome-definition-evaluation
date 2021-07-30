@@ -6,59 +6,31 @@ output: html_document
 
 knitr::opts_chunk$set(echo = TRUE)
 
-# install packages - only uncomment and run the following section (lines 12-23) your first time opening this
-# install.packages("tidyverse")
-# install.packages("jsonlite")
-# install.packages("httr")
-# install.packages("plotly")
-# install.packages("eulerr")
-# install.packages("reactable")
-# install.packages("keyring")
-# install.packages("ggraph")
-# install.packages("igraph")
-# install.packages("plyr")
-# install.packages("widyr")
-# install.packages("tidytext")
-
-
 # load packages
 library(tidyverse);library(jsonlite);library(httr);library(plotly);library(eulerr);library(reactable);library(readxl);library(plyr);library(widyr); library(tidytext);library(dplyr);library(splitstackshape)
 # keyring package to store/call usernames and passwords
 library(keyring)
 
-# leave the key_set lines commented out unless this is the first time running it
-# if this is the first time running this script, uncomment the following lines, replace the username in the username = "" with your username for the respective services (local = computer, essence = ESSENCE), run the lines, enter your passwords for the respective services, and recomment the lines
-# key_set(service = "local", username = "")
-# key_set(service = "essence", username = "")
-
-# IF your organization uses proxy settings, enter the information in the lines below and uncomment lines 33-36 (leave uncommented)
-# look for proxy settings (windows) under settings > network and internet > proxy and look for the "Address" for url and "Port" for port
-# the username and password are your network username and password, which you set in the key_set function above where service = "local"
-# httr::set_config(use_proxy(url = "", # enter in the quotes
-#                            port = 0000, # replace 0000 with your port number
-#                            username = key_list("local")[1,2], 
-#                            password = key_get("local", key_list("local")[1,2])))
-
 files.source <- list.files("SupportCode")
 sapply(paste0("SupportCode/",files.source),source)
 
-setup_information <- read_excel("Definition Comparison Table.xlsx", sheet = "Setup", range = "A2:F3")
+setup_information <- read_excel("DefinitionInformationTable.xlsx", sheet = "Setup", range = "A2:F3")
 
 query_start <- setup_information$StartDate
 query_end <- setup_information$EndDate
 jurisdiction <- setup_information$Jurisdiction
 
-select_fields_table <- read_excel("Definition Comparison Table.xlsx", sheet = "AppliedFields", range = "A2:A22") %>%
+select_fields_table <- read_excel("DefinitionInformationTable.xlsx", sheet = "AppliedFields", range = "A2:A22") %>%
   filter(!is.na(Field)) 
 select_fields <- select_fields_table$Field
 
-comparison_table <- read_excel("Definition Comparison Table.xlsx", sheet = "DefinitionInformation", range = "A2:G5")
+information_table <- read_excel("DefinitionInformationTable.xlsx", sheet = "DefinitionInformation", range = "A2:G5")
 
 ```
 
 ```{r def1_setup, echo=FALSE, message=FALSE, warning=FALSE}
 
-def1_table <- comparison_table[comparison_table$defX=="def1",]
+def1_table <- information_table[information_table$defX=="def1",]
 
 def1_name <- def1_table$Syndrome
 def1_short <- def1_table$Abbreviation
@@ -114,7 +86,7 @@ def1_elements_detected_table <- def1_elements_detected %>%
 
 ```{r def2_setup, echo=FALSE, message=FALSE, warning=FALSE}
 
-def2_table <- comparison_table[comparison_table$defX=="def2",]
+def2_table <- information_table[information_table$defX=="def2",]
 
 def2_name <- def2_table$Syndrome
 def2_short <- def2_table$Abbreviation
@@ -170,7 +142,7 @@ def2_elements_detected_table <- def2_elements_detected %>%
 
 ```{r def3_setup, echo=FALSE, message=FALSE, warning=FALSE}
 
-def3_table <- comparison_table[comparison_table$defX=="def3",]
+def3_table <- information_table[information_table$defX=="def3",]
 
 def3_name <- def3_table$Syndrome
 def3_short <- def3_table$Abbreviation
@@ -660,9 +632,6 @@ write.csv(file = paste0("Output_ThreeDefs/",def3_short," Matched Elements.csv"),
 
 ___
 *The template for this report was created by Sara Chronister (Maricopa County Department of Public Health). For questions, ideas for improvement/collaboration, or attribution, please reach out to <sara.chronister@maricopa.gov>.*
-
-
-
 
 
 

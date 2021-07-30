@@ -31,7 +31,7 @@ The purpose of this tool is to allow ESSENCE users to evaluate the data details 
 * To run the report, look for a button at the top of the script that says "Knit" with an icon that looks like a needle and ball of yarn next to it. Click that button and wait for your report to run. When it is finished it will generate an HTML file that can be opened using any browser (except Internet Explorer) and can be shared with anyone via email, shared folder location, etc.
 
 #### Subsequent uses: 
-* Be sure your user credentials (ESSENCE and local, if necessary) are up to date. Update them in the "SupportCode/UserCredentials.R" file if necessary. 
+* Be sure your user credentials (ESSENCE and local, if necessary) are up to date. Update them in the "SupportCode/UserCredentials.R" file as needed. 
 * Run the report using the "Knit" button and share the files as necessary and appropriate.
 
 ___

@@ -1,0 +1,13 @@
+# install packages - only uncomment and run the following section (lines 2-13) your first time using this tool
+# install.packages("tidyverse")
+# install.packages("jsonlite")
+# install.packages("httr")
+# install.packages("plotly")
+# install.packages("eulerr")
+# install.packages("reactable")
+# install.packages("keyring")
+# install.packages("ggraph")
+# install.packages("igraph")
+# install.packages("plyr")
+# install.packages("widyr")
+# install.packages("tidytext")

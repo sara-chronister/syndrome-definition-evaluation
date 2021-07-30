@@ -1,0 +1,670 @@
+---
+output: html_document
+---
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE)
+
+# install packages - only uncomment and run the following section (lines 12-23) your first time opening this
+# install.packages("tidyverse")
+# install.packages("jsonlite")
+# install.packages("httr")
+# install.packages("plotly")
+# install.packages("eulerr")
+# install.packages("reactable")
+# install.packages("keyring")
+# install.packages("ggraph")
+# install.packages("igraph")
+# install.packages("plyr")
+# install.packages("widyr")
+# install.packages("tidytext")
+
+
+# load packages
+library(tidyverse);library(jsonlite);library(httr);library(plotly);library(eulerr);library(reactable);library(readxl);library(plyr);library(widyr); library(tidytext);library(dplyr);library(splitstackshape)
+# keyring package to store/call usernames and passwords
+library(keyring)
+
+# leave the key_set lines commented out unless this is the first time running it
+# if this is the first time running this script, uncomment the following lines, replace the username in the username = "" with your username for the respective services (local = computer, essence = ESSENCE), run the lines, enter your passwords for the respective services, and recomment the lines
+# key_set(service = "local", username = "")
+# key_set(service = "essence", username = "")
+
+# IF your organization uses proxy settings, enter the information in the lines below and uncomment lines 33-36 (leave uncommented)
+# look for proxy settings (windows) under settings > network and internet > proxy and look for the "Address" for url and "Port" for port
+# the username and password are your network username and password, which you set in the key_set function above where service = "local"
+# httr::set_config(use_proxy(url = "", # enter in the quotes
+#                            port = 0000, # replace 0000 with your port number
+#                            username = key_list("local")[1,2], 
+#                            password = key_get("local", key_list("local")[1,2])))
+
+files.source <- list.files("SupportCode")
+sapply(paste0("SupportCode/",files.source),source)
+
+setup_information <- read_excel("Definition Comparison Table.xlsx", sheet = "Setup", range = "A2:F3")
+
+query_start <- setup_information$StartDate
+query_end <- setup_information$EndDate
+jurisdiction <- setup_information$Jurisdiction
+
+select_fields_table <- read_excel("Definition Comparison Table.xlsx", sheet = "AppliedFields", range = "A2:A22") %>%
+  filter(!is.na(Field)) 
+select_fields <- select_fields_table$Field
+
+comparison_table <- read_excel("Definition Comparison Table.xlsx", sheet = "DefinitionInformation", range = "A2:G5")
+
+```
+
+```{r def1_setup, echo=FALSE, message=FALSE, warning=FALSE}
+
+def1_table <- comparison_table[comparison_table$defX=="def1",]
+
+def1_name <- def1_table$Syndrome
+def1_short <- def1_table$Abbreviation
+def1_structure <- clean_query_essence(def1_table$Structure)
+def1_structure_print <- str_replace_all(def1_table$Structure,"\\^","\\\\^")
+def1_url <- def1_table$API
+
+```
+
+```{r def1_extract, echo=FALSE, message=FALSE, warning=FALSE}
+
+def1_full <- return_longterm_query(url = def1_url, loop_start = query_start, loop_end = query_end)
+
+def1 <- def1_full %>%
+  dplyr::select(Date, EssenceID, select_fields)  %>%
+  mutate(def1 = 1) %>%
+  mutate(Date = as.Date(Date, format='%m/%d/%Y')) %>%
+  filter(Date >= query_start) %>%
+  filter(Date <= query_end)
+
+def1_total <- nrow(def1)
+def1_total_pretty <- format(def1_total, big.mark = ",", scientific = FALSE)
+
+```
+
+```{r def1_elements, echo=FALSE, message=FALSE, warning=FALSE}
+
+def1_elements <- (def1_structure$`Syndrome Element`)
+
+def1_elements_detected <- def1 %>%
+  dplyr::select(EssenceID, ChiefComplaintParsed, DischargeDiagnosis) %>%
+  clean_ChiefComplaintParsed() %>%
+  clean_DischargeDiagnosis() %>%
+  mutate(CCDDclean = paste(ChiefComplaintParsed, DischargeDiagnosis)) %>%
+  select(EssenceID, CCDDclean) %>%
+  detect_elements(data = ., def1_elements, text_field = "CCDDclean") %>%
+  janitor::adorn_totals(where = "row")
+
+def1_elements_detected_table <- def1_elements_detected %>%
+  select(-TruePositive, -CCDDclean) %>%
+  filter(EssenceID=="Total") %>%
+  pivot_longer(cols = starts_with("element"), names_to = "Syndrome Element", values_to = "VisitsMatched") %>%
+  mutate(`Syndrome Element` = str_remove(`Syndrome Element`,"element_")) %>%
+  mutate(`Syndrome Element` = str_replace_all(`Syndrome Element`, "\\."," ")) %>%
+  full_join(def1_structure) %>%
+  mutate(`Syndrome Element` = ifelse(`Element Type`=="Diagnosis Code", str_to_sentence(`Syndrome Element`), `Syndrome Element`)) %>%
+  mutate(`Syndrome Element` = ifelse(`Element Type`=="CCDD Category (see ESSENCE)", is.na(`Syndrome Element`), `Syndrome Element`)) %>%
+  select(`Syndrome Element`, `Element Type`, `CCDD Matches` = VisitsMatched) %>%
+  arrange(desc(`CCDD Matches`))
+
+```
+
+
+```{r def2_setup, echo=FALSE, message=FALSE, warning=FALSE}
+
+def2_table <- comparison_table[comparison_table$defX=="def2",]
+
+def2_name <- def2_table$Syndrome
+def2_short <- def2_table$Abbreviation
+def2_structure <- clean_query_essence(def2_table$Structure)
+def2_structure_print <- str_replace_all(def2_table$Structure,"\\^","\\\\^")
+def2_url <- def2_table$API
+
+```
+
+```{r def2_extract, echo=FALSE, message=FALSE, warning=FALSE}
+
+def2_full <- return_longterm_query(url = def2_url, loop_start = query_start, loop_end = query_end)
+
+def2 <- def2_full %>%
+  dplyr::select(Date, EssenceID, select_fields) %>%
+  mutate(def2 = 1) %>%
+  mutate(Date = as.Date(Date, format='%m/%d/%Y')) %>%
+  filter(Date >= query_start) %>%
+  filter(Date <= query_end)
+
+def2_total <- nrow(def2)
+def2_total_pretty <- format(def2_total, big.mark = ",", scientific = FALSE)
+
+```
+  
+```{r def2_elements, echo=FALSE, message=FALSE, warning=FALSE}
+
+def2_elements <- (def2_structure$`Syndrome Element`)
+
+def2_elements_detected <- def2 %>%
+  dplyr::select(EssenceID, ChiefComplaintParsed, DischargeDiagnosis) %>%
+  clean_ChiefComplaintParsed() %>%
+  clean_DischargeDiagnosis() %>%
+  mutate(CCDDclean = paste(ChiefComplaintParsed, DischargeDiagnosis)) %>%
+  select(EssenceID, CCDDclean) %>%
+  detect_elements(data = ., def2_elements, text_field = "CCDDclean") %>%
+  janitor::adorn_totals(where = "row")
+
+def2_elements_detected_table <- def2_elements_detected %>%
+  select(-TruePositive, -CCDDclean) %>%
+  filter(EssenceID=="Total") %>%
+  pivot_longer(cols = starts_with("element"), names_to = "Syndrome Element", values_to = "VisitsMatched") %>%
+  mutate(`Syndrome Element` = str_remove(`Syndrome Element`,"element_")) %>%
+  mutate(`Syndrome Element` = str_replace_all(`Syndrome Element`, "\\."," ")) %>%
+  full_join(def2_structure) %>%
+  mutate(`Syndrome Element` = ifelse(`Element Type`=="Diagnosis Code", str_to_sentence(`Syndrome Element`), `Syndrome Element`)) %>%
+  mutate(`Syndrome Element` = ifelse(`Element Type`=="CCDD Category (see ESSENCE)", is.na(`Syndrome Element`), `Syndrome Element`)) %>%
+  select(`Syndrome Element`, `Element Type`, `CCDD Matches` = VisitsMatched) %>%
+  arrange(desc(`CCDD Matches`))
+
+```
+
+
+```{r def3_setup, echo=FALSE, message=FALSE, warning=FALSE}
+
+def3_table <- comparison_table[comparison_table$defX=="def3",]
+
+def3_name <- def3_table$Syndrome
+def3_short <- def3_table$Abbreviation
+def3_structure <- clean_query_essence(def3_table$Structure)
+def3_structure_print <- str_replace_all(def3_table$Structure,"\\^","\\\\^")
+def3_url <- def3_table$API
+
+```
+
+```{r def3_extract, echo=FALSE, message=FALSE, warning=FALSE}
+
+def3_full <- return_longterm_query(url = def3_url, loop_start = query_start, loop_end = query_end)
+
+def3 <- def3_full %>%
+  dplyr::select(Date, EssenceID, select_fields) %>%
+  mutate(def3 = 1) %>%
+  mutate(Date = as.Date(Date, format='%m/%d/%Y')) %>%
+  filter(Date >= query_start) %>%
+  filter(Date <= query_end)
+
+def3_total <- nrow(def3)
+def3_total_pretty <- format(def3_total, big.mark = ",", scientific = FALSE)
+
+```
+  
+```{r def3_elements, echo=FALSE, message=FALSE, warning=FALSE}
+
+def3_elements <- (def3_structure$`Syndrome Element`)
+
+def3_elements_detected <- def3 %>%
+  dplyr::select(EssenceID, ChiefComplaintParsed, DischargeDiagnosis) %>%
+  clean_ChiefComplaintParsed() %>%
+  clean_DischargeDiagnosis() %>%
+  mutate(CCDDclean = paste(ChiefComplaintParsed, DischargeDiagnosis)) %>%
+  select(EssenceID, CCDDclean) %>%
+  detect_elements(data = ., def3_elements, text_field = "CCDDclean") %>%
+  janitor::adorn_totals(where = "row")
+
+def3_elements_detected_table <- def3_elements_detected %>%
+  select(-TruePositive, -CCDDclean) %>%
+  filter(EssenceID=="Total") %>%
+  pivot_longer(cols = starts_with("element"), names_to = "Syndrome Element", values_to = "VisitsMatched") %>%
+  mutate(`Syndrome Element` = str_remove(`Syndrome Element`,"element_")) %>%
+  mutate(`Syndrome Element` = str_replace_all(`Syndrome Element`, "\\."," ")) %>%
+  full_join(def3_structure) %>%
+  mutate(`Syndrome Element` = ifelse(`Element Type`=="Diagnosis Code", str_to_sentence(`Syndrome Element`), `Syndrome Element`)) %>%
+  mutate(`Syndrome Element` = ifelse(`Element Type`=="CCDD Category (see ESSENCE)", is.na(`Syndrome Element`), `Syndrome Element`)) %>%
+  select(`Syndrome Element`, `Element Type`, `CCDD Matches` = VisitsMatched) %>%
+  arrange(desc(`CCDD Matches`))
+
+```
+
+
+---
+title: "Definition Evaluation: `r def1_name`, `r def2_name`, and `r def3_name`"
+author: `r query_start` to `r query_end`
+---  
+  
+**Jurisdiction**: `r jurisdiction`  
+**Report Created**: `r Sys.Date()`    
+**Point of Contact**: `r setup_information$PointOfContact` (`r setup_information$POCEmail`)    
+**Organization**: `r setup_information$Organization`
+
+
+***  
+### Individual Definition Information  {.tabset}
+  
+Inclusion terms and codes are displayed in the table below (exclusion terms are not shown in the table)  
+  
+#### `r def1_name` (`r def1_short`)   
+  
+**Total Visits Identified:**  
+  
+`r def1_total_pretty`  
+  
+**Query description:**    
+  
+`r def1_table$Description`  
+  
+**Full query:**  
+`r def1_structure_print`  
+  
+```{r def1_table, echo=FALSE, message=FALSE, warning=FALSE}
+
+DT::datatable(def1_elements_detected_table, rownames = FALSE, options = list(pageLength = nrow(def1_structure), dom = "t"), filter = "top", escape = FALSE)
+
+```
+  
+#### `r def2_name` (`r def2_short`)   
+  
+**Total Visits Identified:**  
+  
+`r def2_total_pretty`  
+  
+**Query description:**    
+  
+`r def2_table$Description`  
+  
+**Full query:**  
+`r def2_structure_print`  
+  
+```{r def2_table, echo=FALSE, message=FALSE, warning=FALSE}
+
+DT::datatable(def2_elements_detected_table, rownames = FALSE, options = list(pageLength = nrow(def2_structure), dom = "t"), filter = "top", escape = FALSE)
+
+```
+  
+#### `r def3_name` (`r def3_short`)   
+  
+**Total Visits Identified:**  
+  
+`r def3_total_pretty`  
+  
+**Query description:**    
+  
+`r def3_table$Description`  
+  
+**Full query:**  
+`r def3_structure_print`  
+  
+```{r def3_table, echo=FALSE, message=FALSE, warning=FALSE}
+
+DT::datatable(def3_elements_detected_table, rownames = FALSE, options = list(pageLength = nrow(def3_structure), dom = "t"), filter = "top", escape = FALSE)
+
+```
+  
+  
+```{r three_defs_prep, echo=FALSE, message=FALSE, warning=FALSE}
+
+join_vars <- c("Date", "EssenceID", select_fields)
+
+three_defs <- full_join(def1, def2, by = join_vars) %>%
+  full_join(def3, by = join_vars) %>%
+  replace_na(replace = list(def1 = 0, def2 = 0, def3 = 0)) %>%
+  mutate(Total_Defs = def1+def2+def3)
+
+Def1_vs_Def2_vs_Def3 <- three_defs
+colnames(Def1_vs_Def2_vs_Def3)[which(colnames(Def1_vs_Def2_vs_Def3)=="def1")] <- def1_short
+colnames(Def1_vs_Def2_vs_Def3)[which(colnames(Def1_vs_Def2_vs_Def3)=="def2")] <- def2_short
+colnames(Def1_vs_Def2_vs_Def3)[which(colnames(Def1_vs_Def2_vs_Def3)=="def3")] <- def3_short
+
+three_defs_table <- three_defs %>%
+  mutate(
+    # Character values for definition indicator variables
+    def1_named = factor(def1, levels = c(0,1), labels = c(paste("Not",def1_short), def1_short)),
+    def2_named = factor(def2, levels = c(0,1), labels = c(paste("Not",def2_short), def2_short)),
+    def3_named = factor(def3, levels = c(0,1), labels = c(paste("Not",def3_short), def3_short)),
+    Total_Defs = factor(Total_Defs, levels = c(1,2,3), labels = c("One Definition", "Two Definitions", "Three Definitions")),
+    # Dummy variables for each combination of definitions
+    def1_only = ifelse(def1==1&def2==0&def3==0,1,0),
+    def1_def2 = ifelse(def1==1&def2==1&def3==0,1,0),
+    def1_def3 = ifelse(def1==1&def2==0&def3==1,1,0),
+    def2_only = ifelse(def1==0&def2==1&def3==0,1,0),
+    def2_def3 = ifelse(def1==0&def2==1&def3==1,1,0),
+    def3_only = ifelse(def1==0&def2==0&def3==1,1,0),
+    All = ifelse(def1==1&def2==1&def3==1,1,0))
+
+
+three_defs_table$Definitions <- apply(three_defs_table[,which(colnames(Def1_vs_Def2_vs_Def3)==def1_short):which(colnames(Def1_vs_Def2_vs_Def3)==def3_short)], 1, function(data)
+  paste(names(which(data == 1)),collapse = ", "))
+three_defs_table$Definitions <- str_replace(three_defs_table$Definitions,"def1",def1_short)
+three_defs_table$Definitions <- str_replace(three_defs_table$Definitions,"def2",def2_short)
+three_defs_table$Definitions <- str_replace(three_defs_table$Definitions,"def3",def3_short)
+
+three_defs_total <- nrow(three_defs_table)
+three_defs_total_pretty <- format(three_defs_total, big.mark = ",", scientific = FALSE)
+
+```
+  
+  
+***  
+### Definition Comparison  
+  
+  
+#### Visits by syndrome over time {.tabset}    
+  
+Use the slider at the bottom of the figures to adjust the start and end dates visible in the graph.   
+  
+##### Same scale  
+  
+```{r time_series, echo=FALSE, message=FALSE, warning=FALSE}
+
+fill_dates <- data.frame(Date = seq.Date(from = as.Date(query_start), to = as.Date(query_end), by = "day"))
+
+time_series_def1 <- def1 %>%
+  dplyr::count(Date, name = "Visits") %>%
+  filter(Date<=query_end) %>%
+  full_join(fill_dates) %>%
+  mutate(Syndrome = def1_short) %>%
+  arrange(Date) %>%
+  replace_na(list(Visits = 0))
+
+time_series_def2 <- def2 %>%
+  dplyr::count(Date, name = "Visits") %>%
+  filter(Date<=query_end) %>%
+  full_join(fill_dates) %>%
+  mutate(Syndrome = def2_short) %>%
+  arrange(Date) %>%
+  replace_na(list(Visits = 0))
+
+time_series_def3 <- def3 %>%
+  dplyr::count(Date, name = "Visits") %>%
+  filter(Date<=query_end) %>%
+  full_join(fill_dates) %>%
+  mutate(Syndrome = def3_short) %>%
+  arrange(Date) %>%
+  replace_na(list(Visits = 0))
+
+
+plot_ly() %>%
+  add_lines(data = time_series_def1,
+            x = ~Date, y = ~Visits, name = ~Syndrome,
+            line = list(color = 'rgb(226,78,66)')) %>%
+  add_lines(data = time_series_def2,
+            x = ~Date, y = ~Visits, name = ~Syndrome,
+            line = list(color = 'rgb(0,143,149)')) %>%
+  add_lines(data = time_series_def3,
+            x = ~Date, y = ~Visits, name = ~Syndrome,
+            line = list(color = 'rgb(233,176,0)')) %>%
+  layout(
+    hovermode = "compare",
+    xaxis = list(
+      range = c(query_start,query_end),
+      rangeslider = list(type = "date", thickness = 0.1))
+  )
+
+
+```
+  
+##### Independent Scales  
+  
+```{r ts_separate, echo=FALSE, message=FALSE, warning=FALSE}
+
+ts_plot_def1 <- plot_ly() %>%
+  add_lines(data = time_series_def1,
+            x = ~Date, y = ~Visits, name = ~Syndrome,
+            line = list(color = 'rgb(226,78,66)')) %>%
+  layout(
+    hovermode = "compare",
+    xaxis = list(
+      range = c(min(fill_dates$Date),max(fill_dates$Date)),
+      rangeslider = list(type = "date", thickness = 0.1))
+  )
+
+ts_plot_def2 <- plot_ly() %>%
+  add_lines(data = time_series_def2,
+            x = ~Date, y = ~Visits, name = ~Syndrome,
+            line = list(color = 'rgb(0,143,149)')) %>%
+  layout(
+    hovermode = "compare",
+    xaxis = list(
+      range = c(query_start,query_end),
+      rangeslider = list(type = "date", thickness = 0.1))
+  )
+
+ts_plot_def3 <- plot_ly() %>%
+  add_lines(data = time_series_def3,
+            x = ~Date, y = ~Visits, name = ~Syndrome,
+            line = list(color = 'rgb(233,176,0)')) %>%
+  layout(
+    hovermode = "compare",
+    xaxis = list(
+      range = c(query_start,query_end),
+      rangeslider = list(type = "date", thickness = 0.1))
+  )
+
+
+subplot(ts_plot_def1, ts_plot_def2, ts_plot_def3, nrows = 3, shareX = TRUE, margin = 0.05)
+
+```
+  
+  
+#### The total number of visits identified by all definitions combined was **`r three_defs_total_pretty`**.   
+  
+#### Number and percent of all identified visits captured by each definition:        
+```{r def_summary, echo=FALSE, message=FALSE, warning=FALSE, fig.height=3}
+
+def1_results <- data.frame(Def = def1_name, Count = sum(three_defs_table$def1)) %>%
+  mutate(Percent = round(Count/nrow(three_defs_table),3),
+         Percent.Display = paste0(Percent*100,"%"))
+
+def2_results <- data.frame(Def = def2_name, Count = sum(three_defs_table$def2)) %>%
+  mutate(Percent = round(Count/nrow(three_defs_table),3),
+         Percent.Display = paste0(Percent*100,"%"))
+
+def3_results <- data.frame(Def = def3_name, Count = sum(three_defs_table$def3)) %>%
+  mutate(Percent = round(Count/nrow(three_defs_table),3),
+         Percent.Display = paste0(Percent*100,"%"))
+
+all_def_results <- bind_rows(def1_results, def2_results, def3_results)
+
+
+ggplot(data = all_def_results, aes(x = Percent, y = reorder(Def,Percent))) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label=Count, x = Percent-.01), hjust="top", color = "white", size = 3) +
+  geom_text(aes(label=Percent.Display, x = Percent+.01), hjust="bottom", color = "black", size = 3) +
+  geom_segment(aes(x = 0, xend = 1, y = 0.4, yend = 0.4)) +
+  scale_x_continuous(limits = c(0,1.2), expand = c(0,0), breaks = c(0,.25,.50,.75,1), labels = scales::percent_format()) +
+  theme_minimal() +
+  theme(panel.grid = element_blank(),
+        axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        legend.position = "none")
+
+
+```
+  
+#### Number and percent of all identified visits captured by each observed combination of definitions: {.tabset}     
+  
+```{r def_comparison, echo=FALSE, message=FALSE, warning=FALSE}
+
+three_defs_combinations <- data.frame(Definitions = 
+                                        c(paste(def1_short,def2_short,sep=", "),
+                                          paste(def1_short,def3_short,sep=", "),
+                                          paste(def2_short,def3_short,sep=", "),
+                                          paste(def1_short,def2_short,def3_short,sep=", "),
+                                          paste0(def1_short),
+                                          paste0(def2_short),
+                                          paste0(def3_short)))
+
+three_defs_summary <- three_defs_table %>%
+  dplyr::count(Definitions, name = "Visits") %>%
+  mutate(Percent = paste0(round(Visits/sum(Visits)*100,1),"%")) %>%
+  full_join(three_defs_combinations) %>%
+  replace_na(list(Visits=0,
+                  Percent="0%")) %>%
+  arrange(desc(Visits))
+
+reactable(three_defs_summary)
+
+```
+  
+##### Overlap plot, not to scale  
+  
+```{r venn, echo=FALSE, message=FALSE, warning=FALSE}
+
+plot(venn(Def1_vs_Def2_vs_Def3[,which(colnames(Def1_vs_Def2_vs_Def3)==def1_short):which(colnames(Def1_vs_Def2_vs_Def3)==def3_short)]))
+
+```
+  
+##### Overlap plot, to scale  
+  
+```{r euler, echo=FALSE, message=FALSE, warning=FALSE}
+
+plot(euler(Def1_vs_Def2_vs_Def3[,which(colnames(Def1_vs_Def2_vs_Def3)==def1_short):which(colnames(Def1_vs_Def2_vs_Def3)==def3_short)]),quantities = TRUE)
+
+```
+  
+  
+***   
+### Top terms (besides "patient")
+#### Top 5 occurring terms for each definition and each field of interest:
+
+```{r word_prep, echo=FALSE, message = FALSE, warning = FALSE, results='hide'}
+
+source("SupportCode/CleanFreeText.R")
+
+my_file <- three_defs 
+
+my_file <- clean_Admit_Reason_Combo()
+my_file <- clean_ChiefComplaintOriginal()
+my_file <- clean_ChiefComplaintUpdates()
+my_file <- clean_ChiefComplaintParsed()
+my_file <- clean_CCDD()
+my_file <- clean_DischargeDiagnosis()
+my_file <- clean_TriageNotesOrig()
+
+
+```
+
+
+```{r top_terms, echo=FALSE, message = FALSE, warning = FALSE, fig.width=10, fig.height=8}
+
+def_sets <- list(my_file[my_file$def1==1,],
+                 my_file[my_file$def2==1,],
+                 my_file[my_file$def3==1,])
+
+def_sets_names <- c(def1_short,def2_short,def3_short)
+
+top_words <- list()
+word_count <- list()
+
+for (i in 1:length(def_sets)) {
+  
+  for(j in 1:length(select_fields)) {
+    
+    data <- as.data.frame(def_sets[i])
+    
+    field <- select_fields[j]
+    
+    word_count[[j]] <- data %>%
+      dplyr::select(field) %>%
+      unnest_tokens(word, !!field) %>%
+      anti_join(stop_words, by = "word") %>%
+      dplyr::count(word, name = "Count", sort=TRUE) %>%
+      filter(word!="patient") %>%
+      top_n(5) %>%
+      mutate(def = def_sets_names[i],
+             field = field)
+
+    names(word_count)[[j]] <- select_fields[j]  
+    
+    }
+  
+  top_words[[i]] <- plyr::ldply(word_count, data.frame)
+
+  names(top_words)[[i]] <- def_sets_names[i]
+  
+}
+
+top_words_combined <- ldply(top_words, data.frame) %>%
+  dplyr::arrange(Count) %>%
+  group_by(def,field) %>%
+  dplyr::mutate(order = row_number())
+
+ggplot(data = top_words_combined) +
+  geom_bar(aes(x = Count, y = as.factor(order)), stat="identity", fill = "#a4dba4") +
+  geom_text(aes(x = 0, y = as.factor(order), label = paste0(word,'  (',Count,")"), hjust = "left"), size = 3) + 
+  facet_grid(field ~ def, switch = "y", scales = "free") +
+  theme_minimal() +
+  theme(
+    axis.text = element_blank(),
+    panel.grid = element_blank(),
+    strip.text.y.left = element_text(angle = 0),
+    panel.background = element_rect(fill = NA, color = "grey40"),
+    axis.title = element_blank()
+  )
+
+```
+
+```{r output, echo=FALSE, message=FALSE, warning=FALSE}
+
+
+# All Visits
+write.csv(file = "Output_ThreeDefs/Three Defs All Visits.csv",
+          x = three_defs_table,
+          row.names = FALSE)
+
+# Def1 only
+write.csv(file = paste0("Output_ThreeDefs/",def1_short," Only Visits.csv"),
+          x = three_defs_table[three_defs_table$def1_only==1,],
+          row.names = FALSE)
+
+# Def2 only
+write.csv(file = paste0("Output_ThreeDefs/",def2_short," Only Visits.csv"),
+          x = three_defs_table[three_defs_table$def2_only==1,],
+          row.names = FALSE)
+
+# Def3 only
+write.csv(file = paste0("Output_ThreeDefs/",def3_short," Only Visits.csv"),
+          x = three_defs_table[three_defs_table$def3_only==1,],
+          row.names = FALSE)
+
+# Def1 and Def2 
+write.csv(file = paste0("Output_ThreeDefs/",def1_short," and ",def2_short," Visits.csv"),
+          x = three_defs_table[three_defs_table$def1_def2==1,],
+          row.names = FALSE)
+
+# Def1 and Def3 
+write.csv(file = paste0("Output_ThreeDefs/",def1_short," and ",def3_short," Visits.csv"),
+          x = three_defs_table[three_defs_table$def1_def3==1,],
+          row.names = FALSE)
+
+# Def2 and Def3 
+write.csv(file = paste0("Output_ThreeDefs/",def2_short," and ",def3_short," Visits.csv"),
+          x = three_defs_table[three_defs_table$def2_def3==1,],
+          row.names = FALSE)
+
+# Def1 matched elements
+write.csv(file = paste0("Output_ThreeDefs/",def1_short," Matched Elements.csv"),
+          x = def1_elements_detected,
+          row.names = FALSE)
+
+# Def2 matched elements
+write.csv(file = paste0("Output_ThreeDefs/",def2_short," Matched Elements.csv"),
+          x = def2_elements_detected,
+          row.names = FALSE)
+
+# Def3 matched elements
+write.csv(file = paste0("Output_ThreeDefs/",def3_short," Matched Elements.csv"),
+          x = def3_elements_detected,
+          row.names = FALSE)
+
+
+```
+
+
+___
+*The template for this report was created by Sara Chronister (Maricopa County Department of Public Health). For questions, ideas for improvement/collaboration, or attribution, please reach out to <sara.chronister@maricopa.gov>.*
+
+
+
+
+
+
+
+

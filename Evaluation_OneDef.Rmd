@@ -1,0 +1,282 @@
+---
+output: html_document
+---
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE)
+
+# install packages - only uncomment and run the following section (lines 12-23) your first time opening this
+# install.packages("tidyverse")
+# install.packages("jsonlite")
+# install.packages("httr")
+# install.packages("plotly")
+# install.packages("eulerr")
+# install.packages("reactable")
+# install.packages("keyring")
+# install.packages("ggraph")
+# install.packages("igraph")
+# install.packages("plyr")
+# install.packages("widyr")
+# install.packages("tidytext")
+
+
+# load packages
+library(tidyverse);library(jsonlite);library(httr);library(plotly);library(eulerr);library(reactable);library(readxl);library(plyr);library(widyr); library(tidytext);library(dplyr);library(splitstackshape)
+# keyring package to store/call usernames and passwords
+library(keyring)
+
+# leave the key_set lines commented out unless this is the first time running it
+# if this is the first time running this script, uncomment the following lines, replace the username in the username = "" with your username for the respective services (local = computer, essence = ESSENCE), run the lines, enter your passwords for the respective services, and recomment the lines
+# key_set(service = "local", username = "")
+# key_set(service = "essence", username = "")
+
+# IF your organization uses proxy settings, enter the information in the lines below and uncomment lines 33-36 (leave uncommented)
+# look for proxy settings (windows) under settings > network and internet > proxy and look for the "Address" for url and "Port" for port
+# the username and password are your network username and password, which you set in the key_set function above where service = "local"
+# httr::set_config(use_proxy(url = "", # enter in the quotes
+#                            port = 0000, # replace 0000 with your port number
+#                            username = key_list("local")[1,2], 
+#                            password = key_get("local", key_list("local")[1,2])))
+
+files.source <- list.files("SupportCode")
+sapply(paste0("SupportCode/",files.source),source)
+
+setup_information <- read_excel("Definition Comparison Table.xlsx", sheet = "Setup", range = "A2:F3")
+
+query_start <- as.Date(setup_information$StartDate)
+query_end <- as.Date(setup_information$EndDate)
+jurisdiction <- setup_information$Jurisdiction
+
+select_fields_table <- read_excel("Definition Comparison Table.xlsx", sheet = "AppliedFields", range = "A2:A22") %>%
+  filter(!is.na(Field)) 
+select_fields <- select_fields_table$Field
+
+comparison_table <- read_excel("Definition Comparison Table.xlsx", sheet = "DefinitionInformation", range = "A2:G3")
+
+```
+
+```{r def1_setup, echo=FALSE, message=FALSE, warning=FALSE}
+
+def1_table <- comparison_table[comparison_table$defX=="def1",]
+
+def1_name <- def1_table$Syndrome
+def1_short <- def1_table$Abbreviation
+def1_structure <- clean_query_essence(def1_table$Structure)
+def1_structure_print <- str_replace_all(def1_table$Structure,"\\^","\\\\^")
+def1_url <- def1_table$API
+
+```
+
+```{r def1_extract, echo=FALSE, message=FALSE, warning=FALSE}
+
+def1_full <- return_longterm_query(url = def1_url, loop_start = query_start, loop_end = query_end)
+
+def1 <- def1_full %>%
+  dplyr::select(Date, EssenceID, select_fields)  %>%
+  mutate(def1 = 1) %>%
+  mutate(Date = as.Date(Date, format='%m/%d/%Y')) %>%
+  filter(Date >= query_start) %>%
+  filter(Date <= query_end)
+
+def1_total <- nrow(def1)
+def1_total_pretty <- format(def1_total, big.mark = ",", scientific = FALSE)
+
+```
+
+```{r def1_elements, echo=FALSE, message=FALSE, warning=FALSE}
+
+def1_elements <- (def1_structure$`Syndrome Element`)
+
+def1_elements_detected <- def1 %>%
+  dplyr::select(EssenceID, ChiefComplaintParsed, DischargeDiagnosis) %>%
+  clean_ChiefComplaintParsed() %>%
+  clean_DischargeDiagnosis() %>%
+  mutate(CCDDclean = paste(ChiefComplaintParsed, DischargeDiagnosis)) %>%
+  select(EssenceID, CCDDclean) %>%
+  detect_elements(data = ., def1_elements, text_field = "CCDDclean") %>%
+  janitor::adorn_totals(where = "row")
+
+def1_elements_detected_table <- def1_elements_detected %>%
+  select(-TruePositive, -CCDDclean) %>%
+  filter(EssenceID=="Total") %>%
+  pivot_longer(cols = starts_with("element"), names_to = "Syndrome Element", values_to = "VisitsMatched") %>%
+  mutate(`Syndrome Element` = str_remove(`Syndrome Element`,"element_")) %>%
+  mutate(`Syndrome Element` = str_replace_all(`Syndrome Element`, "\\."," ")) %>%
+  full_join(def1_structure) %>%
+  mutate(`Syndrome Element` = ifelse(`Element Type`=="Diagnosis Code", str_to_sentence(`Syndrome Element`), `Syndrome Element`)) %>%
+  mutate(`Syndrome Element` = ifelse(`Element Type`=="CCDD Category (see ESSENCE)", is.na(`Syndrome Element`), `Syndrome Element`)) %>%
+  select(`Syndrome Element`, `Element Type`, `CCDD Matches` = VisitsMatched) %>%
+  arrange(desc(`CCDD Matches`))
+
+```
+
+---
+title: "Definition Evaluation: `r def1_name`"
+author: `r query_start` to `r query_end`
+---  
+  
+**Jurisdiction**: `r jurisdiction`  
+**Report Created**: `r Sys.Date()`    
+**Point of Contact**: `r setup_information$PointOfContact` (`r setup_information$POCEmail`)    
+**Organization**: `r setup_information$Organization`
+
+
+
+***  
+### Individual Definition Information  
+  
+Inclusion terms and codes are displayed in the table below (exclusion terms are not shown in the table). Visits may match on multiple syndrome elements. Refer to the csv outputs for visit-level information about which visits matched on which elements.  
+  
+#### `r def1_name` (`r def1_short`)   
+  
+**Total Visits Identified:**  
+  
+`r def1_total_pretty`  
+  
+**Query description:**    
+  
+`r def1_table$Description`  
+  
+**Full query:**  
+`r def1_structure_print`  
+  
+```{r def1_table, echo=FALSE, message=FALSE, warning=FALSE}
+
+DT::datatable(def1_elements_detected_table, rownames = FALSE, options = list(pageLength = nrow(def1_structure), dom = "t"), filter = "top", escape = FALSE)
+
+```
+  
+  
+#### Visits over time     
+  
+Use the slider at the bottom of the figures to adjust the start and end dates visible in the graph.   
+  
+```{r time_series, echo=FALSE, message=FALSE, warning=FALSE}
+
+fill_dates <- data.frame(Date = seq.Date(from = as.Date(query_start), to = as.Date(query_end), by = "day"))
+
+time_series_def1 <- def1 %>%
+  dplyr::count(Date, name = "Visits") %>%
+  filter(Date<=query_end) %>%
+  full_join(fill_dates) %>%
+  mutate(Syndrome = def1_short) %>%
+  arrange(Date) %>%
+  replace_na(list(Visits = 0))
+
+plot_ly() %>%
+  add_lines(data = time_series_def1,
+            x = ~Date, y = ~Visits, name = ~Syndrome,
+            line = list(color = 'rgb(226,78,66)')) %>%
+  layout(
+    hovermode = "compare",
+    xaxis = list(
+      range = c(query_start,query_end),
+      rangeslider = list(type = "date", thickness = 0.1))
+  )
+
+
+```
+
+  
+***   
+### Top terms (besides "patient")
+#### Top 5 occurring terms for each definition and each field of interest:
+
+```{r word_prep, echo=FALSE, message = FALSE, warning = FALSE, results='hide'}
+
+source("SupportCode/CleanFreeText.R")
+
+my_file <- def1 %>%
+  mutate(Date = mdy(Date))
+
+my_file <- clean_Admit_Reason_Combo()
+my_file <- clean_ChiefComplaintOriginal()
+my_file <- clean_ChiefComplaintUpdates()
+my_file <- clean_ChiefComplaintParsed()
+my_file <- clean_CCDD()
+my_file <- clean_DischargeDiagnosis()
+my_file <- clean_TriageNotesOrig()
+
+
+```
+
+
+```{r top_terms, echo=FALSE, message = FALSE, warning = FALSE, fig.width=10, fig.height=8}
+
+def_sets <- list(my_file[my_file$def1==1,])
+
+def_sets_names <- c(def1_short)
+
+top_words <- list()
+word_count <- list()
+
+for (i in 1:length(def_sets)) {
+  
+  for(j in 1:length(select_fields)) {
+    
+    data <- as.data.frame(def_sets[i])
+    
+    field <- select_fields[j]
+    
+    word_count[[j]] <- data %>%
+      dplyr::select(field) %>%
+      unnest_tokens(word, !!field) %>%
+      anti_join(stop_words, by = "word") %>%
+      dplyr::count(word, name = "Count", sort=TRUE) %>%
+      filter(word!="patient") %>%
+      top_n(5) %>%
+      mutate(def = def_sets_names[i],
+             field = field)
+
+    names(word_count)[[j]] <- select_fields[j]  
+    
+    }
+  
+  top_words[[i]] <- plyr::ldply(word_count, data.frame)
+
+  names(top_words)[[i]] <- def_sets_names[i]
+  
+}
+
+top_words_combined <- ldply(top_words, data.frame) %>%
+  dplyr::arrange(Count) %>%
+  group_by(def,field) %>%
+  dplyr::mutate(order = row_number())
+
+ggplot(data = top_words_combined) +
+  geom_bar(aes(x = Count, y = as.factor(order)), stat="identity", fill = "#a4dba4") +
+  geom_text(aes(x = 0, y = as.factor(order), label = paste0(word,'  (',Count,")"), hjust = "left"), size = 3) + 
+  facet_grid(field ~ def, switch = "y", scales = "free") +
+  theme_minimal() +
+  theme(
+    axis.text = element_blank(),
+    panel.grid = element_blank(),
+    strip.text.y.left = element_text(angle = 0),
+    panel.background = element_rect(fill = NA, color = "grey40"),
+    axis.title = element_blank()
+  )
+
+```
+
+```{r output, echo=FALSE, message=FALSE, warning=FALSE}
+
+# All Visits
+write.csv(file = paste0("Output_OneDef/",def1_short," All Visits.csv"),
+          x = def1,
+          row.names = FALSE)
+
+# Def1 matched elements
+write.csv(file = paste0("Output_OneDef/",def1_short," Matched Elements.csv"),
+          x = def1_elements_detected,
+          row.names = FALSE)
+
+
+```
+
+
+___
+*The template for this report was created by Sara Chronister (Maricopa County Department of Public Health). For questions, ideas for improvement/collaboration, or attribution, please reach out to <sara.chronister@maricopa.gov>.*
+
+
+

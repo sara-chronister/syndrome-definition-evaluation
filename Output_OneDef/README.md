@@ -1,1 +1,1 @@
-This folder will be used to store outputs from the "Validation_OneDef.Rmd" template.
+This folder will be used to store outputs from the "Evaluation_OneDef.Rmd" template.

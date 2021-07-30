@@ -3,7 +3,7 @@
 # key_set(service = "local", username = "")
 # key_set(service = "essence", username = "")
 
-# IF your organization uses proxy settings, enter the information in the lines below and uncomment lines 33-36 (leave uncommented)
+# IF your organization uses proxy settings, enter the information in the lines below and uncomment lines 9-12 (leave uncommented)
 # look for proxy settings (windows) under settings > network and internet > proxy and look for the "Address" for url and "Port" for port
 # the username and password are your network username and password, which you set in the key_set function above where service = "local"
 # httr::set_config(use_proxy(url = "", # enter in the quotes

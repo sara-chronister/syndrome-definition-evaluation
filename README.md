@@ -24,14 +24,13 @@ The purpose of this tool is to allow ESSENCE users to evaluate the data details 
 #### First time use:  
 * In your file location, open the "SyndromeEvaluation.Rproj" file.
 * In RStudio navigate to the Files tab (by default in the bottom right pane) and open the "SupportCode" folder.
-  + Open the "UserCredentials.R" file and follow the instructions. **Remember to comment out all lines again by adding a # at the beginning of each line when you have finished.** 
-  + Open the "InstallPackages.R" file and follow the instructions. **Remember to comment out all lines again by adding a # at the beginning of each line when you have finished.**
+  + Open the "2-UserCredentials.R" file and follow the instructions. **Remember to comment out all lines again by adding a # at the beginning of each line when you have finished.** 
 * Open either the "Evaluation_OneDef.Rmd", "Evaluation_TwoDefs.Rmd", or "Evaluation_OneDef.Rmd" file.
   + You can rename any of these files to reflect the definition(s) you are evaluating. This will be the file name of the HTML report generated.
 * To run the report, look for a button at the top of the script that says "Knit" with an icon that looks like a needle and ball of yarn next to it. Click that button and wait for your report to run. When it is finished it will generate an HTML file that can be opened using any browser (except Internet Explorer) and can be shared with anyone via email, shared folder location, etc.
 
 #### Subsequent uses: 
-* Be sure your user credentials (ESSENCE and local, if necessary) are up to date. Update them in the "SupportCode/UserCredentials.R" file as needed. 
+* Be sure your user credentials (ESSENCE and local, if necessary) are up to date. Update them in the "SupportCode/2-UserCredentials.R" file as needed. 
 * Run the report using the "Knit" button and share the files as necessary and appropriate.
 
 ___

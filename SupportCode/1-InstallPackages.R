@@ -10,3 +10,6 @@ if (any(installed_packages == FALSE)) {
 
 # Packages loading
 invisible(lapply(packages, library, character.only = TRUE))
+
+
+# source: https://statsandr.com/blog/an-efficient-way-to-install-and-load-r-packages/

@@ -1,3 +1,5 @@
+library(keyring)
+
 # leave the key_set lines commented out unless this is the first time running it
 # if this is the first time running this script, uncomment the following lines, replace the username in the username = "" with your username for the respective services (local = computer, essence = ESSENCE), run the lines, enter your passwords for the respective services, and recomment the lines
 # key_set(service = "local", username = "")

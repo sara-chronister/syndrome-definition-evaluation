@@ -6,11 +6,6 @@ output: html_document
 
 knitr::opts_chunk$set(echo = TRUE)
 
-# load packages
-library(tidyverse);library(jsonlite);library(httr);library(plotly);library(eulerr);library(reactable);library(readxl);library(plyr);library(widyr); library(tidytext);library(dplyr);library(splitstackshape)
-# keyring package to store/call usernames and passwords
-library(keyring)
-
 files.source <- list.files("SupportCode")
 sapply(paste0("SupportCode/",files.source),source)
 
@@ -497,8 +492,6 @@ plot(euler(Def1_vs_Def2_vs_Def3[,which(colnames(Def1_vs_Def2_vs_Def3)==def1_shor
 #### Top 5 occurring terms for each definition and each field of interest:
 
 ```{r word_prep, echo=FALSE, message = FALSE, warning = FALSE, results='hide'}
-
-source("SupportCode/CleanFreeText.R")
 
 my_file <- three_defs 
 

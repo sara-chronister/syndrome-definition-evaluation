@@ -29,7 +29,8 @@ clean_ChiefComplaintUpdates <- function(data = my_file) {
 clean_ChiefComplaintOriginal <- function(data = my_file) {
   data2 <- data %>%
     dplyr::select(ChiefComplaintOrig) %>%
-    mutate(ChiefComplaintOrig = str_replace_all(ChiefComplaintOrig, "[[:cntrl:]]", "") ) %>%
+    mutate(ChiefComplaintOrig = str_replace_all(ChiefComplaintOrig, "[[:cntrl:]]", "")) %>%
+    mutate(ChiefComplaintOrig = str_replace_all(ChiefComplaintOrig, "[[:alnum:]];[[:alnum:]]", " ")) %>%
     mutate(ChiefComplaintOrig = str_trim(ChiefComplaintOrig, side = "both")) %>%
     mutate(ChiefComplaintOrig = if_else(nchar(ChiefComplaintOrig)==2, "NA", ChiefComplaintOrig)) %>%
     mutate(ChiefComplaintOrig = toupper(ChiefComplaintOrig)) %>%

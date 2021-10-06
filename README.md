@@ -7,6 +7,8 @@ The purpose of this tool is to allow ESSENCE users to evaluate the data details 
 * A csv file for each combination of definitions possible containing a subset of variables important in the manual review process. These files do contain identifiable information and should be handled accordingly. 
 * A csv file containing details about the definition elements (codes and terms) that can be used to evaluate the performance of individual elements in query results. These files do contain identifiable information and should be handled accordingly. 
 
+If you are planning to use this tool for syndrome development, I would recommed starting with the steps laid out in this document prior to starting with this tool: https://kr-drupal.syndromicsurveillance.org/developing-evaluating-and-disseminating-definitions-syndromic-surveillance-public-health-practice.
+
 ## Instructions:
 
 ### Download and set up files:

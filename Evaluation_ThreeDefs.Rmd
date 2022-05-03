@@ -9,17 +9,17 @@ knitr::opts_chunk$set(echo = TRUE)
 files.source <- list.files("SupportCode")
 sapply(paste0("SupportCode/",files.source),source)
 
-setup_information <- read_excel("DefinitionInformationTable.xlsx", sheet = "Setup", range = "A2:F3")
+setup_information <- read.xlsx("DefinitionInformationTable.xlsx", sheet = "Setup", rows = c(2:3), cols = c(1:6), detectDates = TRUE)
 
-query_start <- setup_information$StartDate
-query_end <- setup_information$EndDate
+query_start <- as.Date(setup_information$StartDate)
+query_end <- as.Date(setup_information$EndDate)
 jurisdiction <- setup_information$Jurisdiction
 
-select_fields_table <- read_excel("DefinitionInformationTable.xlsx", sheet = "AppliedFields", range = "A2:A22") %>%
+select_fields_table <- read.xlsx("DefinitionInformationTable.xlsx", sheet = "AppliedFields", rows = c(2:10), cols = 1) %>% 
   filter(!is.na(Field)) 
 select_fields <- select_fields_table$Field
 
-information_table <- read_excel("DefinitionInformationTable.xlsx", sheet = "DefinitionInformation", range = "A2:G5")
+information_table <- read.xlsx("DefinitionInformationTable.xlsx", sheet = "DefinitionInformation", rows = c(2:3), cols = c(1:7))
 
 ```
 

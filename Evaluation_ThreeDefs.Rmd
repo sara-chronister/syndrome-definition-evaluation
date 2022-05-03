@@ -37,7 +37,7 @@ def1_url <- def1_table$API
 
 ```{r def1_extract, echo=FALSE, message=FALSE, warning=FALSE}
 
-def1_full <- return_longterm_query(url = def1_url, loop_start = query_start, loop_end = query_end)
+def1_full <- get_longterm_details(url = def1_url, start_date = query_start, end_date = query_end)
 
 def1 <- def1_full %>%
   dplyr::select(Date, EssenceID, select_fields)  %>%
@@ -93,7 +93,7 @@ def2_url <- def2_table$API
 
 ```{r def2_extract, echo=FALSE, message=FALSE, warning=FALSE}
 
-def2_full <- return_longterm_query(url = def2_url, loop_start = query_start, loop_end = query_end)
+def2_full <- get_longterm_details(url = def2_url, start_date = query_start, end_date = query_end)
 
 def2 <- def2_full %>%
   dplyr::select(Date, EssenceID, select_fields) %>%
@@ -149,7 +149,7 @@ def3_url <- def3_table$API
 
 ```{r def3_extract, echo=FALSE, message=FALSE, warning=FALSE}
 
-def3_full <- return_longterm_query(url = def3_url, loop_start = query_start, loop_end = query_end)
+def3_full <- get_longterm_details(url = def3_url, start_date = query_start, end_date = query_end)
 
 def3 <- def3_full %>%
   dplyr::select(Date, EssenceID, select_fields) %>%

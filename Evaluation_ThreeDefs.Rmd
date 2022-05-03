@@ -19,7 +19,7 @@ select_fields_table <- read.xlsx("DefinitionInformationTable.xlsx", sheet = "App
   filter(!is.na(Field)) 
 select_fields <- select_fields_table$Field
 
-information_table <- read.xlsx("DefinitionInformationTable.xlsx", sheet = "DefinitionInformation", rows = c(2:3), cols = c(1:7))
+information_table <- read.xlsx("DefinitionInformationTable.xlsx", sheet = "DefinitionInformation", rows = c(2:5), cols = c(1:7))
 
 ```
 

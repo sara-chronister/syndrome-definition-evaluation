@@ -241,7 +241,7 @@ write.csv(file = paste0("Output_OneDef/",def1_short," Matched Elements.csv"),
 
 
 ___
-*The template for this report was created by Sara Chronister (Maricopa County Department of Public Health). For questions, ideas for improvement/collaboration, or attribution, please reach out to <sara.chronister@doh.wa.gov>.*
+*The template for this report was created by Sara Chronister. For questions, ideas for improvement/collaboration, or attribution, please reach out to <sara.chronister@doh.wa.gov>.*
 
 
 

@@ -36,4 +36,4 @@ If you are planning to use this tool for syndrome development, I would recommed 
 * Run the report using the "Knit" button and share the files as necessary and appropriate.
 
 ___
-*For questions, ideas for improvement/collaboration, or attribution, please reach out to <sara.chronister@maricopa.gov>.*
+*For questions, ideas for improvement/collaboration, or attribution, please reach out to <sara.chronister@doh.wa.gov>.*

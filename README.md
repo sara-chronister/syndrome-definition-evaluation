@@ -7,7 +7,7 @@ The purpose of this tool is to allow ESSENCE users to evaluate the data details 
 * A csv file for each combination of definitions possible containing a subset of variables important in the manual review process. These files do contain identifiable information and should be handled accordingly. 
 * A csv file containing details about the definition elements (codes and terms) that can be used to evaluate the performance of individual elements in query results. These files do contain identifiable information and should be handled accordingly. 
 
-If you are planning to use this tool for syndrome development, I would recommed starting with the steps laid out in this document prior to starting with this tool: https://kr-drupal.syndromicsurveillance.org/developing-evaluating-and-disseminating-definitions-syndromic-surveillance-public-health-practice.
+If you are planning to use this tool for syndrome development, I would recommed starting with the steps laid out in the Syndrome Definition Guidance document prior to starting with this tool. This document was developed by members of the NSSP Syndrome Definition Committee with the purpose of providing a recommended protocol for developing and testing a new syndrome definition. This tool is useful in the "Refining the Syndrome" section of the document. (Included as a PDF in this repo and linked here: https://kr-drupal.syndromicsurveillance.org/developing-evaluating-and-disseminating-definitions-syndromic-surveillance-public-health-practice)
 
 ## Instructions:
 

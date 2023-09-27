@@ -40,7 +40,7 @@ packages_cran <- c(
   "stringr"
 )
 
-p_load(packages_cran, update = TRUE, character.only = TRUE)
+p_load(packages_cran, update = FALSE, character.only = TRUE)
 
 #### Packages not on CRAN -------------------
 if ("Rnssp" %in% rownames(installed.packages()) == FALSE) {

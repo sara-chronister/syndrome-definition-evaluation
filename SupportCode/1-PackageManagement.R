@@ -35,18 +35,24 @@ packages_cran <- c(
   "lubridate",
   "dplyr",
   "readr",
-  "jpeg"
+  "jpeg",
+  "tidyr",
+  "stringr"
 )
 
-p_load(packages_cran, update = TRUE, character.only = TRUE)
+p_load(packages_cran, update = FALSE, character.only = TRUE)
 
 #### Packages not on CRAN -------------------
 if ("Rnssp" %in% rownames(installed.packages()) == FALSE) {
   devtools::install_github("cdcgov/Rnssp")
   library(Rnssp)
+} else {
+  library(Rnssp)
 }
 
 if ("d3treeR" %in% rownames(installed.packages()) == FALSE) {
   devtools::install_github("timelyportfolio/d3treeR")
+  library(d3treeR)
+} else {
   library(d3treeR)
 }

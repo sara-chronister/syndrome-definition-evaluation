@@ -124,6 +124,7 @@ clean_Admit_Reason_Combo <- function(data = my_file) {
     mutate(Admit_Reason_Combo = toupper(Admit_Reason_Combo)) %>%
     mutate(Admit_Reason_Combo = str_replace_na(Admit_Reason_Combo, replacement = "NA")) %>%
     mutate(Admit_Reason_Combo = str_replace_all(Admit_Reason_Combo, "PT", "PATIENT")) %>%
+    mutate(Admit_Reason_Combo = str_replace_all(Admit_Reason_Combo, "\.", "")) %>%
     mutate(number_chars_admit = str_count(Admit_Reason_Combo),
            number_words_admit = str_count(Admit_Reason_Combo, boundary("word"))) %>%
     mutate(

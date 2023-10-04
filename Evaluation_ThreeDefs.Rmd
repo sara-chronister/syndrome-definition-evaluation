@@ -30,7 +30,9 @@ def1_table <- information_table[information_table$defX=="def1",]
 def1_name <- def1_table$Syndrome
 def1_short <- def1_table$Abbreviation
 def1_structure <- clean_query_essence(def1_table$Structure)
-def1_structure_print <- str_replace_all(def1_table$Structure,"\\^","\\\\^")
+def1_structure_print <- def1_table$Structure %>%
+  str_replace_all(., pattern = "\\^", replacement = "\\\\^") %>%
+  str_replace_all(., pattern = "\\_", replacement = "\\\\_") # Prevents R Markdown from interpreting "_" as start/end of bold commands.
 def1_url <- def1_table$API
 
 ```
@@ -86,7 +88,9 @@ def2_table <- information_table[information_table$defX=="def2",]
 def2_name <- def2_table$Syndrome
 def2_short <- def2_table$Abbreviation
 def2_structure <- clean_query_essence(def2_table$Structure)
-def2_structure_print <- str_replace_all(def2_table$Structure,"\\^","\\\\^")
+def2_structure_print <- def2_table$Structure %>%
+  str_replace_all(., pattern = "\\^", replacement = "\\\\^") %>%
+  str_replace_all(., pattern = "\\_", replacement = "\\\\_") # Prevents R Markdown from interpreting "_" as start/end of bold commands.
 def2_url <- def2_table$API
 
 ```
@@ -142,7 +146,9 @@ def3_table <- information_table[information_table$defX=="def3",]
 def3_name <- def3_table$Syndrome
 def3_short <- def3_table$Abbreviation
 def3_structure <- clean_query_essence(def3_table$Structure)
-def3_structure_print <- str_replace_all(def3_table$Structure,"\\^","\\\\^")
+def3_structure_print <- def3_table$Structure %>%
+  str_replace_all(., pattern = "\\^", replacement = "\\\\^") %>%
+  str_replace_all(., pattern = "\\_", replacement = "\\\\_") # Prevents R Markdown from interpreting "_" as start/end of bold commands.
 def3_url <- def3_table$API
 
 ```

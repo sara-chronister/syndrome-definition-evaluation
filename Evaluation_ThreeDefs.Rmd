@@ -604,6 +604,11 @@ write.csv(file = paste0("Output_ThreeDefs/",def2_short," and ",def3_short," Visi
           x = three_defs_table[three_defs_table$def2_def3==1,],
           row.names = FALSE)
 
+# Def1 and Def2 and Def3
+write.csv(file = paste0("Output_ThreeDefs/",def1_short, " and ",def2_short," and ",def3_short," Visits.csv"),
+          x = three_defs_table[three_defs_table$All ==1,],
+          row.names = FALSE)
+
 # Def1 matched elements
 write.csv(file = paste0("Output_ThreeDefs/",def1_short," Matched Elements.csv"),
           x = def1_elements_detected,

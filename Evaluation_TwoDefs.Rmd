@@ -2,6 +2,8 @@
 output: html_document
 ---
 
+<!-- Setup -->
+
 ```{r setup, include=FALSE}
 
 knitr::opts_chunk$set(echo = TRUE)
@@ -9,23 +11,22 @@ knitr::opts_chunk$set(echo = TRUE)
 files.source <- list.files("SupportCode")
 sapply(paste0("SupportCode/",files.source),source)
 
-setup_information <- read.xlsx("DefinitionInformationTable.xlsx", sheet = "Setup", rows = c(2:3), cols = c(1:6), detectDates = TRUE)
+# Read in all DefinitionInformationTable excel sheets into a single, named list.
+DefinitionInformation <- multiplesheets(fname = "DefinitionInformationTable.xlsx")
 
-query_start <- as.Date(setup_information$StartDate)
-query_end <- as.Date(setup_information$EndDate)
-jurisdiction <- setup_information$Jurisdiction
+query_start <- DefinitionInformation[["Setup"]]$StartDate %>% as.Date()
+query_end <- DefinitionInformation[["Setup"]]$EndDate %>% as.Date()
+jurisdiction <- DefinitionInformation[["Setup"]]$Jurisdiction
 
-select_fields_table <- read.xlsx("DefinitionInformationTable.xlsx", sheet = "AppliedFields", rows = c(2:10), cols = 1) %>% 
-  filter(!is.na(Field)) 
-select_fields <- select_fields_table$Field
-
-information_table <- read.xlsx("DefinitionInformationTable.xlsx", sheet = "DefinitionInformation", rows = c(2:4), cols = c(1:7))
+select_fields <- DefinitionInformation[["AppliedFields"]] %>% filter(!is.na(Field)) %>% pull(Field) 
 
 ```
 
+<!-- Def1 -->
+
 ```{r def1_setup, echo=FALSE, message=FALSE, warning=FALSE}
 
-def1_table <- information_table[information_table$defX=="def1",]
+def1_table <- DefinitionInformation[["DefinitionInformation"]] %>% filter(defX == "def1")
 
 def1_name <- def1_table$Syndrome
 def1_short <- def1_table$Abbreviation
@@ -78,10 +79,11 @@ def1_elements_detected_table <- def1_elements_detected %>%
 
 ```
 
+<!-- Def2 -->
 
 ```{r def2_setup, echo=FALSE, message=FALSE, warning=FALSE}
 
-def2_table <- information_table[information_table$defX=="def2",]
+def2_table <- DefinitionInformation[["DefinitionInformation"]] %>% filter(defX == "def2") 
 
 def2_name <- def2_table$Syndrome
 def2_short <- def2_table$Abbreviation
@@ -133,7 +135,8 @@ def2_elements_detected_table <- def2_elements_detected %>%
   arrange(desc(`CCDD Matches`))
 
 ```
-  
+
+
 ---
 title: "Definition Evaluation: `r def1_name` and `r def2_name`"
 author: `r query_start` to `r query_end`
@@ -141,8 +144,8 @@ author: `r query_start` to `r query_end`
   
 **Jurisdiction**: `r jurisdiction`  
 **Report Created**: `r Sys.Date()`    
-**Point of Contact**: `r setup_information$PointOfContact` (`r setup_information$POCEmail`)    
-**Organization**: `r setup_information$Organization`
+**Point of Contact**: `r DefinitionInformation[["Setup"]]$PointOfContact` (`r DefinitionInformation[["Setup"]]$POCEmail`)    
+**Organization**: `r DefinitionInformation[["Setup"]]$Organization`
 
 
 
@@ -453,6 +456,8 @@ ggplot(data = top_words_combined) +
 
 ```
 
+<!-- Writing Linelists -->
+
 ```{r output, echo=FALSE, message=FALSE, warning=FALSE}
 
 # All Visits
@@ -488,6 +493,109 @@ write.csv(file = paste0("Output_TwoDefs/",def2_short," Matched Elements.csv"),
 
 ```
 
+<!-- Manual Review -->
+
+```{r manual review setup, include=FALSE}
+
+manual_review <- DefinitionInformation[["Setup"]]$ManualReview
+
+
+if(manual_review == TRUE){
+
+## Identify # of Reviewers
+n_reviewers <- DefinitionInformation[["ManualReviewInformation"]]$ReviewerID %>% max()
+
+## Identify Definitions to be Reviewed
+manual_review_defs <- strsplit(DefinitionInformation[["ManualReviewInformation"]]$ReviewDefinitions[1], split = ",")[[1]] %>%
+  str_trim(., side= "both") # takes a+ single string: def1 OR multiple: def1, def2, def3 from the excel sheet, and formats them nicely for analysis. Source: https://stackoverflow.com/questions/11927121/r-convert-string-to-vector-tokenize-using
+
+## Establish Sampling Parameters
+SampleMetric <- DefinitionInformation[["ManualReviewInformation"]] %>% filter(!is.na(SampleMetric)) %>% pull(SampleMetric)
+SampleValue <- DefinitionInformation[["ManualReviewInformation"]] %>% filter(!is.na(SampleValue)) %>% pull(SampleValue)
+StratifiedSample <- DefinitionInformation[["ManualReviewInformation"]] %>% filter(!is.na(StratifiedSample)) %>% pull(StratifiedSample)
+StratifiedVariables <- DefinitionInformation[["ManualReviewInformation"]] %>% filter(!is.na(StratifiedVariables)) %>% pull(StratifiedVariables)
+
+# Establish Review Scale
+ReviewScaleLow <- DefinitionInformation[["ManualReviewInformation"]]$ReviewScaleLow[1]
+ReviewScaleHigh <- DefinitionInformation[["ManualReviewInformation"]]$ReviewScaleHigh[1]
+
+## Check the user is using the correct Evaluation template for the number of definitions they want to manually review.
+
+manual_review_defs <- check_eval_template(eval_template = "TwoDef", review_defs = manual_review_defs)
+
+}
+```
+
+```{r manual review filepaths, include=FALSE}
+if(manual_review == TRUE){
+
+## Create Manual Review File Directories
+
+for(i in seq_along(manual_review_defs)){ # for each definition specified (i) create the following filepaths
+  
+  # Step 1: Create folder name for each definition undergoing manual review
+  def_review_folder <- name_def_review_folder(definition = manual_review_defs[i])
+
+  # Step 2: Create folders for each stage of a definition's manual review process
+  fs::dir_create(paste0("Manual_Review\\",def_review_folder,"\\Resources"))
+  fs::dir_create(paste0("Manual_Review\\",def_review_folder,"\\0_Raw_Data"))
+  fs::dir_create(paste0("Manual_Review\\",def_review_folder,"\\1_Reviewed_Data"))
+  fs::dir_create(paste0("Manual_Review\\",def_review_folder,"\\2_Comparison_Data"))
+  fs::dir_create(paste0("Manual_Review\\",def_review_folder,"\\3_Consensus_Data"))
+
+  # Step 3: Create subfolders for each reviewer examining a definition
+  for(j in 1:n_reviewers){ # for each reviewer specified (j) create reviewer specific subfolder (within each definition being reviewed)
+    
+  fs::dir_create(paste0("Manual_Review\\",def_review_folder,"\\1_Reviewed_Data\\Reviewer_",j))
+  }
+  
+  }
+rm(def_review_folder)
+}
+```
+
+```{r manual review files, include=FALSE}
+if(manual_review == TRUE){
+
+# Step 1: Format & Save Raw Data
+
+for(i in seq_along(manual_review_defs)){
+  
+  def_review_folder <- name_def_review_folder(definition = manual_review_defs[i])
+
+  get(manual_review_defs[i]) %>%
+    distinct(EssenceID, .keep_all = TRUE) %>% # Deduplicate records
+    add_date_components(df=.) %>% # Generate Date Components
+    select(Date, Weekday, Week, Month, Year, everything(),-starts_with("def")) %>% # Set Date/Date Components as first variables, remove def# tag var
+    write.csv(x = ., file = paste0("Manual_Review\\",def_review_folder,"\\0_Raw_Data\\",str_to_title(manual_review_defs[i]),"_Data.csv"))
+
+}
+
+  
+# Step 2: Formatting Data for Reviewers (IN PROGRESS)
+# Development Note: I will attempt to keep all Reviewer columns the same across IE #'s (Reviewer_TP_## and Reviewer_Notes) and then seek to differentiate these columns across Reviewers after the joining where R will auto-assign .x.y.z etc prefixes. This will likely be easier to work with than generating code to scan a flexible # of uniquely generated var names. 
+
+list <- list()
+  
+for(i in seq_along(manual_review_defs)){
+  
+  list[[i]] <- get(manual_review_defs[i]) %>%
+    get_sample(df=.,
+               sample_metric = SampleMetric,
+               sample_value = SampleValue,
+               strat_sample = StratifiedSample,
+               strat_vars = StratifiedVariables) %>%
+    mutate(!!paste0("Reviewer_TP_",ReviewScaleLow, ReviewScaleHigh) := NA,
+          Reviewer_Notes = NA) %>%
+    ## REORDER VARIABLES: BSI, REVIEWER VARS, EVERYTHING ELSE
+    select(Date, EssenceID,
+           !!paste0("Reviewer_TP_", ReviewScaleLow, ReviewScaleHigh),
+           Reviewer_Notes,everything())
+  
+}
+
+}
+```
 
 ___
 *The template for this report was created by Sara Chronister. For questions, ideas for improvement/collaboration, or attribution, please reach out to <sara.chronister@doh.wa.gov>.*

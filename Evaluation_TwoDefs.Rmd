@@ -200,7 +200,7 @@ join_vars <- c("Date", "EssenceID", select_fields)
 
 two_defs <- full_join(def1, def2, by = join_vars) %>%
   replace_na(replace = list(def1 = 0, def2 = 0)) %>% 
-  mutate(Total_Defs = def1+def2) 
+  mutate(Total_Defs = def1+def2)
 
 Def1_vs_Def2 <- two_defs
 colnames(Def1_vs_Def2)[which(colnames(Def1_vs_Def2)=="def1")] <- def1_short
@@ -476,7 +476,7 @@ write.csv(file = paste0("Output_TwoDefs/",def2_short," Only Visits.csv"),
 
 # Def1 and Def2 
 write.csv(file = paste0("Output_TwoDefs/",def1_short," and ",def2_short," Visits.csv"),
-          x = two_defs_table[two_defs_table$def1_def2==1,],
+          x = two_defs_table[two_defs_table$Both==1,],
           row.names = FALSE)
 
 # Def1 matched elements

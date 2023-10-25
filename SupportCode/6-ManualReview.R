@@ -13,6 +13,17 @@ add_date_components <- function(df, date_variable = "Date"){
   return(df_date)
 }
 
+## Filter NA & Pull
+
+pull_no_na <- function(df, variable){
+  
+  df_pulled <- df %>%
+    filter(!is.na(get(variable))) %>% # Remove All NA rows for the variable (likely unfilled EXCEL rows)
+    pull(get(variable)) # Get the value of the variable
+  
+  return(df_pulled)
+}
+
 ## Create Definition Review Folder Name
 
 name_def_review_folder <- function(definition){
@@ -61,9 +72,10 @@ get_sample <- function(df, sample_metric, sample_value,
     }
   }
   
-  # Remove Unnecessary Variables (these were designed for SRS)
-  sample <- sample %>%
-    select(-Weekday, -Week, -Month, -Year)
+  # Arrange Records & Remove Unnecessary Variables
+  sample <- sample %>% 
+    arrange(Date) %>%
+    select(-starts_with("def"))
   
   # Return sample
   return(sample)

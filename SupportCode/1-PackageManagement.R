@@ -38,7 +38,8 @@ packages_cran <- c(
   "readr",
   "jpeg",
   "tidyr",
-  "stringr"
+  "stringr",
+  "writexl"
 )
 
 p_load(packages_cran, update = FALSE, character.only = TRUE)

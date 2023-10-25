@@ -18,7 +18,7 @@ query_start <- DefinitionInformation[["Setup"]]$StartDate %>% as.Date()
 query_end <- DefinitionInformation[["Setup"]]$EndDate %>% as.Date()
 jurisdiction <- DefinitionInformation[["Setup"]]$Jurisdiction
 
-select_fields <- DefinitionInformation[["AppliedFields"]] %>% filter(!is.na(Field)) %>% pull(Field) 
+select_fields <- DefinitionInformation[["AppliedFields"]] %>% pull_no_na(df=., variable = "Field")
 
 ```
 
@@ -460,33 +460,35 @@ ggplot(data = top_words_combined) +
 
 ```{r output, echo=FALSE, message=FALSE, warning=FALSE}
 
+output_folder <- "Output_TwoDefs\\"
+
 # All Visits
-write.csv(file = "Output_TwoDefs/Two Defs All Visits.csv",
+write.csv(file = paste0(output_folder,"Two Defs All Visits.csv"),
           x = two_defs_table,
           row.names = FALSE)
 
 # Def1 only
-write.csv(file = paste0("Output_TwoDefs/",def1_short," Only Visits.csv"),
+write.csv(file = paste0(output_folder,def1_short," Only Visits.csv"),
           x = two_defs_table[two_defs_table$def1_only==1,],
           row.names = FALSE)
 
 # Def2 only
-write.csv(file = paste0("Output_TwoDefs/",def2_short," Only Visits.csv"),
+write.csv(file = paste0(output_folder,def2_short," Only Visits.csv"),
           x = two_defs_table[two_defs_table$def2_only==1,],
           row.names = FALSE)
 
 # Def1 and Def2 
-write.csv(file = paste0("Output_TwoDefs/",def1_short," and ",def2_short," Visits.csv"),
+write.csv(file = paste0(output_folder,def1_short," and ",def2_short," Visits.csv"),
           x = two_defs_table[two_defs_table$def1_def2==1,],
           row.names = FALSE)
 
 # Def1 matched elements
-write.csv(file = paste0("Output_TwoDefs/",def1_short," Matched Elements.csv"),
+write.csv(file = paste0(output_folder,"Matched_Elements/",def1_short," Matched Elements.csv"),
           x = def1_elements_detected,
           row.names = FALSE)
 
 # Def2 matched elements
-write.csv(file = paste0("Output_TwoDefs/",def2_short," Matched Elements.csv"),
+write.csv(file = paste0(output_folder,"Matched_Elements/",def2_short," Matched Elements.csv"),
           x = def2_elements_detected,
           row.names = FALSE)
 
@@ -505,23 +507,22 @@ if(manual_review == TRUE){
 ## Identify # of Reviewers
 n_reviewers <- DefinitionInformation[["ManualReviewInformation"]]$ReviewerID %>% max()
 
-## Identify Definitions to be Reviewed
-manual_review_defs <- strsplit(DefinitionInformation[["ManualReviewInformation"]]$ReviewDefinitions[1], split = ",")[[1]] %>%
-  str_trim(., side= "both") # takes a+ single string: def1 OR multiple: def1, def2, def3 from the excel sheet, and formats them nicely for analysis. Source: https://stackoverflow.com/questions/11927121/r-convert-string-to-vector-tokenize-using
+# ## Identify Definitions to be Reviewed
+manual_review_defs <- c("def1", "def2") # Change based on Evaluation Template #
 
 ## Establish Sampling Parameters
-SampleMetric <- DefinitionInformation[["ManualReviewInformation"]] %>% filter(!is.na(SampleMetric)) %>% pull(SampleMetric)
-SampleValue <- DefinitionInformation[["ManualReviewInformation"]] %>% filter(!is.na(SampleValue)) %>% pull(SampleValue)
-StratifiedSample <- DefinitionInformation[["ManualReviewInformation"]] %>% filter(!is.na(StratifiedSample)) %>% pull(StratifiedSample)
-StratifiedVariables <- DefinitionInformation[["ManualReviewInformation"]] %>% filter(!is.na(StratifiedVariables)) %>% pull(StratifiedVariables)
+SampleMetric <- DefinitionInformation[["ManualReviewInformation"]] %>% pull_no_na(df=., variable = "SampleMetric")
+SampleValue <- DefinitionInformation[["ManualReviewInformation"]] %>% pull_no_na(df=., variable = "SampleValue")
+StratifiedSample <- DefinitionInformation[["ManualReviewInformation"]] %>% pull_no_na(df=., variable = "StratifiedSample")
+StratifiedVariables <- DefinitionInformation[["ManualReviewInformation"]] %>% 
+  pull_no_na(df=., variable = "StratifiedVariables") %>% # Pull StratifiedVariables (remove NAs)
+  strsplit(., split = ",") %>% # Split single string "A, B" into a string vector c("A"," B") using the comma
+  unlist() %>%  # Unlist (strsplit() puts new vector into a list)
+  str_trim(., side="both") # Remove all whitespace on every string in the string vector: c("A", " B") --> c("A","B")
 
 # Establish Review Scale
 ReviewScaleLow <- DefinitionInformation[["ManualReviewInformation"]]$ReviewScaleLow[1]
 ReviewScaleHigh <- DefinitionInformation[["ManualReviewInformation"]]$ReviewScaleHigh[1]
-
-## Check the user is using the correct Evaluation template for the number of definitions they want to manually review.
-
-manual_review_defs <- check_eval_template(eval_template = "TwoDef", review_defs = manual_review_defs)
 
 }
 ```
@@ -537,16 +538,15 @@ for(i in seq_along(manual_review_defs)){ # for each definition specified (i) cre
   def_review_folder <- name_def_review_folder(definition = manual_review_defs[i])
 
   # Step 2: Create folders for each stage of a definition's manual review process
-  fs::dir_create(paste0("Manual_Review\\",def_review_folder,"\\Resources"))
-  fs::dir_create(paste0("Manual_Review\\",def_review_folder,"\\0_Raw_Data"))
-  fs::dir_create(paste0("Manual_Review\\",def_review_folder,"\\1_Reviewed_Data"))
-  fs::dir_create(paste0("Manual_Review\\",def_review_folder,"\\2_Comparison_Data"))
-  fs::dir_create(paste0("Manual_Review\\",def_review_folder,"\\3_Consensus_Data"))
+  fs::dir_create(paste0(output_folder, "Validation_Review\\",def_review_folder,"\\Resources"))
+  fs::dir_create(paste0(output_folder, "Validation_Review\\",def_review_folder,"\\1_Reviewed_Data"))
+  fs::dir_create(paste0(output_folder, "Validation_Review\\",def_review_folder,"\\2_Comparison_Data"))
+  fs::dir_create(paste0(output_folder, "Validation_Review\\",def_review_folder,"\\3_Consensus_Data"))
 
   # Step 3: Create subfolders for each reviewer examining a definition
   for(j in 1:n_reviewers){ # for each reviewer specified (j) create reviewer specific subfolder (within each definition being reviewed)
     
-  fs::dir_create(paste0("Manual_Review\\",def_review_folder,"\\1_Reviewed_Data\\Reviewer_",j))
+  fs::dir_create(paste0(output_folder, "Validation_Review\\",def_review_folder,"\\1_Reviewed_Data\\Reviewer_",j))
   }
   
   }
@@ -554,46 +554,50 @@ rm(def_review_folder)
 }
 ```
 
-```{r manual review files, include=FALSE}
+```{r manual reviewer files, include=FALSE}
 if(manual_review == TRUE){
 
-# Step 1: Format & Save Raw Data
-
-for(i in seq_along(manual_review_defs)){
-  
-  def_review_folder <- name_def_review_folder(definition = manual_review_defs[i])
-
-  get(manual_review_defs[i]) %>%
-    distinct(EssenceID, .keep_all = TRUE) %>% # Deduplicate records
-    add_date_components(df=.) %>% # Generate Date Components
-    select(Date, Weekday, Week, Month, Year, everything(),-starts_with("def")) %>% # Set Date/Date Components as first variables, remove def# tag var
-    write.csv(x = ., file = paste0("Manual_Review\\",def_review_folder,"\\0_Raw_Data\\",str_to_title(manual_review_defs[i]),"_Data.csv"))
-
-}
-
-  
-# Step 2: Formatting Data for Reviewers (IN PROGRESS)
 # Development Note: I will attempt to keep all Reviewer columns the same across IE #'s (Reviewer_TP_## and Reviewer_Notes) and then seek to differentiate these columns across Reviewers after the joining where R will auto-assign .x.y.z etc prefixes. This will likely be easier to work with than generating code to scan a flexible # of uniquely generated var names. 
 
 list <- list()
-  
+
 for(i in seq_along(manual_review_defs)){
   
+  # Step 1: Formatting Data for Reviewers (IN PROGRESS)
+  
   list[[i]] <- get(manual_review_defs[i]) %>%
+    distinct(EssenceID, .keep_all = TRUE) %>% # Deduplicate records
+    add_date_components(df=.) %>% # Generate Date Components (Date --> Weekday, Week, Month, Year)
     get_sample(df=.,
                sample_metric = SampleMetric,
                sample_value = SampleValue,
                strat_sample = StratifiedSample,
-               strat_vars = StratifiedVariables) %>%
+               strat_vars = StratifiedVariables) %>% # SAMPLE
     mutate(!!paste0("Reviewer_TP_",ReviewScaleLow, ReviewScaleHigh) := NA,
           Reviewer_Notes = NA) %>%
     ## REORDER VARIABLES: BSI, REVIEWER VARS, EVERYTHING ELSE
     select(Date, EssenceID,
            !!paste0("Reviewer_TP_", ReviewScaleLow, ReviewScaleHigh),
-           Reviewer_Notes,everything())
+           Reviewer_Notes,everything(),
+           -Weekday, -Week, -Month, -Year) %>%
+    ## REMOVE ALL CHARACTERS WHICH MAY CAUSE XML ERRORS WITH EXCEL FILES
+    mutate(across(.cols = where(is.character), 
+                  .fns = ~ str_replace_all(string=., pattern = "[^[:graph:]]", replacement = " "))) # Replace all characters that cannot be graphed with a space. 
   
-}
-
+  # Step 2: Create folder name for each definition undergoing manual review
+  
+  def_review_folder <- name_def_review_folder(definition = manual_review_defs[i])
+  
+  # Step 3: Save Review Data (1 copy for each reviewer examining each definition)
+  
+  for(j in 1:n_reviewers){ # for each reviewer specified (j) create reviewer specific subfolder (within each definition being reviewed)
+    
+    list[[i]] %>%
+      writexl::write_xlsx(x=., 
+                 path = paste0(output_folder, "Validation_Review\\",def_review_folder,"\\1_Reviewed_Data\\Reviewer_",j,
+                             "\\Reviewer_",j,"_Data.xlsx"))
+    }
+  }
 }
 ```
 

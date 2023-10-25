@@ -582,7 +582,7 @@ for(i in seq_along(manual_review_defs)){
            -Weekday, -Week, -Month, -Year) %>%
     ## REMOVE ALL CHARACTERS WHICH MAY CAUSE XML ERRORS WITH EXCEL FILES
     mutate(across(.cols = where(is.character), 
-                  .fns = ~ str_replace_all(string=., pattern = "[^[:graph:]]", replacement = " "))) # Replace all characters that cannot be graphed with a space. 
+                  .fns = ~ str_replace_all(string=., pattern = "[^[:graph:]]", replacement = " "))) # Replace all non-printable characters with a space (to prevent XML encoding issues when writing EXCEL files). 
   
   # Step 2: Create folder name for each definition undergoing manual review
   

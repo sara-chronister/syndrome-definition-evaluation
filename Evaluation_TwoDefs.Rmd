@@ -41,7 +41,7 @@ def1_url <- def1_table$API
 def1_full <- get_longterm_details(url = def1_url, start_date = query_start, end_date = query_end)
 
 def1 <- def1_full %>%
-  dplyr::select(Date, EssenceID, select_fields)  %>%
+  select(Date, EssenceID, all_of(select_fields))  %>%
   mutate(def1 = 1) %>%
   mutate(Date = as.Date(Date, format='%m/%d/%Y')) %>%
   filter(Date >= query_start) %>%
@@ -98,7 +98,7 @@ def2_url <- def2_table$API
 def2_full <- get_longterm_details(url = def2_url, start_date = query_start, end_date = query_end)
 
 def2 <- def2_full %>%
-  dplyr::select(Date, EssenceID, select_fields) %>%
+  select(Date, EssenceID, all_of(select_fields)) %>%
   mutate(def2 = 1) %>%
   mutate(Date = as.Date(Date, format='%m/%d/%Y')) %>%
   filter(Date >= query_start) %>%
@@ -114,7 +114,7 @@ def2_total_pretty <- format(def2_total, big.mark = ",", scientific = FALSE)
 def2_elements <- (def2_structure$`Syndrome Element`)
 
 def2_elements_detected <- def2 %>%
-  dplyr::select(EssenceID, ChiefComplaintParsed, DischargeDiagnosis) %>%
+  select(EssenceID, ChiefComplaintParsed, DischargeDiagnosis) %>%
   clean_ChiefComplaintParsed() %>%
   clean_DischargeDiagnosis() %>%
   mutate(CCDDclean = paste(ChiefComplaintParsed, DischargeDiagnosis)) %>%

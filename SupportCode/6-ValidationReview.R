@@ -1,4 +1,4 @@
-#### Functions to Assist Manual Review ------------
+#### Functions to Assist Validation Review ------------
 
 ## Add Date Components
 

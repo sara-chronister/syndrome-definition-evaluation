@@ -18,13 +18,13 @@ add_date_components <- function(df, date_variable = "Date"){
 name_def_review_folder <- function(definition){
   
   if(definition == "def1"){
-    def_review_folder_name <- paste0("Def1 (",def1_name,")")
+    def_review_folder_name <- paste0("Def1 (",def1_short,")")
     
   }else if(definition == "def2"){
-    def_review_folder_name <- paste0("Def2 (",def2_name,")")
+    def_review_folder_name <- paste0("Def2 (",def2_short,")")
     
   }else if(definition == "def3"){
-    def_review_folder_name <- paste0("Def3 (",def3_name,")")
+    def_review_folder_name <- paste0("Def3 (",def3_short,")")
   }
   
   return(def_review_folder_name)

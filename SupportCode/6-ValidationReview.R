@@ -29,13 +29,13 @@ pull_no_na <- function(df, variable){
 name_def_review_folder <- function(definition){
   
   if(definition == "def1"){
-    def_review_folder_name <- paste0("Def1 (",def1_short,")")
+    def_review_folder_name <- paste0("Def1 (",def1_name,")")
     
   }else if(definition == "def2"){
-    def_review_folder_name <- paste0("Def2 (",def2_short,")")
+    def_review_folder_name <- paste0("Def2 (",def2_name,")")
     
   }else if(definition == "def3"){
-    def_review_folder_name <- paste0("Def3 (",def3_short,")")
+    def_review_folder_name <- paste0("Def3 (",def3_name,")")
   }
   
   return(def_review_folder_name)

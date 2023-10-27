@@ -1,0 +1,135 @@
+---
+title: "Consensus Review"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+<!-- Setup -->
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+
+load("Resources\\Filepath.RData")
+
+```
+
+```{r Load in All Reviewer Data}
+
+list_reviewer <- list()
+
+for(i in 1:n_reviewers){
+
+list_reviewer[[i]] <- readxl::read_excel(path = paste0(filepath,"\\1_Reviewed_Data\\Reviewer_",i,"\\Reviewer_",i,"_Data.xlsx")) %>%
+  assign_review_label(df=.)
+
+names(list_reviewer)[[i]] <- paste0("Reviewer_",i)
+}
+
+```
+
+```{r Join All Reviewer Data}
+
+# Full Join All Reviewer Data Frames
+
+# Note: Each data frame will have added numeric suffixes added to their review columns. These suffixes can be used to identify individual reviewer scores once they are all joined together. (Ex: We have 3 reviewers using a 1-5 scale, we will join all their review DFs into one DF. Review columns will be: Reviewer_TP_15_[1-3], Reviewer_Notes_[1-3], and Reviewer_TP_Label_[1-3])
+
+comparison <- list_reviewer %>% reduce(full_join,
+                                   by = c("Row_Number","Date", "EssenceID", select_fields),
+                                   suffix = paste0("_",1:(length(list_reviewer)-1))) %>%
+  ### Applies suffix to final joined DF as reduce() does not apply it. ###
+  rename(!!paste0("Reviewer_TP_",ReviewScaleLow,ReviewScaleHigh,"_",n_reviewers) := !!paste0("Reviewer_TP_",ReviewScaleLow,ReviewScaleHigh),
+         !!paste0("Reviewer_Notes_",n_reviewers) := "Reviewer_Notes",
+         !!paste0("Reviewer_TP_Label_",n_reviewers) := "Reviewer_TP_Label") %>%
+  ## Reorder Variables ##
+  select(Row_Number, Date, EssenceID,
+         matches("[0-9]{2}\\_[0-9]{1,}"), ## Reviewer_TP_## variables
+         matches("Label\\_[0-9]{1,}"), # Reviewer_TP_Label variables
+         matches("Notes\\_[0-9]{1,}"), # Reviewer_Notes variables
+         everything()) # This reordering is needed to create the Agreement variable.
+
+
+```
+
+```{r Detect Agreements and Disagreements}
+
+comparison <- comparison %>%
+  rowwise() %>%
+  mutate(Agreement =
+           all(c_across(Reviewer_TP_Label_1:!!(paste0("Reviewer_TP_Label_",n_reviewers))) ==
+                 first(c_across(Reviewer_TP_Label_1:!!(paste0("Reviewer_TP_Label_",n_reviewers))))), # Agreement assess the IRR of Qualitative Review Categories (FP/Uncertain/TP),
+         Date = as.Date(Date)) %>% 
+  ### Reorder variables ###
+  select(Row_Number, Date, EssenceID, Agreement, everything())
+
+```
+
+<!-- Write Data -->
+
+```{r Write Comparison Datasets}
+
+# All
+comparison %>%
+  arrange(Agreement) %>%
+  writexl::write_xlsx(x=., path = paste0(filepath,"\\2_Comparison_Data\\Comparison_Data_All.xlsx"))
+
+# Disagreements Only
+comparison %>%
+  filter(Agreement == FALSE) %>%
+  writexl::write_xlsx(x=.,path = paste0(filepath,"\\2_Comparison_Data\\Comparison_Data_Disagreements.xlsx"))
+
+```
+
+```{r Write Consensus Dataset}
+
+comparison %>%
+  mutate(Consensus = case_when(
+    Agreement == TRUE ~ Reviewer_TP_Label_1,
+    TRUE ~ NA),
+    Consensus_Edits = NA) %>%
+  select(Row_Number, Date, EssenceID, Agreement, Consensus, Consensus_Edits, everything()) %>%
+  writexl::write_xlsx(x=.,path = paste0(filepath,"\\3_Consensus_Data\\Consensus_Data.xlsx"))
+
+```
+
+<!-- Assessing Interrater Reliability (IRR) -->
+
+```{r IRR setup}
+
+comparison_IRR <- comparison %>%
+  select(matches("[0-9]{2}\\_[0-9]{1,}")) # Include only the review columns with assigned values on the rating scale.
+```
+
+```{r QualReview Category Agreement}
+
+n_agree <- comparison %>% filter(Agreement == TRUE) %>% nrow()
+n_sample <- comparison %>% nrow()
+
+pcnt_agree <- paste0(round((n_agree/n_sample)*100,1),"%")
+pcnt_disagree <- paste0(round(((n_sample-n_agree)/n_sample)*100,1),"%")
+
+cat("Interrater Agreement (Qualitative Review Categories):\n Records: ",n_sample,"\n Raters: ", n_reviewers,"\n %-agree: ", pcnt_agree)
+
+```
+
+```{r Quant Review Scale Agreement}
+
+comparison_IRR %>% agree(.)
+```
+
+```{r Quant Review Scale Kappa}
+
+# 3) Cohen's & Light's Kappa
+# Source: (Discussing appropriate use of IRR statistics) https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3402032/
+
+if(n_reviewers == 2){ # Cohen's original Kappa only appropriate for 2 reviewers
+
+  comparison_IRR %>% kappa2(.)
+
+}else if(n_reviewers > 2){ # Light's Kappa - Average of all possible combinations of 2x2 Cohen Kappa's
+
+  comparison_IRR %>% kappam.light(.)
+
+}
+
+```
+

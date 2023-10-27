@@ -8,8 +8,8 @@ output: html_document
 
 knitr::opts_chunk$set(echo = TRUE)
 
-files.source <- list.files("SupportCode")
-sapply(paste0("SupportCode/",files.source),source)
+files.source <- list.files("SupportCode", pattern = "\\.R")
+sapply(paste0("SupportCode\\",files.source),source)
 
 # Read in all DefinitionInformationTable excel sheets into a single, named list.
 DefinitionInformation <- multiplesheets(fname = "DefinitionInformationTable.xlsx")
@@ -527,7 +527,7 @@ ReviewScaleHigh <- DefinitionInformation[["ManualReviewInformation"]]$ReviewScal
 }
 ```
 
-```{r manual review filepaths, include=FALSE}
+```{r manual review file directories, include=FALSE}
 if(manual_review == TRUE){
 
 ## Create Manual Review File Directories
@@ -563,11 +563,12 @@ list <- list()
 
 for(i in seq_along(manual_review_defs)){
   
-  # Step 1: Formatting Data for Reviewers (IN PROGRESS)
+  # Step 1: Formatting Data for Reviewers
   
   list[[i]] <- get(manual_review_defs[i]) %>%
     distinct(EssenceID, .keep_all = TRUE) %>% # Deduplicate records
     add_date_components(df=.) %>% # Generate Date Components (Date --> Weekday, Week, Month, Year)
+    mutate(Row_Number = row_number()) %>% # Generate Row # tags
     get_sample(df=.,
                sample_metric = SampleMetric,
                sample_value = SampleValue,
@@ -576,7 +577,7 @@ for(i in seq_along(manual_review_defs)){
     mutate(!!paste0("Reviewer_TP_",ReviewScaleLow, ReviewScaleHigh) := NA,
           Reviewer_Notes = NA) %>%
     ## REORDER VARIABLES: BSI, REVIEWER VARS, EVERYTHING ELSE
-    select(Date, EssenceID,
+    select(Row_Number, Date, EssenceID,
            !!paste0("Reviewer_TP_", ReviewScaleLow, ReviewScaleHigh),
            Reviewer_Notes,everything(),
            -Weekday, -Week, -Month, -Year) %>%
@@ -596,7 +597,23 @@ for(i in seq_along(manual_review_defs)){
       writexl::write_xlsx(x=., 
                  path = paste0(output_folder, "Validation_Review\\",def_review_folder,"\\1_Reviewed_Data\\Reviewer_",j,
                              "\\Reviewer_",j,"_Data.xlsx"))
-    }
+  }
+  
+  # Step 4: Set up Consensus Review Code for each definition's Validation Review Folder
+  
+  # Problem: When folks are running SyS Eval_ template, they have not yet started manual review --> so not yet time for Comparison/Consensus process --> need an additional script/button they can run when ready (Consensus_Review.Rmd).
+  
+  # Step 4a: Create a filepath  for each definition validation review
+  filepath <- paste0(output_folder, "Validation_Review\\", def_review_folder)
+  
+  # Step 4b: Save all parameters needed to run Consensus_Review.Rmd template
+  save(filepath, n_reviewers, ReviewScaleLow, ReviewScaleHigh, select_fields,
+       file = paste0(filepath,"\\Resources\\Consensus_Review_Parameters.RData"))
+  
+  # # Step 4c: Copy Consensus_Review.Rmd code template to each definition validation review folder.
+  file.copy(from = "SupportCode\\Consensus_Review\\Consensus_Review.Rmd",
+            to = paste0(filepath))
+
   }
 }
 ```

@@ -166,7 +166,7 @@ title: "Consensus Review: `r definition`"
 
 <br />
 
-# Information
+# Instructions
 
 After rendering this R Markdown report, review scale ratings assigned by the `r n_reviewers` participating reviewers will be compared to assess agreement and disagreement for each reviewed record. Comparison files will be available under **2_Comparison_Data**. 
 

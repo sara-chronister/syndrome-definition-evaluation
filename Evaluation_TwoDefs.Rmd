@@ -495,47 +495,47 @@ write.csv(file = paste0(output_folder,"Matched_Elements/",def2_short," Matched E
 
 ```
 
-<!-- Manual Review -->
+<!-- Validation Review -->
 
-```{r manual review setup, include=FALSE}
+```{r validation review setup, include=FALSE}
 
-manual_review <- DefinitionInformation[["Setup"]]$ManualReview
+validation_review <- DefinitionInformation[["Setup"]]$ValidationReview
 
 
-if(manual_review == TRUE){
+if(validation_review == TRUE){
 
 ## Identify # of Reviewers
-n_reviewers <- DefinitionInformation[["ManualReviewInformation"]]$ReviewerID %>% max()
+n_reviewers <- DefinitionInformation[["ValidationReviewInformation"]]$ReviewerID %>% max()
 
 # ## Identify Definitions to be Reviewed
-manual_review_defs <- c("def1", "def2") # Change based on Evaluation Template #
+validation_review_defs <- c("def1", "def2") # Change based on Evaluation Template #
 
 ## Establish Sampling Parameters
-SampleMetric <- DefinitionInformation[["ManualReviewInformation"]] %>% pull_no_na(df=., variable = "SampleMetric")
-SampleValue <- DefinitionInformation[["ManualReviewInformation"]] %>% pull_no_na(df=., variable = "SampleValue")
-StratifiedSample <- DefinitionInformation[["ManualReviewInformation"]] %>% pull_no_na(df=., variable = "StratifiedSample")
-StratifiedVariables <- DefinitionInformation[["ManualReviewInformation"]] %>% 
+SampleMetric <- DefinitionInformation[["ValidationReviewInformation"]] %>% pull_no_na(df=., variable = "SampleMetric")
+SampleValue <- DefinitionInformation[["ValidationReviewInformation"]] %>% pull_no_na(df=., variable = "SampleValue")
+StratifiedSample <- DefinitionInformation[["ValidationReviewInformation"]] %>% pull_no_na(df=., variable = "StratifiedSample")
+StratifiedVariables <- DefinitionInformation[["ValidationReviewInformation"]] %>% 
   pull_no_na(df=., variable = "StratifiedVariables") %>% # Pull StratifiedVariables (remove NAs)
   strsplit(., split = ",") %>% # Split single string "A, B" into a string vector c("A"," B") using the comma
   unlist() %>%  # Unlist (strsplit() puts new vector into a list)
   str_trim(., side="both") # Remove all whitespace on every string in the string vector: c("A", " B") --> c("A","B")
 
 # Establish Review Scale
-ReviewScaleLow <- DefinitionInformation[["ManualReviewInformation"]]$ReviewScaleLow[1]
-ReviewScaleHigh <- DefinitionInformation[["ManualReviewInformation"]]$ReviewScaleHigh[1]
+ReviewScaleLow <- DefinitionInformation[["ValidationReviewInformation"]]$ReviewScaleLow[1]
+ReviewScaleHigh <- DefinitionInformation[["ValidationReviewInformation"]]$ReviewScaleHigh[1]
 
 }
 ```
 
 ```{r manual review file directories, include=FALSE}
-if(manual_review == TRUE){
+if(validation_review == TRUE){
 
 ## Create Manual Review File Directories
 
-for(i in seq_along(manual_review_defs)){ # for each definition specified (i) create the following filepaths
+for(i in seq_along(validation_review_defs)){ # for each definition specified (i) create the following filepaths
   
   # Step 1: Create folder name for each definition undergoing manual review
-  def_review_folder <- name_def_review_folder(definition = manual_review_defs[i])
+  def_review_folder <- name_def_review_folder(definition = validation_review_defs[i])
 
   # Step 2: Create folders for each stage of a definition's manual review process
   fs::dir_create(paste0(output_folder, "Validation_Review\\",def_review_folder,"\\Resources"))
@@ -554,17 +554,17 @@ rm(def_review_folder)
 ```
 
 ```{r manual reviewer files, include=FALSE}
-if(manual_review == TRUE){
+if(validation_review == TRUE){
 
 # Development Note: I will attempt to keep all Reviewer columns the same across IE #'s (Reviewer_TP_## and Reviewer_Notes) and then seek to differentiate these columns across Reviewers after the joining where R will auto-assign .x.y.z etc prefixes. This will likely be easier to work with than generating code to scan a flexible # of uniquely generated var names. 
 
 list <- list()
 
-for(i in seq_along(manual_review_defs)){
+for(i in seq_along(validation_review_defs)){
   
   # Step 1: Formatting Data for Reviewers
   
-  list[[i]] <- get(manual_review_defs[i]) %>%
+  list[[i]] <- get(validation_review_defs[i]) %>%
     distinct(EssenceID, .keep_all = TRUE) %>% # Deduplicate records
     add_date_components(df=.) %>% # Generate Date Components (Date --> Weekday, Week, Month, Year)
     mutate(Row_Number = row_number()) %>% # Generate Row # tags
@@ -586,7 +586,7 @@ for(i in seq_along(manual_review_defs)){
   
   # Step 2: Create folder name for each definition undergoing manual review
   
-  def_review_folder <- name_def_review_folder(definition = manual_review_defs[i])
+  def_review_folder <- name_def_review_folder(definition = validation_review_defs[i])
   
   # Step 3: Save Review Data (1 copy for each reviewer examining each definition)
   

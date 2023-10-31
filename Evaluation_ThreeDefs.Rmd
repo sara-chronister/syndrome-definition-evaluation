@@ -2,26 +2,30 @@
 output: html_document
 ---
 
+<!-- Setup -->
+
 ```{r setup, include=FALSE}
 
 knitr::opts_chunk$set(echo = TRUE)
 
-files.source <- list.files("SupportCode")
-sapply(paste0("SupportCode/",files.source),source)
+files.source <- list.files("SupportCode", pattern = "\\.R")
+sapply(paste0("SupportCode\\",files.source),source)
 
-setup_information <- read.xlsx("DefinitionInformationTable.xlsx", sheet = "Setup", rows = c(2:3), cols = c(1:6), detectDates = TRUE)
+# Read in all DefinitionInformationTable excel sheets into a single, named list.
+DefinitionInformation <- multiplesheets(fname = "DefinitionInformationTable.xlsx")
 
-query_start <- as.Date(setup_information$StartDate)
-query_end <- as.Date(setup_information$EndDate)
-jurisdiction <- setup_information$Jurisdiction
+query_start <- DefinitionInformation[["Setup"]]$StartDate %>% as.Date()
+query_end <- DefinitionInformation[["Setup"]]$EndDate %>% as.Date()
+jurisdiction <- DefinitionInformation[["Setup"]]$Jurisdiction
 
-select_fields_table <- read.xlsx("DefinitionInformationTable.xlsx", sheet = "AppliedFields", rows = c(2:10), cols = 1) %>% 
-  filter(!is.na(Field)) 
-select_fields <- select_fields_table$Field
+select_fields <- DefinitionInformation[["AppliedFields"]] %>% pull_no_na(df=., variable = "Field")
 
-information_table <- read.xlsx("DefinitionInformationTable.xlsx", sheet = "DefinitionInformation", rows = c(2:5), cols = c(1:7))
+# Define Output Folder 
+output_folder <- "Output_ThreeDefs\\"
 
 ```
+
+<!-- Def1 -->
 
 ```{r def1_setup, echo=FALSE, message=FALSE, warning=FALSE}
 
@@ -78,6 +82,7 @@ def1_elements_detected_table <- def1_elements_detected %>%
 
 ```
 
+<!-- Def2 -->
 
 ```{r def2_setup, echo=FALSE, message=FALSE, warning=FALSE}
 
@@ -134,6 +139,7 @@ def2_elements_detected_table <- def2_elements_detected %>%
 
 ```
 
+<!-- Def3 -->
 
 ```{r def3_setup, echo=FALSE, message=FALSE, warning=FALSE}
 

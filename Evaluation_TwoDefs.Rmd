@@ -528,17 +528,17 @@ ReviewScaleHigh <- DefinitionInformation[["ValidationReviewInformation"]]$Review
 }
 ```
 
-```{r manual review file directories, include=FALSE}
+```{r validation review file directories, include=FALSE}
 if(validation_review == TRUE){
 
-## Create Manual Review File Directories
+## Create Validation Review File Directories
 
 for(i in seq_along(validation_review_defs)){ # for each definition specified (i) create the following filepaths
   
-  # Step 1: Create folder name for each definition undergoing manual review
+  # Step 1: Create folder name for each definition undergoing validation review
   def_review_folder <- name_def_review_folder(definition = validation_review_defs[i])
 
-  # Step 2: Create folders for each stage of a definition's manual review process
+  # Step 2: Create folders for each stage of a definition's validation review process
   fs::dir_create(paste0(output_folder, "Validation_Review\\",def_review_folder,"\\Resources"))
   fs::dir_create(paste0(output_folder, "Validation_Review\\",def_review_folder,"\\1_Reviewed_Data"))
   fs::dir_create(paste0(output_folder, "Validation_Review\\",def_review_folder,"\\2_Comparison_Data"))
@@ -554,7 +554,7 @@ rm(def_review_folder)
 }
 ```
 
-```{r manual reviewer files, include=FALSE}
+```{r validation reviewer files, include=FALSE}
 if(validation_review == TRUE){
 
 # Development Note: I will attempt to keep all Reviewer columns the same across IE #'s (Reviewer_TP_## and Reviewer_Notes) and then seek to differentiate these columns across Reviewers after the joining where R will auto-assign .x.y.z etc prefixes. This will likely be easier to work with than generating code to scan a flexible # of uniquely generated var names. 
@@ -585,7 +585,7 @@ for(i in seq_along(validation_review_defs)){
     mutate(across(.cols = where(is.character), 
                   .fns = ~ str_replace_all(string=., pattern = "[^[:graph:]]", replacement = " "))) # Replace all non-printable characters with a space (to prevent XML encoding issues when writing EXCEL files). 
   
-  # Step 2: Create folder name for each definition undergoing manual review
+  # Step 2: Create folder name for each definition undergoing validation review
   
   def_review_folder <- name_def_review_folder(definition = validation_review_defs[i])
   
@@ -601,7 +601,7 @@ for(i in seq_along(validation_review_defs)){
   
   # Step 4: Set up Consensus Review Code for each definition's Validation Review Folder
   
-  # Problem: When folks are running SyS Eval_ template, they have not yet started manual review --> so not yet time for Comparison/Consensus process --> need an additional script/button they can run when ready (Consensus_Review.Rmd).
+  # Problem: When folks are running SyS Eval_ template, they have not yet started validation review --> so not yet time for Comparison/Consensus process --> need an additional script/button they can run when ready (Consensus_Review.Rmd).
   
   # Step 4a: Create a filepath  for each definition validation review
   filepath <- paste0(output_folder, "Validation_Review\\", def_review_folder)

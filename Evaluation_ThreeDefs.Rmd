@@ -512,7 +512,6 @@ my_file <- clean_TriageNotesOrig()
 
 ```
 
-
 ```{r top_terms, echo=FALSE, message = FALSE, warning = FALSE, fig.width=10, fig.height=8}
 
 def_sets <- list(my_file[my_file$def1==1,],
@@ -572,56 +571,63 @@ ggplot(data = top_words_combined) +
 
 ```
 
+<!-- Writing Linelists -->
+
 ```{r output, echo=FALSE, message=FALSE, warning=FALSE}
 
 
 # All Visits
-write.csv(file = "Output_ThreeDefs/Three Defs All Visits.csv",
+write.csv(file = paste0(output_folder, "Three Defs All Visits.csv"),
           x = three_defs_table,
           row.names = FALSE)
 
 # Def1 only
-write.csv(file = paste0("Output_ThreeDefs/",def1_short," Only Visits.csv"),
+write.csv(file = paste0(output_folder,def1_short," Only Visits.csv"),
           x = three_defs_table[three_defs_table$def1_only==1,],
           row.names = FALSE)
 
 # Def2 only
-write.csv(file = paste0("Output_ThreeDefs/",def2_short," Only Visits.csv"),
+write.csv(file = paste0(output_folder,def2_short," Only Visits.csv"),
           x = three_defs_table[three_defs_table$def2_only==1,],
           row.names = FALSE)
 
 # Def3 only
-write.csv(file = paste0("Output_ThreeDefs/",def3_short," Only Visits.csv"),
+write.csv(file = paste0(output_folder,def3_short," Only Visits.csv"),
           x = three_defs_table[three_defs_table$def3_only==1,],
           row.names = FALSE)
 
 # Def1 and Def2 
-write.csv(file = paste0("Output_ThreeDefs/",def1_short," and ",def2_short," Visits.csv"),
+write.csv(file = paste0(output_folder,def1_short," and ",def2_short," Visits.csv"),
           x = three_defs_table[three_defs_table$def1_def2==1,],
           row.names = FALSE)
 
 # Def1 and Def3 
-write.csv(file = paste0("Output_ThreeDefs/",def1_short," and ",def3_short," Visits.csv"),
+write.csv(file = paste0(output_folder,def1_short," and ",def3_short," Visits.csv"),
           x = three_defs_table[three_defs_table$def1_def3==1,],
           row.names = FALSE)
 
 # Def2 and Def3 
-write.csv(file = paste0("Output_ThreeDefs/",def2_short," and ",def3_short," Visits.csv"),
+write.csv(file = paste0(output_folder,def2_short," and ",def3_short," Visits.csv"),
           x = three_defs_table[three_defs_table$def2_def3==1,],
           row.names = FALSE)
 
+# Def1 and Def2 and Def3
+write.csv(file = paste0(output_folder,def1_short, " and ",def2_short," and ",def3_short," Visits.csv"),
+          x = three_defs_table[three_defs_table$All ==1,],
+          row.names = FALSE)
+
 # Def1 matched elements
-write.csv(file = paste0("Output_ThreeDefs/",def1_short," Matched Elements.csv"),
+write.csv(file = paste0(output_folder,"Matched_Elements/",def1_short," Matched Elements.csv"),
           x = def1_elements_detected,
           row.names = FALSE)
 
 # Def2 matched elements
-write.csv(file = paste0("Output_ThreeDefs/",def2_short," Matched Elements.csv"),
+write.csv(file = paste0(output_folder,"Matched_Elements/",def2_short," Matched Elements.csv"),
           x = def2_elements_detected,
           row.names = FALSE)
 
 # Def3 matched elements
-write.csv(file = paste0("Output_ThreeDefs/",def3_short," Matched Elements.csv"),
+write.csv(file = paste0(output_folder,"Matched_Elements/",def3_short," Matched Elements.csv"),
           x = def3_elements_detected,
           row.names = FALSE)
 

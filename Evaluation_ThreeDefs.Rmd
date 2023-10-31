@@ -634,7 +634,127 @@ write.csv(file = paste0(output_folder,"Matched_Elements/",def3_short," Matched E
 
 ```
 
+<!-- Validation Review -->
 
+```{r validation review setup, include=FALSE}
+
+validation_review <- DefinitionInformation[["Setup"]]$ValidationReview
+
+
+if(validation_review == TRUE){
+
+## Identify # of Reviewers
+n_reviewers <- DefinitionInformation[["ValidationReviewInformation"]]$ReviewerID %>% max()
+
+# ## Identify Definitions to be Reviewed
+validation_review_defs <- c("def1", "def2") # Change based on Evaluation Template #
+
+## Establish Sampling Parameters
+SampleMetric <- DefinitionInformation[["ValidationReviewInformation"]] %>% pull_no_na(df=., variable = "SampleMetric")
+SampleValue <- DefinitionInformation[["ValidationReviewInformation"]] %>% pull_no_na(df=., variable = "SampleValue")
+StratifiedSample <- DefinitionInformation[["ValidationReviewInformation"]] %>% pull_no_na(df=., variable = "StratifiedSample")
+StratifiedVariables <- DefinitionInformation[["ValidationReviewInformation"]] %>% 
+  pull_no_na(df=., variable = "StratifiedVariables") %>% # Pull StratifiedVariables (remove NAs)
+  strsplit(., split = ",") %>% # Split single string "A, B" into a string vector c("A"," B") using the comma
+  unlist() %>%  # Unlist (strsplit() puts new vector into a list)
+  str_trim(., side="both") # Remove all whitespace on every string in the string vector: c("A", " B") --> c("A","B")
+
+# Establish Review Scale
+ReviewScaleLow <- DefinitionInformation[["ValidationReviewInformation"]]$ReviewScaleLow[1]
+ReviewScaleHigh <- DefinitionInformation[["ValidationReviewInformation"]]$ReviewScaleHigh[1]
+
+}
+```
+
+```{r validation review file directories, include=FALSE}
+if(validation_review == TRUE){
+
+## Create Validation Review File Directories
+
+for(i in seq_along(validation_review_defs)){ # for each definition specified (i) create the following filepaths
+  
+  # Step 1: Create folder name for each definition undergoing validation review
+  def_review_folder <- name_def_review_folder(definition = validation_review_defs[i])
+
+  # Step 2: Create folders for each stage of a definition's validation review process
+  fs::dir_create(paste0(output_folder, "Validation_Review\\",def_review_folder,"\\Resources"))
+  fs::dir_create(paste0(output_folder, "Validation_Review\\",def_review_folder,"\\1_Reviewed_Data"))
+  fs::dir_create(paste0(output_folder, "Validation_Review\\",def_review_folder,"\\2_Comparison_Data"))
+  fs::dir_create(paste0(output_folder, "Validation_Review\\",def_review_folder,"\\3_Consensus_Data"))
+
+  # Step 3: Create subfolders for each reviewer examining a definition
+  for(j in 1:n_reviewers){ # for each reviewer specified (j) create reviewer specific subfolder (within each definition being reviewed)
+    
+  fs::dir_create(paste0(output_folder, "Validation_Review\\",def_review_folder,"\\1_Reviewed_Data\\Reviewer_",j))
+    }
+  }
+rm(def_review_folder)
+}
+```
+
+```{r validation reviewer files, include=FALSE}
+if(validation_review == TRUE){
+
+# Development Note: I will attempt to keep all Reviewer columns the same across IE #'s (Reviewer_TP_## and Reviewer_Notes) and then seek to differentiate these columns across Reviewers after the joining where R will auto-assign .x.y.z etc prefixes. This will likely be easier to work with than generating code to scan a flexible # of uniquely generated var names. 
+
+list <- list()
+
+for(i in seq_along(validation_review_defs)){
+  
+  # Step 1: Formatting Data for Reviewers
+  
+  list[[i]] <- get(validation_review_defs[i]) %>%
+    distinct(EssenceID, .keep_all = TRUE) %>% # Deduplicate records
+    add_date_components(df=.) %>% # Generate Date Components (Date --> Weekday, Week, Month, Year)
+    mutate(Row_Number = row_number()) %>% # Generate Row # tags
+    get_sample(df=.,
+               sample_metric = SampleMetric,
+               sample_value = SampleValue,
+               strat_sample = StratifiedSample,
+               strat_vars = StratifiedVariables) %>% # SAMPLE
+    mutate(!!paste0("Reviewer_TP_",ReviewScaleLow, ReviewScaleHigh) := NA,
+          Reviewer_Notes = NA) %>%
+    ## REORDER VARIABLES: BSI, REVIEWER VARS, EVERYTHING ELSE
+    select(Row_Number, Date, EssenceID,
+           !!paste0("Reviewer_TP_", ReviewScaleLow, ReviewScaleHigh),
+           Reviewer_Notes,everything(),
+           -Weekday, -Week, -Month, -Year) %>%
+    ## REMOVE ALL CHARACTERS WHICH MAY CAUSE XML ERRORS WITH EXCEL FILES
+    mutate(across(.cols = where(is.character), 
+                  .fns = ~ str_replace_all(string=., pattern = "[^[:graph:]]", replacement = " "))) # Replace all non-printable characters with a space (to prevent XML encoding issues when writing EXCEL files). 
+  
+  # Step 2: Create folder name for each definition undergoing validation review
+  
+  def_review_folder <- name_def_review_folder(definition = validation_review_defs[i])
+  
+  # Step 3: Save Review Data (1 copy for each reviewer examining each definition)
+  
+  for(j in 1:n_reviewers){ # for each reviewer specified (j) create reviewer specific subfolder (within each definition being reviewed)
+    
+    list[[i]] %>%
+      writexl::write_xlsx(x=., 
+                 path = paste0(output_folder, "Validation_Review\\",def_review_folder,"\\1_Reviewed_Data\\Reviewer_",j,
+                             "\\Reviewer_",j,"_Data.xlsx"))
+  }
+  
+  # Step 4: Set up Consensus Review Code for each definition's Validation Review Folder
+  
+  # Problem: When folks are running SyS Eval_ template, they have not yet started validation review --> so not yet time for Comparison/Consensus process --> need an additional script/button they can run when ready (Consensus_Review.Rmd).
+  
+  # Step 4a: Create a filepath  for each definition validation review
+  filepath <- paste0(output_folder, "Validation_Review\\", def_review_folder)
+  
+  # Step 4b: Save all parameters needed to run Consensus_Review.Rmd template
+  save(filepath, DefinitionInformation,
+       file = paste0(filepath,"\\Resources\\Consensus_Review_Parameters.RData"))
+  
+  # # Step 4c: Copy Consensus_Review.Rmd code template to each definition validation review folder.
+  file.copy(from = "SupportCode\\Consensus_Review\\Consensus_Review.Rmd",
+            to = paste0(filepath))
+
+  }
+}
+```
 ___
 *The template for this report was created by Sara Chronister. For questions, ideas for improvement/collaboration, or attribution, please reach out to <sara.chronister@doh.wa.gov>.*
 

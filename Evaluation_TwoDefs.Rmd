@@ -20,6 +20,9 @@ jurisdiction <- DefinitionInformation[["Setup"]]$Jurisdiction
 
 select_fields <- DefinitionInformation[["AppliedFields"]] %>% pull_no_na(df=., variable = "Field")
 
+# Define Output Folder 
+output_folder <- "Output_TwoDefs\\"
+
 ```
 
 <!-- Def1 -->
@@ -460,8 +463,6 @@ ggplot(data = top_words_combined) +
 
 ```{r output, echo=FALSE, message=FALSE, warning=FALSE}
 
-output_folder <- "Output_TwoDefs\\"
-
 # All Visits
 write.csv(file = paste0(output_folder,"Two Defs All Visits.csv"),
           x = two_defs_table,
@@ -606,9 +607,7 @@ for(i in seq_along(validation_review_defs)){
   filepath <- paste0(output_folder, "Validation_Review\\", def_review_folder)
   
   # Step 4b: Save all parameters needed to run Consensus_Review.Rmd template
-  save(filepath, n_reviewers, select_fields,
-       ReviewScaleLow, ReviewScaleHigh, jurisdiction,
-       DefinitionInformation,
+  save(filepath, DefinitionInformation,
        file = paste0(filepath,"\\Resources\\Consensus_Review_Parameters.RData"))
   
   # # Step 4c: Copy Consensus_Review.Rmd code template to each definition validation review folder.

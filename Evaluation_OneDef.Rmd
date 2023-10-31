@@ -170,7 +170,6 @@ my_file <- clean_TriageNotesOrig()
 
 ```
 
-
 ```{r top_terms, echo=FALSE, message = FALSE, warning = FALSE, fig.width=10, fig.height=8}
 
 def_sets <- list(my_file[my_file$def1==1,])
@@ -227,6 +226,8 @@ ggplot(data = top_words_combined) +
   )
 
 ```
+
+<!-- Writing Linelists -->
 
 ```{r output, echo=FALSE, message=FALSE, warning=FALSE}
 

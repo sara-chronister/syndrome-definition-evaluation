@@ -4,24 +4,20 @@ output: html_document
 
 <!-- Setup -->
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE)
-
-load("Resources\\Consensus_Review_Parameters.RData")
-
-pacman::p_load(irr,
-               readxl,
-               tidyverse,
-               writexl)
-
-definition <- str_extract(string = filepath, pattern = "\\([:alpha:]{1,}\\)") %>% 
-  str_remove_all(string =., pattern = '[:punct:]') # (Corresponding def#_name is extracted from filepath.)
-
-```
-
 ```{r Custom Functions}
 
-## Cut Review Scale into Categories
+## Function 1: Pull Non-NA Parameter Values from DefinitionInformation
+
+pull_no_na <- function(df, variable){
+  
+  df_pulled <- df %>%
+    filter(!is.na(get(variable))) %>% # Remove All NA rows for the variable (likely unfilled EXCEL rows)
+    pull(get(variable)) # Get the value of the variable
+  
+  return(df_pulled)
+}
+
+## Function 2a: Cut Review Scale into Categories (function used inside 2b)
 
 cut_review_scale <- function(scale_low, scale_high){
   
@@ -47,7 +43,7 @@ cut_review_scale <- function(scale_low, scale_high){
   return(rating_categories)
 }
 
-## Assign Category labels to data frame
+## Function 2b: Assign Category labels to data frame
 
 assign_review_label <- function(df, review_scale_low = ReviewScaleLow, review_scale_high = ReviewScaleHigh){
   
@@ -74,6 +70,37 @@ assign_review_label <- function(df, review_scale_low = ReviewScaleLow, review_sc
   # Return labelled dataframe to global environment
   return(df_labelled)
 }
+
+```
+
+```{r Setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+
+load("Resources\\Consensus_Review_Parameters.RData")
+
+pacman::p_load(irr,
+               readxl,
+               tidyverse,
+               writexl)
+
+### Recreate Needed Evaluation_[X]Defs Parameters from DefinitionInformation
+
+# Number of Validation Reviewers
+n_reviewers <- DefinitionInformation[["ValidationReviewInformation"]]$ReviewerID %>% max()
+
+# ESSENCE fields included
+select_fields <- DefinitionInformation[["AppliedFields"]] %>% pull_no_na(df=., variable = "Field")
+
+# Jurisdiction of Validation Reviewers
+jurisdiction <- DefinitionInformation[["Setup"]]$Jurisdiction
+
+# Review Scale: High/Low
+ReviewScaleLow <- DefinitionInformation[["ValidationReviewInformation"]]$ReviewScaleLow[1]
+ReviewScaleHigh <- DefinitionInformation[["ValidationReviewInformation"]]$ReviewScaleHigh[1]
+
+# Extract Defintion Undergoing Validation Review 
+definition <- str_extract(string = filepath, pattern = "\\([:alpha:]{1,}\\)") %>% 
+  str_remove_all(string =., pattern = '[:punct:]') # (Corresponding def#_name is extracted from filepath.)
 
 ```
 

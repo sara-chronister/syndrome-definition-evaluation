@@ -22,26 +22,33 @@ pull_no_na <- function(df, variable){
 cut_review_scale <- function(scale_low, scale_high){
   
   rating_scale <- seq(from = scale_low, to = scale_high, by = 1) # Create rating scale vector (of integers)
+  scale_length <- length(rating_scale) 
+  n_chunks <- scale_length %% 2 # 0 remainder for even, 1 remainder for odd
   
-  scale_length <- length(rating_scale) %% 2 # 0 remainder for even, 1 remainder for odd
+  rating_categories <- list()
   
-  n_chunks <- ifelse(scale_length == 0, 2, 3) # Determine the number of chunks to cutting the rating scale along to apply qualitative categories.
-  
-  rating_categories <- split(rating_scale, cut(seq_along(rating_scale), n_chunks)) # Source: https://www.geeksforgeeks.org/split-vector-into-chunks-in-r/#
-  
-  ## Assign List Element Names Detailing the Scale Category ##
-  
-  if(n_chunks == 2){
+  if(n_chunks == 0){
     
-    names(rating_categories) <- c("False Positive", "True Positive")
+    half <- scale_length %/% 2
+    tp_floor <- half + 1
     
-  }else if(n_chunks == 3){
+    rating_categories[["False Positive"]] <- seq(from = scale_low, to = half, by = 1)
+    rating_categories[["True Positive"]] <- seq(from = tp_floor, to = scale_high, by = 1)
     
-    names(rating_categories) <- c("False Positive", "Uncertain", "True Positive")
+  }else if(n_chunks != 0){
+    
+    half <- (scale_length %/% 2 + 1)
+    fp_ceiling <- half - 1
+    tp_floor <- half + 1 
+      
+    rating_categories[["False Positive"]] <- seq(from = scale_low, to = fp_ceiling, by = 1)
+    rating_categories[["Uncertain"]] <- half
+    rating_categories[["True Positive"]] <- seq(from = tp_floor, to = scale_high, by = 1)
   }
   
   return(rating_categories)
 }
+
 
 ## Function 2b: Assign Category labels to data frame
 

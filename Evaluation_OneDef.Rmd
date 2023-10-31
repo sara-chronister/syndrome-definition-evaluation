@@ -89,8 +89,8 @@ author: `r query_start` to `r query_end`
   
 **Jurisdiction**: `r jurisdiction`  
 **Report Created**: `r Sys.Date()`    
-**Point of Contact**: `r setup_information$PointOfContact` (`r setup_information$POCEmail`)    
-**Organization**: `r setup_information$Organization`
+**Point of Contact**: `r DefinitionInformation[["Setup"]]$PointOfContact` (`r DefinitionInformation[["Setup"]]$POCEmail`)    
+**Organization**: `r DefinitionInformation[["Setup"]]$Organization`
 
 
 

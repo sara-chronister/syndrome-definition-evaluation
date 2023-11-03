@@ -64,3 +64,6 @@ Output_ThreeDefs/*
 
 # Ignore Knitted Syndrome Validation Templates
 *.html
+
+# Ignore RData Files (in Subdirectories)
+*.RData

@@ -29,7 +29,7 @@ output_folder <- "Output_OneDef\\"
 
 ```{r def1_setup, echo=FALSE, message=FALSE, warning=FALSE}
 
-def1_table <- information_table[information_table$defX=="def1",]
+def1_table <- DefinitionInformation[["DefinitionInformation"]] %>% filter(defX == "def1")
 
 def1_name <- def1_table$Syndrome
 def1_short <- def1_table$Abbreviation
@@ -257,7 +257,7 @@ if(validation_review == TRUE){
 n_reviewers <- DefinitionInformation[["ValidationReviewInformation"]]$ReviewerID %>% max()
 
 # ## Identify Definitions to be Reviewed
-validation_review_defs <- c("def1", "def2") # Change based on Evaluation Template #
+validation_review_defs <- c("def1") # Change based on Evaluation Template #
 
 ## Establish Sampling Parameters
 SampleMetric <- DefinitionInformation[["ValidationReviewInformation"]] %>% pull_no_na(df=., variable = "SampleMetric")

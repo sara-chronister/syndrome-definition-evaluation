@@ -29,7 +29,7 @@ output_folder <- "Output_ThreeDefs\\"
 
 ```{r def1_setup, echo=FALSE, message=FALSE, warning=FALSE}
 
-def1_table <- information_table[information_table$defX=="def1",]
+def1_table <- DefinitionInformation[["DefinitionInformation"]] %>% filter(defX == "def1")
 
 def1_name <- def1_table$Syndrome
 def1_short <- def1_table$Abbreviation
@@ -86,7 +86,7 @@ def1_elements_detected_table <- def1_elements_detected %>%
 
 ```{r def2_setup, echo=FALSE, message=FALSE, warning=FALSE}
 
-def2_table <- information_table[information_table$defX=="def2",]
+def2_table <- DefinitionInformation[["DefinitionInformation"]] %>% filter(defX == "def2")
 
 def2_name <- def2_table$Syndrome
 def2_short <- def2_table$Abbreviation
@@ -143,7 +143,7 @@ def2_elements_detected_table <- def2_elements_detected %>%
 
 ```{r def3_setup, echo=FALSE, message=FALSE, warning=FALSE}
 
-def3_table <- information_table[information_table$defX=="def3",]
+def3_table <- DefinitionInformation[["DefinitionInformation"]] %>% filter(defX == "def3")
 
 def3_name <- def3_table$Syndrome
 def3_short <- def3_table$Abbreviation
@@ -647,7 +647,7 @@ if(validation_review == TRUE){
 n_reviewers <- DefinitionInformation[["ValidationReviewInformation"]]$ReviewerID %>% max()
 
 # ## Identify Definitions to be Reviewed
-validation_review_defs <- c("def1", "def2") # Change based on Evaluation Template #
+validation_review_defs <- c("def1", "def2", "def3") # Change based on Evaluation Template #
 
 ## Establish Sampling Parameters
 SampleMetric <- DefinitionInformation[["ValidationReviewInformation"]] %>% pull_no_na(df=., variable = "SampleMetric")

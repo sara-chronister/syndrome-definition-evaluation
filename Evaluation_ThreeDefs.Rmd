@@ -679,8 +679,7 @@ for(i in seq_along(validation_review_defs)){ # for each definition specified (i)
   # Step 2: Create folders for each stage of a definition's validation review process
   fs::dir_create(paste0(output_folder, "Validation_Review\\",def_review_folder,"\\Resources"))
   fs::dir_create(paste0(output_folder, "Validation_Review\\",def_review_folder,"\\1_Reviewed_Data"))
-  fs::dir_create(paste0(output_folder, "Validation_Review\\",def_review_folder,"\\2_Comparison_Data"))
-  fs::dir_create(paste0(output_folder, "Validation_Review\\",def_review_folder,"\\3_Consensus_Data"))
+  fs::dir_create(paste0(output_folder, "Validation_Review\\",def_review_folder,"\\2_Consensus_Data"))
 
   # Step 3: Create subfolders for each reviewer examining a definition
   for(j in 1:n_reviewers){ # for each reviewer specified (j) create reviewer specific subfolder (within each definition being reviewed)
@@ -748,8 +747,12 @@ for(i in seq_along(validation_review_defs)){
   save(filepath, DefinitionInformation,
        file = paste0(filepath,"\\Resources\\Consensus_Review_Parameters.RData"))
   
-  # # Step 4c: Copy Consensus_Review.Rmd code template to each definition validation review folder.
-  file.copy(from = "SupportCode\\Consensus_Review\\Consensus_Review.Rmd",
+  # Step 4c: Copy Pre_Consensus_Review.Rmd code template to each definition validation review folder.
+  file.copy(from = "SupportCode\\Consensus_Review\\Pre_Consensus_Review.Rmd",
+            to = paste0(filepath))
+  
+  # Step 4d: Copy Post_Consensus_Review.Rmd code template to each definition validation review folder.
+  file.copy(from = "SupportCode\\Consensus_Review\\Post_Consensus_Review.Rmd",
             to = paste0(filepath))
 
   }

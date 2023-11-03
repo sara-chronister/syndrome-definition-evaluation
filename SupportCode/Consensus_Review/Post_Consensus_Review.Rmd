@@ -1,5 +1,8 @@
 ---
-output: html_document
+output: 
+  html_document:
+    toc: true
+    toc_float: true
 ---
 
 <!-- Setup -->
@@ -103,6 +106,7 @@ prep_cm <- function(df, use_case){
 return(df_prepped)
 }
 
+
 ```
 
 ```{r Setup, include=FALSE}
@@ -203,7 +207,7 @@ title: "Post-Consensus Review: `r definition`"
 
 After rendering this R Markdown report, review scale ratings assigned by the `r n_reviewers` participating reviewers will be compared to assess agreement and disagreement for each reviewed record. Additionally, query performance metrics (by reviewer) and interrater reliability metrics will be generated below. These metrics have been provided to allow the `r n_reviewers` participating reviewers to assess how closely aligned their ratings are and address any issues that may have emerged during the validation review process. 
 
-When you are ready to discuss validation review findings and come to a consensus decision between the `r n_reviewers` participating reviewers (particularly for records where there was disagreements), access the following file:  **3_Consensus_Data/Consensus_Data.xlsx**. 
+When you are ready to discuss validation review findings and come to a consensus decision between the `r n_reviewers` participating reviewers (particularly for records where there was disagreements), access the following file:  **2_Consensus_Data/Consensus_Data.xlsx**. 
 
 [Within **Consensus_Data.xlsx**:]{.underline}
 
@@ -211,7 +215,7 @@ When you are ready to discuss validation review findings and come to a consensus
 - After a consensus decision has been made, fill in the **Consensus_Label** variable with the agreed upon review category: **`r names(ReviewScale)`**
 - (*Optional; if helpful*) Fill out the **Consensus_Edits** to explain which reviewer(s) changed their review category and rating upon coming to a consensus decision. This documentation will provide clarity as to how disagreements were resolved and what pieces of information may be useful to informing final decisions.
 
-After completing the consensus review process and running **Post_Consensus_Review.Rmd**, query performance metrics (utilizing consensus labels) will be generated. Additionally, **Consensus_Data.xlsx** will be copied and subsetted (to remove the no longer needed *Reviewer* variables). This data will be called **Consensus_Data_Clean.xlsx**. 
+After completing the consensus review process and running **Post_Consensus_Review.Rmd**, query performance metrics (utilizing consensus labels) will be generated. Additionally, **Consensus_Data.xlsx** will be copied and subset to remove the no longer needed *Reviewer* variables. This data will be called **Consensus_Data_Clean.xlsx**. 
 
 <br />
 
@@ -221,10 +225,14 @@ Examining the initial agreement between the `r n_reviewers` participating review
 
 ```{r IRR setup}
 
+# Generate Storage List
+list_reviewer_IRR <- list()
+
 comparison_IRR <- comparison %>%
-  select(matches("[0-9]{2}\\_[0-9]{1,}")) # Include only the review columns with assigned values on the rating scale.
+  select(matches("[0-9]{2}\\_[0-9]{1,}")) # Include only the review columns with assigned values on the rating scale, removes other variables (ex: Review_TP_15_[REVIEWER#]).
 
 ```
+
 <br />
 
 ## Percent Agreement: Review Categories
@@ -235,11 +243,11 @@ This section examines the level of agreement across the **broad, qualitative rev
 
 n_agree <- comparison %>% filter(Agreement == TRUE) %>% nrow()
 n_sample <- comparison %>% nrow()
-
 pcnt_agree <- round((n_agree/n_sample)*100,1)
-pcnt_disagree <- round(((n_sample-n_agree)/n_sample)*100,1)
 
-cat("Interrater Agreement:\n Records: ",n_sample,"\n Raters: ", n_reviewers,"\n %-agree: ", pcnt_agree)
+list_reviewer_IRR[["Percent Agreement: Review Categories"]] <- paste0("Interrater Agreement:\n Records: ",n_sample,"\n Raters: ", n_reviewers,"\n %-agree: ", pcnt_agree)
+
+cat(list_reviewer_IRR[["Percent Agreement: Review Categories"]])
 
 ```
 <br />
@@ -259,7 +267,7 @@ print(ReviewScale)
 
 ```{r Quant Review Scale Agreement}
 
-comparison_IRR %>% agree(.)
+(list_reviewer_IRR[["Percent Agreement: Review Scales"]] <- comparison_IRR %>% irr::agree(.))
 
 ```
 
@@ -297,11 +305,11 @@ if(n_reviewers == 2){
 
 if(n_reviewers == 2){ # Cohen's original Kappa only appropriate for 2 reviewers
 
-  comparison_IRR %>% kappa2(.)
+  (list_reviewer_IRR[["Cohen's Kappa"]] <- comparison_IRR %>% irr::kappa2(.))
 
 }else if(n_reviewers > 2){ # Light's Kappa - Average of all possible combinations of 2x2 Cohen Kappa's
 
-  comparison_IRR %>% kappam.light(.)
+  (list_reviewer_IRR[["Light's Kappa"]] <- comparison_IRR %>% irr::kappam.light(.))
 }
 
 ```
@@ -309,9 +317,6 @@ if(n_reviewers == 2){ # Cohen's original Kappa only appropriate for 2 reviewers
 <br />
 
 # Query Performance (by Individual Reviewer) {.tabset}
-
-Examining the performance metrics by each of the `r n_reviewers` participating reviewers (before Consensus Review) can provide **initial insight** into the performance of the definition as well as how consistent review categories and ratings were across the reviewers. 
-
 
 ```{r Query Performance by Reviewer}
 
@@ -347,12 +352,11 @@ reviewer_query_performance <- lapply(seq_along(list_reviewer), function(i) {knit
 
 <br />
 <br />
-
-
+  
+  
 # Query Performance (Consensus)
-
+  
 Examining definitions using a consensus review framework may provide less-biased estimates than those of an individual reviewer as multiple backgrounds, skill sets, and perspectives are included in the classification of a record.  
-
 
 ```{r Query Performance Consensus}
 
@@ -360,11 +364,11 @@ Examining definitions using a consensus review framework may provide less-biased
 list_consensus <- list()
 
 # Read in Consensus Data (Post-Consensus Review)
-list_consensus[["Consensus_Data"]] <- readxl::read_excel(path = paste0("3_Consensus_Data\\Consensus_Data.xlsx")) 
+list_consensus[["Consensus_Data"]] <- readxl::read_excel(path = paste0("2_Consensus_Data\\Consensus_Data.xlsx")) 
 
 # Prepare Consensus Data for Confusion Matrix
 consensus_cm <- list_consensus[["Consensus_Data"]] %>% 
-     prep_cm(df=., use_case = "consensus")
+  prep_cm(df=., use_case = "consensus")
 
 # Generate Confusion Matrix
 (list_consensus[["Confusion_Matrix"]] <- caret::confusionMatrix(data = consensus_cm$Definition, reference = consensus_cm$Consensus_Label))
@@ -378,13 +382,15 @@ list_consensus[["Consensus_Data_Clean"]] <- list_consensus[["Consensus_Data"]] %
   select(-Agreement, -Consensus_Edits, -matches("Reviewer"))  # Remove all Reviewer Variables (except Consensus_Label)
 
 # Write Excel File
-writexl::write_xlsx(list_consensus[["Consensus_Data_Clean"]], path = "3_Consensus_Data\\Consensus_Data_Clean.xlsx")
+writexl::write_xlsx(list_consensus[["Consensus_Data_Clean"]], path = "2_Consensus_Data\\Consensus_Data_Clean.xlsx")
 
 ```
 
 ```{r Write Consensus RData File}
 
-save(list_consensus, file = "3_Consensus_Data\\Consensus.RData")
+save(list_consensus, file = "2_Consensus_Data\\Consensus.RData")
 
 ```
+
+
 

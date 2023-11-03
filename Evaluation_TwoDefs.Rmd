@@ -542,7 +542,7 @@ for(i in seq_along(validation_review_defs)){ # for each definition specified (i)
   fs::dir_create(paste0(output_folder, "Validation_Review\\",def_review_folder,"\\Resources"))
   fs::dir_create(paste0(output_folder, "Validation_Review\\",def_review_folder,"\\1_Reviewed_Data"))
 
-  if(n_reviewer > 1){ # Only create consensus data folders if > 1 reviewer.
+  if(n_reviewers > 1){ # Only create consensus data folders if > 1 reviewer.
       fs::dir_create(paste0(output_folder, "Validation_Review\\",def_review_folder,"\\2_Consensus_Data"))
     }
   

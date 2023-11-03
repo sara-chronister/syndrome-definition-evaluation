@@ -153,11 +153,11 @@ list_reviewer[[i]] <- readxl::read_excel(path = paste0("1_Reviewed_Data\\Reviewe
 
 names(list_reviewer)[[i]] <- paste0("Reviewer_",i)
 }
-
 ```
 
 ```{r Join All Reviewer Data}
-
+if(n_reviewers > 1){
+  
 # Full Join All Reviewer Data Frames
 
 # Note: Each data frame will have added numeric suffixes added to their review columns. These suffixes can be used to identify individual reviewer scores once they are all joined together. (Ex: We have 3 reviewers using a 1-5 scale, we will join all their review DFs into one DF. Review columns will be: Reviewer_TP_15_[1-3], Reviewer_Notes_[1-3], and Reviewer_TP_Label_[1-3])
@@ -176,11 +176,12 @@ comparison <- list_reviewer %>% reduce(full_join,
          matches("Notes\\_[0-9]{1,}"), # Reviewer_Notes variables
          everything()) # This reordering is needed to create the Agreement variable.
 
-
+}
 ```
 
 ```{r Detect Agreements and Disagreements}
-
+if(n_reviewers > 1){
+  
 comparison <- comparison %>%
   rowwise() %>%
   mutate(Agreement =
@@ -190,21 +191,24 @@ comparison <- comparison %>%
   ### Reorder variables ###
   select(Row_Number, Date, EssenceID, Agreement, everything())
 
+}
 ```
 
 <!-- Write Data -->
 
 ```{r Write Consensus Dataset}
-
-comparison %>%
+if(n_reviewers > 1){
+ 
+  comparison %>%
   arrange(Agreement) %>% # Disagreements at the top
   mutate(Consensus_Label = case_when(
     Agreement == TRUE ~ Reviewer_TP_Label_1,
     TRUE ~ NA),
     Consensus_Edits = ifelse(Agreement == TRUE, "-", NA)) %>%
   select(Row_Number, Date, EssenceID, Agreement, Consensus_Label, Consensus_Edits, everything()) %>%
-  writexl::write_xlsx(x=.,path = paste0("2_Consensus_Data\\Consensus_Data.xlsx"))
-
+  writexl::write_xlsx(x=.,path = paste0("2_Consensus_Data\\Consensus_Data.xlsx")) 
+  
+}
 ```
 
 ---
@@ -216,90 +220,123 @@ title: "Pre-Consensus Review: `r definition`"
 **Point of Contact**: `r DefinitionInformation[["Setup"]]$PointOfContact` (`r DefinitionInformation[["Setup"]]$POCEmail`)    
 **Organization**: `r DefinitionInformation[["Setup"]]$Organization`
 
-<br />
 
-# Consensus Review Instructions
+```{r Instructions Text, results= 'asis'}
+if(n_reviewers == 1){
+  
+  cat(paste0(
+    '# Instructions\n',
+    'After rendering this R Markdown report, query performance metrics will be generated below. There is no need to run **Post_Consensus_Review.Rmd** unless you wish to conduct an additional validation review cycle with multiple participating reviewers.'
+  ))
+  
+}else if(n_reviewers > 1){
+  
+  cat(paste0(
+    '# Consensus Review Instructions\n',
+    'After rendering this R Markdown report, validation reviews by each ofthe participating reviewers will be compared to assess agreement and disagreement for each reviewed record. Additionally, query performance metrics (by reviewer) and interrater reliability metrics will be generated below. These metrics have been provided to assess how closely aligned participants were in their validation reviews and address any issues that may have emerged during the validation review process.\n',
+    'When you are ready to discuss validation review findings and come to a consensus decision among the participating reviewers (particularly for records where there were disagreements), access the following file:  **2_Consensus_Data/Consensus_Data.xlsx**.\n',
+    '\n',
+    '[Within **Consensus_Data.xlsx**:]{.underline}\n',
+    '\n',
+    '- Discuss records where there are disagreements between the `r n_reviewers` (the **Agreement** variable will be FALSE).\n',
+    '- After a consensus decision has been made, fill in the **Consensus_Label** variable with the agreed upon review category.\n',
+    '- (*Optional; if helpful*) Fill out the **Consensus_Edits** to explain which reviewer(s) changed their review category and rating upon coming to a consensus decision. This documentation will provide clarity as to how disagreements were resolved and what pieces of information may be useful to informing final decisions.\n',
+    '\n',
+    'After completing the consensus review process and running **Post_Consensus_Review.Rmd**, query performance metrics (utilizing consensus labels) will be generated. Additionally, **Consensus_Data.xlsx** will be copied and subset to remove the no longer needed *Reviewer* variables. This data will be called **Consensus_Data_Clean.xlsx**.'
+    ))
+}
 
-After rendering this R Markdown report, review scale ratings assigned by the `r n_reviewers` participating reviewers will be compared to assess agreement and disagreement for each reviewed record. Additionally, query performance metrics (by reviewer) and interrater reliability metrics will be generated below. These metrics have been provided to allow the `r n_reviewers` participating reviewers to assess how closely aligned their ratings are and address any issues that may have emerged during the validation review process. 
+```
 
-When you are ready to discuss validation review findings and come to a consensus decision between the `r n_reviewers` participating reviewers (particularly for records where there was disagreements), access the following file:  **2_Consensus_Data/Consensus_Data.xlsx**. 
+```{r Assessing Interrater Reliability Text, results = 'asis'}
+if(n_reviewers > 1){
+  cat(
+    paste0('# Assessing Interrater Reliability  {.tabset}\n',
+           'Examining the initial agreement between the `r n_reviewers` participating reviewers (before Consensus Review) can provide some insight into the reliability of the reviewer metrics as well as how difficult the reviewed definition was to classify. ')
+    )
+}
 
-[Within **Consensus_Data.xlsx**:]{.underline}
-
-- Discuss records where there are disagreements between the `r n_reviewers` (the **Agreement** variable will be FALSE).
-- After a consensus decision has been made, fill in the **Consensus_Label** variable with the agreed upon review category: **`r names(ReviewScale)`**
-- (*Optional; if helpful*) Fill out the **Consensus_Edits** to explain which reviewer(s) changed their review category and rating upon coming to a consensus decision. This documentation will provide clarity as to how disagreements were resolved and what pieces of information may be useful to informing final decisions.
-
-After completing the consensus review process and running **Post_Consensus_Review.Rmd**, query performance metrics (utilizing consensus labels) will be generated. Additionally, **Consensus_Data.xlsx** will be copied and subset to remove the no longer needed *Reviewer* variables. This data will be called **Consensus_Data_Clean.xlsx**. 
-
-<br />
-
-# Assessing Interrater Reliability  {.tabset}
-
-Examining the initial agreement between the `r n_reviewers` participating reviewers (before Consensus Review) can provide some insight into the reliability of the reviewer metrics as well as how difficult the reviewed definition was to classify. 
+```
 
 ```{r IRR setup}
-
-# Generate Storage List
+if(n_reviewers > 1){
+ 
+  # Generate Storage List
 list_reviewer_IRR <- list()
 
 comparison_IRR <- comparison %>%
-  select(matches("[0-9]{2}\\_[0-9]{1,}")) # Include only the review columns with assigned values on the rating scale, removes other variables (ex: Review_TP_15_[REVIEWER#]).
-
+  select(matches("[0-9]{2}\\_[0-9]{1,}")) # Include only the review columns with assigned values on the rating scale, removes other variables (ex: Review_TP_15_[REVIEWER#]). 
+  
+}
 ```
-<br />
 
-## Percent Agreement: Review Categories
+```{r Percent Agreement Review Categories Text, results = 'asis'}
+if(n_reviewers > 1){
+  cat(
+    paste0('## Percent Agreement: Review Categories\n'),
+    paste0('This section examines the level of agreement across the **broad, qualitative review categories** applied to each record (typically what we care most about). For this validation review, the review categories included: **`r names(ReviewScale)`**.')
+  )
+}
+```
 
-This section examines the level of agreement across the **broad, qualitative review categories** applied to each record (typically what we care most about). For this validation review, the review categories included: **`r names(ReviewScale)`**.
-
-```{r Qual Review Category Agreement}
-
-n_agree <- comparison %>% filter(Agreement == TRUE) %>% nrow()
+```{r Percent Agreement Review Categories}
+if(n_reviewers > 1){
+ 
+  n_agree <- comparison %>% filter(Agreement == TRUE) %>% nrow()
 n_sample <- comparison %>% nrow()
 pcnt_agree <- round((n_agree/n_sample)*100,1)
 
 list_reviewer_IRR[["Percent Agreement: Review Categories"]] <- paste0("Interrater Agreement:\n Records: ",n_sample,"\n Raters: ", n_reviewers,"\n %-agree: ", pcnt_agree)
 
-cat(list_reviewer_IRR[["Percent Agreement: Review Categories"]])
-
+cat(list_reviewer_IRR[["Percent Agreement: Review Categories"]]) 
+  
+}
 ```
-<br />
-<br />
 
-## Percent Agreement: Review Scales
-
-This section examines the level of agreement across the **specific, quantitative review scale rating** applied to each record. For this validation review, the review scale ratings ranged from `r ReviewScaleLow` to `r ReviewScaleHigh` and were sorted into review categories using the following schema: 
+```{r Percent Agreement Review Scales Text, results = 'asis'}
+if(n_reviewers > 1){
+  cat(
+    paste0('## Percent Agreement: Review Scales\n'),
+    paste0('This section examines the level of agreement across the **specific, quantitative review scale rating** applied to each record. For this validation review, the review scale ratings ranged from `r ReviewScaleLow` to `r ReviewScaleHigh` and were sorted into review categories using the following schema: ')
+  )
+}
+```
 
 ```{r Print ReviewScale}
-
-print(ReviewScale)
-
+if(n_reviewers > 1){
+  
+  print(ReviewScale)
+}
 ```
-<br />
-<br />
 
-```{r Quant Review Scale Agreement}
+```{r Percent Agreement Review Scales}
+if(n_reviewers > 1){
 
 (list_reviewer_IRR[["Percent Agreement: Review Scales"]] <- comparison_IRR %>% irr::agree(.))
 
+}
 ```
 
 `r if(n_reviewers == 2){paste0('## ','Cohens Kappa: Review Scales')}`
 `r if(n_reviewers > 2){paste0('## ','Lights Kappa: Review Scales')}`
 
-Although Percent Agreement is a helpful and simple metric to quickly examine Interrater Reliability, it has a notable weakness. Percent Agreement does not adjust for the level of agreement that would be expected by random chance, and therefore overestimates the level of agreement between reviewers.The [Kappa statistic](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3402032/) is utilized to adress this weakness and can have values that range from 1 to -1. [Guidelines for examining Kappa values have suggested the following interpretation (although this may differ by use case):]{.underline}
+```{r Kappa Review Scales Text, results='asis'}
+if(n_reviewers > 1){
+  
+  cat(paste0("Although Percent Agreement is a helpful and simple metric to quickly examine Interrater Reliability, it has a notable weakness. Percent Agreement does not adjust for the level of agreement that would be expected by random chance, and therefore overestimates the level of agreement between reviewers.The [Kappa statistic](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3402032/) is utilized to adress this weakness and can have values that range from 1 to -1. [Guidelines for examining Kappa values have suggested the following interpretation (although this may differ by use case):]{.underline}
 
 * **-1 to -0.1**: Agreement is worse than random (active disagreement)
 * **0 to 0.2**: Slight Agreement
 * **0.21 to 0.4**: Fair Agreement
 * **0.41 to 0.60**: Moderate Agreement
 * **0.61 to 0.80**: Substantial Agreement
-* **0.81 to 1.0**: Almost Perfect or Perfect Agreement
+* **0.81 to 1.0**: Almost Perfect or Perfect Agreement"
+  ))
+  
+}
+```
 
-
-```{r Kappa Intro, results='asis'}
-
+```{r Kappa Review Scales Description, results='asis'}
 if(n_reviewers == 2){
   
   cat("The Kappa statistic presented below is **Cohen's Kappa statistic** which was developed to assess interrater reliability between **2** reviewers.")
@@ -327,10 +364,8 @@ if(n_reviewers == 2){ # Cohen's original Kappa only appropriate for 2 reviewers
 }
 
 ```
-<br />
-<br />
 
-# Query Performance (by Individual Reviewer) {.tabset}
+# Query Performance (by Reviewer) {.tabset}
 
 ```{r Query Performance by Reviewer}
 
@@ -364,11 +399,14 @@ reviewer_query_performance <- lapply(seq_along(list_reviewer), function(i) {knit
 
 `r knitr::knit(text = unlist(reviewer_query_performance))`
 
-<br />
-
 ```{r Write Reviewer RData File}
-
-save(list_reviewer, list_reviewer_cm, list_reviewer_IRR, file = "1_Reviewed_Data\\Reviewer_Data.RData")
-
+if(n_reviewers == 1){
+  
+    save(list_reviewer, list_reviewer_cm, file = "1_Reviewed_Data\\Reviewer_Data.RData")
+  
+}else if(n_reviewers > 1){
+  
+  save(list_reviewer, list_reviewer_cm, list_reviewer_IRR, file = "1_Reviewed_Data\\Reviewer_Data.RData")
+}
 ```
 

@@ -1,0 +1,361 @@
+---
+output: html_document
+---
+
+<!-- Setup -->
+
+```{r Custom Functions, echo=FALSE}
+
+## Function 1: Pull Non-NA Parameter Values from DefinitionInformation
+
+pull_no_na <- function(df, variable){
+  
+  df_pulled <- df %>%
+    filter(!is.na(get(variable))) %>% # Remove All NA rows for the variable (likely unfilled EXCEL rows)
+    pull(get(variable)) # Get the value of the variable
+  
+  return(df_pulled)
+}
+
+## Function 2a: Cut Review Scale into Categories (function used inside 2b)
+
+cut_review_scale <- function(scale_low, scale_high){
+  
+  rating_scale <- seq(from = scale_low, to = scale_high, by = 1) # Create rating scale vector (of integers)
+  scale_length <- length(rating_scale) 
+  n_chunks <- scale_length %% 2 # 0 remainder for even, 1 remainder for odd
+  
+  rating_categories <- list()
+  
+  if(n_chunks == 0){
+    
+    half <- scale_length %/% 2
+    tp_floor <- half + 1
+    
+    rating_categories[["False Positive"]] <- seq(from = scale_low, to = half, by = 1)
+    rating_categories[["True Positive"]] <- seq(from = tp_floor, to = scale_high, by = 1)
+    
+  }else if(n_chunks != 0){
+    
+    half <- (scale_length %/% 2 + 1)
+    fp_ceiling <- half - 1
+    tp_floor <- half + 1 
+      
+    rating_categories[["False Positive"]] <- seq(from = scale_low, to = fp_ceiling, by = 1)
+    rating_categories[["Uncertain"]] <- half
+    rating_categories[["True Positive"]] <- seq(from = tp_floor, to = scale_high, by = 1)
+  }
+  
+  return(rating_categories)
+}
+
+## Function 2b: Assign Category labels to data frame
+
+assign_review_label <- function(df, review_scale_low = ReviewScaleLow, review_scale_high = ReviewScaleHigh){
+  
+  # Create Rating Categories
+  rating_categories <- cut_review_scale(scale_low = review_scale_low, scale_high = review_scale_high)
+  
+  # Assign Rating Category Labels
+  if(length(rating_categories) == 2){ # If review_scale was even, only FP/TP (No Uncertain)
+    
+    df_labelled <- df %>%
+      mutate(Reviewer_TP_Label = case_when(
+        get(paste0("Reviewer_TP_",review_scale_low, review_scale_high)) %in% rating_categories[["False Positive"]] ~ "False Positive",
+        get(paste0("Reviewer_TP_",review_scale_low, review_scale_high)) %in% rating_categories[["True Positive"]] ~ "True Positive"))
+    
+  }else if(length(rating_categories) == 3){ # If review_scale was odd, FP/Uncertain/TP
+    
+    df_labelled <- df %>%
+      mutate(Reviewer_TP_Label = case_when(
+        get(paste0("Reviewer_TP_",review_scale_low, review_scale_high)) %in% rating_categories[["False Positive"]] ~ "False Positive",
+        get(paste0("Reviewer_TP_",review_scale_low, review_scale_high)) %in% rating_categories[["Uncertain"]] ~ "Uncertain",
+        get(paste0("Reviewer_TP_",review_scale_low, review_scale_high)) %in% rating_categories[["True Positive"]] ~ "True Positive"))
+  }
+  
+  # Return labelled dataframe to global environment
+  return(df_labelled)
+}
+
+## Function 3: Prepare data for caret::confusionMatrix()
+
+prep_cm <- function(df, use_case){
+  
+  df_prepped <- df %>%
+    mutate(Definition = "Positive", # Prediction Variable (Query Tagged) --> Will always be 1. 
+         Definition = factor(Definition, levels = c("Positive", "Negative")))
+  
+  if(use_case == "reviewer"){
+    
+    df_prepped <- df_prepped %>%
+      mutate(Reviewer_TP_Label = factor(Reviewer_TP_Label, # caret requires ordered factors -- Reference Variable (Validation Review)
+                                      levels = c("True Positive", "False Positive"), 
+                                      labels = c("Positive", "Negative"))) # shorten factor labels
+    
+  }else if(use_case == "consensus"){
+    
+    df_prepped <- df_prepped %>%
+      mutate(Consensus_Label = factor(Consensus_Label, # caret requires ordered factors -- Reference Variable (Validation Review)
+                                      levels = c("True Positive", "False Positive"), 
+                                      labels = c("Positive", "Negative"))) # shorten factor labels
+  }
+
+return(df_prepped)
+}
+
+
+```
+
+```{r Setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+
+load("Resources\\Consensus_Review_Parameters.RData")
+
+pacman::p_load(caret,
+               irr,
+               readxl,
+               tidyverse,
+               writexl)
+
+### Recreate Needed Evaluation_[X]Defs Parameters from DefinitionInformation
+
+# Number of Validation Reviewers
+n_reviewers <- DefinitionInformation[["ValidationReviewInformation"]]$ReviewerID %>% max()
+
+# ESSENCE fields included
+select_fields <- DefinitionInformation[["AppliedFields"]] %>% pull_no_na(df=., variable = "Field")
+
+# Jurisdiction of Validation Reviewers
+jurisdiction <- DefinitionInformation[["Setup"]]$Jurisdiction
+
+# Review Scale: High/Low
+ReviewScaleLow <- DefinitionInformation[["ValidationReviewInformation"]]$ReviewScaleLow[1]
+ReviewScaleHigh <- DefinitionInformation[["ValidationReviewInformation"]]$ReviewScaleHigh[1]
+ReviewScale <- cut_review_scale(scale_low = ReviewScaleLow, scale_high = ReviewScaleHigh)
+
+# Extract Defintion Undergoing Validation Review 
+definition <- str_extract(string = filepath, pattern = "\\([:alpha:]{1,}\\)") %>% 
+  str_remove_all(string =., pattern = '[:punct:]') # (Corresponding def#_name is extracted from filepath.)
+
+```
+
+```{r Load in All Reviewer Data}
+
+list_reviewer <- list()
+
+for(i in 1:n_reviewers){
+
+list_reviewer[[i]] <- readxl::read_excel(path = paste0("1_Reviewed_Data\\Reviewer_",i,"\\Reviewer_",i,"_Data.xlsx")) %>%
+  assign_review_label(df=.)
+
+names(list_reviewer)[[i]] <- paste0("Reviewer_",i)
+}
+
+```
+
+```{r Join All Reviewer Data}
+
+# Full Join All Reviewer Data Frames
+
+# Note: Each data frame will have added numeric suffixes added to their review columns. These suffixes can be used to identify individual reviewer scores once they are all joined together. (Ex: We have 3 reviewers using a 1-5 scale, we will join all their review DFs into one DF. Review columns will be: Reviewer_TP_15_[1-3], Reviewer_Notes_[1-3], and Reviewer_TP_Label_[1-3])
+
+comparison <- list_reviewer %>% reduce(full_join,
+                                   by = c("Row_Number","Date", "EssenceID", select_fields),
+                                   suffix = paste0("_",1:(length(list_reviewer)-1))) %>%
+  ### Applies suffix to final joined DF as reduce() does not apply it. ###
+  rename(!!paste0("Reviewer_TP_",ReviewScaleLow,ReviewScaleHigh,"_",n_reviewers) := !!paste0("Reviewer_TP_",ReviewScaleLow,ReviewScaleHigh),
+         !!paste0("Reviewer_Notes_",n_reviewers) := "Reviewer_Notes",
+         !!paste0("Reviewer_TP_Label_",n_reviewers) := "Reviewer_TP_Label") %>%
+  ## Reorder Variables ##
+  select(Row_Number, Date, EssenceID,
+         matches("[0-9]{2}\\_[0-9]{1,}"), ## Reviewer_TP_## variables
+         matches("Label\\_[0-9]{1,}"), # Reviewer_TP_Label variables
+         matches("Notes\\_[0-9]{1,}"), # Reviewer_Notes variables
+         everything()) # This reordering is needed to create the Agreement variable.
+
+
+```
+
+```{r Detect Agreements and Disagreements}
+
+comparison <- comparison %>%
+  rowwise() %>%
+  mutate(Agreement =
+           all(c_across(Reviewer_TP_Label_1:!!(paste0("Reviewer_TP_Label_",n_reviewers))) ==
+                 first(c_across(Reviewer_TP_Label_1:!!(paste0("Reviewer_TP_Label_",n_reviewers))))), # Agreement assess the IRR of Qualitative Review Categories (FP/Uncertain/TP),
+         Date = as.Date(Date)) %>% 
+  ### Reorder variables ###
+  select(Row_Number, Date, EssenceID, Agreement, everything())
+
+```
+
+<!-- Write Data -->
+
+```{r Write Consensus Dataset}
+
+comparison %>%
+  arrange(Agreement) %>% # Disagreements at the top
+  mutate(Consensus_Label = case_when(
+    Agreement == TRUE ~ Reviewer_TP_Label_1,
+    TRUE ~ NA),
+    Consensus_Edits = ifelse(Agreement == TRUE, "-", NA)) %>%
+  select(Row_Number, Date, EssenceID, Agreement, Consensus_Label, Consensus_Edits, everything()) %>%
+  writexl::write_xlsx(x=.,path = paste0("3_Consensus_Data\\Consensus_Data.xlsx"))
+
+```
+
+---
+title: "Pre-Consensus Review: `r definition`"
+---
+
+**Jurisdiction**: `r jurisdiction`  
+**Report Created**: `r Sys.Date()`    
+**Point of Contact**: `r DefinitionInformation[["Setup"]]$PointOfContact` (`r DefinitionInformation[["Setup"]]$POCEmail`)    
+**Organization**: `r DefinitionInformation[["Setup"]]$Organization`
+
+<br />
+
+# Consensus Review Instructions
+
+After rendering this R Markdown report, review scale ratings assigned by the `r n_reviewers` participating reviewers will be compared to assess agreement and disagreement for each reviewed record. Additionally, query performance metrics (by reviewer) and interrater reliability metrics will be generated below. These metrics have been provided to allow the `r n_reviewers` participating reviewers to assess how closely aligned their ratings are and address any issues that may have emerged during the validation review process. 
+
+When you are ready to discuss validation review findings and come to a consensus decision between the `r n_reviewers` participating reviewers (particularly for records where there was disagreements), access the following file:  **3_Consensus_Data/Consensus_Data.xlsx**. 
+
+[Within **Consensus_Data.xlsx**:]{.underline}
+
+- Discuss records where there are disagreements between the `r n_reviewers` (the **Agreement** variable will be FALSE).
+- After a consensus decision has been made, fill in the **Consensus_Label** variable with the agreed upon review category: **`r names(ReviewScale)`**
+- (*Optional; if helpful*) Fill out the **Consensus_Edits** to explain which reviewer(s) changed their review category and rating upon coming to a consensus decision. This documentation will provide clarity as to how disagreements were resolved and what pieces of information may be useful to informing final decisions.
+
+After completing the consensus review process and running **Post_Consensus_Review.Rmd**, query performance metrics (utilizing consensus labels) will be generated. Additionally, **Consensus_Data.xlsx** will be copied and subsetted (to remove the no longer needed *Reviewer* variables). This data will be called **Consensus_Data_Clean.xlsx**. 
+
+<br />
+
+# Assessing Interrater Reliability  {.tabset}
+
+Examining the initial agreement between the `r n_reviewers` participating reviewers (before Consensus Review) can provide some insight into the reliability of the reviewer metrics as well as how difficult the reviewed definition was to classify. 
+
+```{r IRR setup}
+
+comparison_IRR <- comparison %>%
+  select(matches("[0-9]{2}\\_[0-9]{1,}")) # Include only the review columns with assigned values on the rating scale.
+
+```
+<br />
+
+## Percent Agreement: Review Categories
+
+This section examines the level of agreement across the **broad, qualitative review categories** applied to each record (typically what we care most about). For this validation review, the review categories included: **`r names(ReviewScale)`**.
+
+```{r Qual Review Category Agreement}
+
+n_agree <- comparison %>% filter(Agreement == TRUE) %>% nrow()
+n_sample <- comparison %>% nrow()
+
+pcnt_agree <- round((n_agree/n_sample)*100,1)
+pcnt_disagree <- round(((n_sample-n_agree)/n_sample)*100,1)
+
+cat("Interrater Agreement:\n Records: ",n_sample,"\n Raters: ", n_reviewers,"\n %-agree: ", pcnt_agree)
+
+```
+<br />
+<br />
+
+## Percent Agreement: Review Scales
+
+This section examines the level of agreement across the **specific, quantitative review scale rating** applied to each record. For this validation review, the review scale ratings ranged from `r ReviewScaleLow` to `r ReviewScaleHigh` and were sorted into review categories using the following schema: 
+
+```{r Print ReviewScale}
+
+print(ReviewScale)
+
+```
+<br />
+<br />
+
+```{r Quant Review Scale Agreement}
+
+comparison_IRR %>% agree(.)
+
+```
+
+`r if(n_reviewers == 2){paste0('## ','Cohens Kappa: Review Scales')}`
+`r if(n_reviewers > 2){paste0('## ','Lights Kappa: Review Scales')}`
+
+Although Percent Agreement is a helpful and simple metric to quickly examine Interrater Reliability, it has a notable weakness. Percent Agreement does not adjust for the level of agreement that would be expected by random chance, and therefore overestimates the level of agreement between reviewers.The [Kappa statistic](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3402032/) is utilized to adress this weakness and can have values that range from 1 to -1. [Guidelines for examining Kappa values have suggested the following interpretation (although this may differ by use case):]{.underline}
+
+* **-1 to -0.1**: Agreement is worse than random (active disagreement)
+* **0 to 0.2**: Slight Agreement
+* **0.21 to 0.4**: Fair Agreement
+* **0.41 to 0.60**: Moderate Agreement
+* **0.61 to 0.80**: Substantial Agreement
+* **0.81 to 1.0**: Almost Perfect or Perfect Agreement
+
+
+```{r Kappa Intro, results='asis'}
+
+if(n_reviewers == 2){
+  
+  cat("The Kappa statistic presented below is **Cohen's Kappa statistic** which was developed to assess interrater reliability between **2** reviewers.")
+  
+}else if(n_reviewers > 2){
+  
+  cat("The Kappa statistic presented below is **Light's Kappa statistic** developed to assess interrater reliability between **3+** reviewers. Specifically, Light's Kappa statistic is calculated by taking the average of the Cohen's Kappa stastic between all possible 2 reviewer pairs.")
+  
+}
+
+```
+
+```{r Quant Review Scale Kappa, warning = FALSE}
+
+# 3) Cohen's & Light's Kappa
+# Source: (Discussing appropriate use of IRR statistics) https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3402032/
+
+if(n_reviewers == 2){ # Cohen's original Kappa only appropriate for 2 reviewers
+
+  comparison_IRR %>% kappa2(.)
+
+}else if(n_reviewers > 2){ # Light's Kappa - Average of all possible combinations of 2x2 Cohen Kappa's
+
+  comparison_IRR %>% kappam.light(.)
+}
+
+```
+<br />
+<br />
+
+# Query Performance (by Individual Reviewer) {.tabset}
+
+```{r Query Performance by Reviewer}
+
+# Step 1: Prepare Data for Confusion Matrix
+list_reviewer_cm <- list()
+
+for(i in 1:n_reviewers){
+  
+  list_reviewer_cm[[i]] <- list_reviewer[[i]] %>% 
+    prep_cm(df=., use_case = "reviewer")
+}
+
+
+# Step 2: Dynamically Render Query Performance by Review Tabbed Widgets using list_reviewer. SOURCE: https://stackoverflow.com/questions/42631642/creating-dynamic-tabs-in-rmarkdown
+
+query_performance_template <- c(
+    "```{r, echo=FALSE, results='asis'}\n",
+    "cat(paste0('## ', 'Reviewer ', {{i}},'\n'),
+    paste0('**Reviewer Name: **', DefinitionInformation[['ValidationReviewInformation']]$ReviewerName[{{i}}],'\n'))",
+    "```\n",
+    "\n",
+    "```{r}\n", # Initializes R code to create 1) Tabbed Widget and 2) Insert ES Text.
+    "caret::confusionMatrix(data=list_reviewer_cm[[{{i}}]]$Definition, reference = list_reviewer_cm[[{{i}}]]$Reviewer_TP_Label)", # Print confusion matrix
+    "```\n", # Ends R Code and adds a space (to differentiate tabbed widgets)
+    "\n"
+  ) 
+
+reviewer_query_performance <- lapply(seq_along(list_reviewer), function(i) {knitr::knit_expand(text= query_performance_template)}) # Use keyfindings_template above, and render it via knitr::knit_expand()
+
+```
+
+`r knitr::knit(text = unlist(reviewer_query_performance))`
+
+<br />

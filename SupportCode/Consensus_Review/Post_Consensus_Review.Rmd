@@ -115,6 +115,7 @@ knitr::opts_chunk$set(echo = FALSE)
 load("Resources\\Consensus_Review_Parameters.RData")
 
 pacman::p_load(caret,
+               gtsummary,
                irr,
                readxl,
                tidyverse,
@@ -161,14 +162,11 @@ if(n_reviewers > 1){
 # Full Join All Reviewer Data Frames
 
 # Note: Each data frame will have added numeric suffixes added to their review columns. These suffixes can be used to identify individual reviewer scores once they are all joined together. (Ex: We have 3 reviewers using a 1-5 scale, we will join all their review DFs into one DF. Review columns will be: Reviewer_TP_15_[1-3], Reviewer_Notes_[1-3], and Reviewer_TP_Label_[1-3])
-
-comparison <- list_reviewer %>% reduce(full_join,
-                                   by = c("Row_Number","Date", "EssenceID", select_fields),
-                                   suffix = paste0("_",1:(length(list_reviewer)-1))) %>%
-  ### Applies suffix to final joined DF as reduce() does not apply it. ###
-  rename(!!paste0("Reviewer_TP_",ReviewScaleLow,ReviewScaleHigh,"_",n_reviewers) := !!paste0("Reviewer_TP_",ReviewScaleLow,ReviewScaleHigh),
-         !!paste0("Reviewer_Notes_",n_reviewers) := "Reviewer_Notes",
-         !!paste0("Reviewer_TP_Label_",n_reviewers) := "Reviewer_TP_Label") %>%
+  
+comparison <- list_reviewer %>% 
+  reduce(full_join, 
+         by = c("Row_Number","Date", "EssenceID", select_fields),
+         suffix = paste0("_",1:n_reviewers)) %>%
   ## Reorder Variables ##
   select(Row_Number, Date, EssenceID,
          matches("[0-9]{2}\\_[0-9]{1,}"), ## Reviewer_TP_## variables
@@ -221,7 +219,7 @@ if(n_reviewers == 1){
     '\n',
     '[Within **Consensus_Data.xlsx**:]{.underline}\n',
     '\n',
-    '- Discuss records where there are disagreements between the `r n_reviewers` (the **Agreement** variable will be FALSE).\n',
+    '- Discuss records where there are disagreements between the participating reviewers (the **Agreement** variable will be **FALSE**).\n',
     '- After a consensus decision has been made, fill in the **Consensus_Label** variable with the agreed upon review category.\n',
     '- (*Optional; if helpful*) Fill out the **Consensus_Edits** to explain which reviewer(s) changed their review category and rating upon coming to a consensus decision. This documentation will provide clarity as to how disagreements were resolved and what pieces of information may be useful to informing final decisions.\n',
     '\n',
@@ -231,21 +229,91 @@ if(n_reviewers == 1){
 
 ```
 
+
 ```{r Assessing Interrater Reliability Text, results = 'asis'}
 if(n_reviewers > 1){
   cat(
     paste0('# Assessing Interrater Reliability  {.tabset}\n',
-           'Examining the initial agreement between the `r n_reviewers` participating reviewers (before Consensus Review) can provide some insight into the reliability of the reviewer metrics as well as how difficult the reviewed definition was to classify. ')
+           'Examining the initial agreement between the participating reviewers (**before Consensus Review**) can provide some insight into the reliability of the reviewer metrics as well as how difficult the reviewed definition was to classify. ')
     )
+}
+```
+
+
+```{r Reviewer Distributions Setup}
+
+list_reviewer_comparison <- list()
+
+# To Showcase Distribution of Review Categories and Review Scales by Rater
+list_reviewer_comparison[["rating_categories"]] <- comparison %>%
+  select(EssenceID, matches("\\_Label\\_[0-9]{1,}")) %>%
+  pivot_longer(data =., 
+               cols = contains("Reviewer"),
+               names_to = "Reviewer",
+               values_to = "Rating_Categories") %>%
+  mutate(Reviewer = str_remove_all(Reviewer, pattern = "\\_TP\\_Label"),
+         Reviewer = str_replace_all(Reviewer, pattern = "[:punct:]", replacement = " "))
+
+list_reviewer_comparison[["rating_scales"]] <- comparison %>%
+  select(EssenceID, matches("[0-9]{2}\\_[0-9]{1,}")) %>%
+  pivot_longer(data =., 
+               cols = contains("Reviewer"),
+               names_to = "Reviewer",
+               values_to = "Rating_Scale") %>%
+  mutate(Reviewer = str_remove_all(Reviewer, pattern = "\\_TP\\_[0-9]{2,}"),
+         Reviewer = str_replace_all(Reviewer, pattern = "[:punct:]", replacement = " "))
+
+list_reviewer_comparison[["distributions"]] <- list_reviewer_comparison[["rating_categories"]] %>%
+  left_join(., list_reviewer_comparison[["rating_scales"]], by = join_by("EssenceID", "Reviewer")) %>%
+  mutate(Rating_Scale = factor(Rating_Scale,
+                                 levels = seq(from = ReviewScaleLow, to = ReviewScaleHigh, by = 1)))
+
+if(length(ReviewScale) == 2){
+  
+list_reviewer_comparison[["distributions"]] <- list_reviewer_comparison[["distributions"]] %>%
+    mutate(Rating_Categories = factor(Rating_Categories, levels = c("False Positive", "True Positive")))
+  
+}else if(length(ReviewScale) == 3){
+  
+list_reviewer_comparison[["distributions"]] <- list_reviewer_comparison[["distributions"]] %>%
+    mutate(Rating_Categories = factor(Rating_Categories, levels = c("False Positive", "Uncertain","True Positive")))
+  
 }
 
 ```
 
-```{r IRR setup}
+```{r Reviewer Distributions Text, results = 'asis'}
+
+cat(
+    paste0('## Reviewer Distributions\n',
+           'This sections examines the overall distributions of review categories (qualitative labels) and review scales (quantitative values) applied by each reviewer.'
+    )
+  )
+  
+
+```
+
+```{r Reviewer Distributions}
+
+list_reviewer_comparison[["distributions"]] %>% 
+  select(-EssenceID, `Rating Categories` = Rating_Categories, `Rating Scale` = Rating_Scale) %>%
+  tbl_summary(by = Reviewer,
+              missing_text = "Missing") %>%
+  add_p() %>%
+  add_overall(last=TRUE) %>%
+  modify_header(label ~ "") %>%
+  bold_labels()
+
+```
+
+
+```{r IRR Setup}
 if(n_reviewers > 1){
  
-  # Generate Storage List
+# Generate Storage List
 list_reviewer_IRR <- list()
+
+# To Generate IRR Metrics
 
 comparison_IRR <- comparison %>%
   select(matches("[0-9]{2}\\_[0-9]{1,}")) # Include only the review columns with assigned values on the rating scale, removes other variables (ex: Review_TP_15_[REVIEWER#]). 
@@ -253,19 +321,29 @@ comparison_IRR <- comparison %>%
 }
 ```
 
+
 ```{r Percent Agreement Review Categories Text, results = 'asis'}
 if(n_reviewers > 1){
   cat(
-    paste0('## Percent Agreement: Review Categories\n'),
-    paste0('This section examines the level of agreement across the **broad, qualitative review categories** applied to each record (typically what we care most about). For this validation review, the review categories included: **`r names(ReviewScale)`**.')
+    paste0('## Percent Agreement: Review Categories\n',
+           'This section examines the level of agreement across the **broad, qualitative review categories** applied to each record. For this validation review, the following review categories were utilized: ')
   )
 }
 ```
 
+```{r Print Review Categories}
+if(n_reviewers > 1){
+
+print(names(ReviewScale))
+
+}
+```
+
+
 ```{r Percent Agreement Review Categories}
 if(n_reviewers > 1){
- 
-  n_agree <- comparison %>% filter(Agreement == TRUE) %>% nrow()
+
+n_agree <- comparison %>% filter(Agreement == TRUE) %>% nrow()
 n_sample <- comparison %>% nrow()
 pcnt_agree <- round((n_agree/n_sample)*100,1)
 
@@ -279,8 +357,8 @@ cat(list_reviewer_IRR[["Percent Agreement: Review Categories"]])
 ```{r Percent Agreement Review Scales Text, results = 'asis'}
 if(n_reviewers > 1){
   cat(
-    paste0('## Percent Agreement: Review Scales\n'),
-    paste0('This section examines the level of agreement across the **specific, quantitative review scale rating** applied to each record. For this validation review, the review scale ratings ranged from `r ReviewScaleLow` to `r ReviewScaleHigh` and were sorted into review categories using the following schema: ')
+    paste0('## Percent Agreement: Review Scales\n',
+           'This section examines the level of agreement across the **specific, quantitative review scale rating** applied to each record. For this validation review, review scale ratings were nested within the review categories using the following schema: ')
   )
 }
 ```
@@ -306,7 +384,8 @@ if(n_reviewers > 1){
 ```{r Kappa Review Scales Text, results='asis'}
 if(n_reviewers > 1){
   
-  cat(paste0("Although Percent Agreement is a helpful and simple metric to quickly examine Interrater Reliability, it has a notable weakness. Percent Agreement does not adjust for the level of agreement that would be expected by random chance, and therefore overestimates the level of agreement between reviewers.The [Kappa statistic](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3402032/) is utilized to adress this weakness and can have values that range from 1 to -1. [Guidelines for examining Kappa values have suggested the following interpretation (although this may differ by use case):]{.underline}
+  cat(
+    paste0("Although Percent Agreement is a simple metric to quickly examine Interrater Reliability, it has a notable weakness. **Percent Agreement does not adjust for the level of agreement that would be expected by random chance, and therefore overestimates the level of agreement between reviewers**. The [Kappa statistic](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3402032/) is utilized to adress this weakness and can have values that range from 1 to -1. [Guidelines for examining Kappa values have suggested the following interpretation (although this may differ by use case):]{.underline}
 
 * **-1 to -0.1**: Agreement is worse than random (active disagreement)
 * **0 to 0.2**: Slight Agreement
@@ -332,7 +411,7 @@ if(n_reviewers == 2){
 
 ```
 
-```{r Quant Review Scale Kappa, warning = FALSE}
+```{r Kappa Review Scales, warning = FALSE}
 
 # 3) Cohen's & Light's Kappa
 # Source: (Discussing appropriate use of IRR statistics) https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3402032/
@@ -385,59 +464,60 @@ reviewer_query_performance <- lapply(seq_along(list_reviewer), function(i) {knit
 ```{r Write Reviewer RData File}
 if(n_reviewers == 1){
   
-    save(list_reviewer, list_reviewer_cm, file = "1_Reviewed_Data\\Reviewer_Data.RData")
+    save(list_reviewer, list_reviewer_comparison, list_reviewer_cm, file = "1_Reviewed_Data\\Reviewer_Data.RData")
   
 }else if(n_reviewers > 1){
   
-  save(list_reviewer, list_reviewer_cm, list_reviewer_IRR, file = "1_Reviewed_Data\\Reviewer_Data.RData")
+  save(list_reviewer, list_reviewer_comparison, list_reviewer_cm, list_reviewer_IRR, file = "1_Reviewed_Data\\Reviewer_Data.RData")
 }
 ```
 
-```{r Query Performance Consensus, results='asis'}
+```{r Query Performance Consensus Text, results='asis'}
 if(n_reviewers > 1){
-
-cat(paste0(
-  '# Query Performance (Consensus)\n',
-  'Examining definitions using a consensus review framework may provide less-biased estimates than those of an individual reviewer as multiple backgrounds, skill sets, and perspectives are included in the classification of a record.'
-))
+  
+  cat(paste0(
+    '# Query Performance (Consensus)\n',
+    'Examining definitions using a consensus review framework may provide less-biased estimates than those of an individual reviewer as multiple backgrounds, skill sets, and perspectives are included in the classification of a record.'
+  ))
   
 }
 ```
 
 ```{r Query Performance Consensus}
 if(n_reviewers > 1){
-
-# Generate Storage List
-list_consensus <- list()
-
-# Read in Consensus Data (Post-Consensus Review)
-list_consensus[["Consensus_Data"]] <- readxl::read_excel(path = paste0("2_Consensus_Data\\Consensus_Data.xlsx")) 
-
-# Prepare Consensus Data for Confusion Matrix
-consensus_cm <- list_consensus[["Consensus_Data"]] %>% 
-  prep_cm(df=., use_case = "consensus")
-
-# Generate Confusion Matrix
-(list_consensus[["Confusion_Matrix"]] <- caret::confusionMatrix(data = consensus_cm$Definition, reference = consensus_cm$Consensus_Label))
-
+  
+  # Generate Storage List
+  list_consensus <- list()
+  
+  # Read in Consensus Data (Post-Consensus Review)
+  list_consensus[["Consensus_Data"]] <- readxl::read_excel(path = paste0("2_Consensus_Data\\Consensus_Data.xlsx")) 
+  
+  # Prepare Consensus Data for Confusion Matrix
+  consensus_cm <- list_consensus[["Consensus_Data"]] %>% 
+    prep_cm(df=., use_case = "consensus")
+  
+  # Generate Confusion Matrix
+  (list_consensus[["Confusion_Matrix"]] <- caret::confusionMatrix(data = consensus_cm$Definition, reference = consensus_cm$Consensus_Label))
+  
 }
 ```
 
 ```{r Write Clean Consensus Data}
 if(n_reviewers > 1){
-
-# Generate Consensus Data Clean (Remove Unnecessary Review Variables)
-list_consensus[["Consensus_Data_Clean"]] <- list_consensus[["Consensus_Data"]] %>% 
-  select(-Agreement, -Consensus_Edits, -matches("Reviewer"))  # Remove all Reviewer Variables (except Consensus_Label)
-
-# Write Excel File
-writexl::write_xlsx(list_consensus[["Consensus_Data_Clean"]], path = "2_Consensus_Data\\Consensus_Data_Clean.xlsx")
-
-# Write RData file
-save(list_consensus, file = "2_Consensus_Data\\Consensus.RData")
-
+  
+  # Generate Consensus Data Clean (Remove Unnecessary Review Variables)
+  list_consensus[["Consensus_Data_Clean"]] <- list_consensus[["Consensus_Data"]] %>% 
+    select(-Agreement, -Consensus_Edits, -matches("Reviewer"))  # Remove all Reviewer Variables (except Consensus_Label)
+  
+  # Write Excel File
+  writexl::write_xlsx(list_consensus[["Consensus_Data_Clean"]], path = "2_Consensus_Data\\Consensus_Data_Clean.xlsx")
+  
+  # Write RData file
+  save(list_consensus, file = "2_Consensus_Data\\Consensus.RData")
+  
 }
 ```
+
 
 
 

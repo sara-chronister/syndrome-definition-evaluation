@@ -91,9 +91,11 @@ prep_cm <- function(df, use_case){
   if(use_case == "reviewer"){
     
     df_prepped <- df_prepped %>%
-      mutate(Reviewer_TP_Label = factor(Reviewer_TP_Label, # caret requires ordered factors -- Reference Variable (Validation Review)
-                                      levels = c("True Positive", "False Positive"), 
-                                      labels = c("Positive", "Negative"))) # shorten factor labels
+      mutate(across(
+        .cols = contains("Reviewer\\_TP\\_Label"),
+        .fns = ~factor(.x, 
+                       levels = c("True Positive", "False Positive"), 
+                       labels = c("Positive", "Negative"))))
     
   }else if(use_case == "consensus"){
     
@@ -105,7 +107,6 @@ prep_cm <- function(df, use_case){
 
 return(df_prepped)
 }
-
 
 ```
 

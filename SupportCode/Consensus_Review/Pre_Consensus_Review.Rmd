@@ -260,6 +260,9 @@ if(n_reviewers == 1){
 
 ```
 
+<br />
+<br />
+
 ```{r Assessing Interrater Reliability Text, results = 'asis'}
 if(n_reviewers > 1){
   cat(
@@ -335,6 +338,9 @@ list_reviewer_comparison[["distributions"]] %>%
 
 ```
 
+<br />
+<br />
+
 ```{r IRR Setup}
 if(n_reviewers > 1){
  
@@ -366,7 +372,6 @@ print(names(ReviewScale))
 }
 ```
 
-
 ```{r Percent Agreement Review Categories}
 if(n_reviewers > 1){
 
@@ -380,6 +385,9 @@ cat(list_reviewer_IRR[["Percent Agreement: Review Categories"]])
   
 }
 ```
+
+<br />
+<br />
 
 ```{r Percent Agreement Review Scales Text, results = 'asis'}
 if(n_reviewers > 1){
@@ -404,6 +412,9 @@ if(n_reviewers > 1){
 
 }
 ```
+
+<br />
+<br />
 
 `r if(n_reviewers == 2){paste0('## ','Cohens Kappa: Review Scales')}`
 `r if(n_reviewers > 2){paste0('## ','Lights Kappa: Review Scales')}`
@@ -453,6 +464,9 @@ if(n_reviewers == 2){ # Cohen's original Kappa only appropriate for 2 reviewers
 }
 
 ```
+
+<br />
+<br />
 
 # Query Performance (by Reviewer) {.tabset}
 

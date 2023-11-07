@@ -92,7 +92,7 @@ prep_cm <- function(df, use_case){
     
     df_prepped <- df_prepped %>%
       mutate(across(
-        .cols = contains("Reviewer\\_TP\\_Label"),
+        .cols = matches("Reviewer\\_TP\\_Label\\_[0-9]{1,}"),
         .fns = ~factor(.x, 
                        levels = c("True Positive", "False Positive"), 
                        labels = c("Positive", "Negative"))))

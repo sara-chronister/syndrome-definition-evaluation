@@ -91,9 +91,11 @@ prep_cm <- function(df, use_case){
   if(use_case == "reviewer"){
     
     df_prepped <- df_prepped %>%
-      mutate(Reviewer_TP_Label = factor(Reviewer_TP_Label, # caret requires ordered factors -- Reference Variable (Validation Review)
-                                      levels = c("True Positive", "False Positive"), 
-                                      labels = c("Positive", "Negative"))) # shorten factor labels
+      mutate(across(
+        .cols = contains("Reviewer\\_TP\\_Label"),
+        .fns = ~factor(.x, 
+                       levels = c("True Positive", "False Positive"), 
+                       labels = c("Positive", "Negative"))))
     
   }else if(use_case == "consensus"){
     
@@ -105,7 +107,6 @@ prep_cm <- function(df, use_case){
 
 return(df_prepped)
 }
-
 
 ```
 
@@ -163,11 +164,20 @@ if(n_reviewers > 1){
 
 # Note: Each data frame will have added numeric suffixes added to their review columns. These suffixes can be used to identify individual reviewer scores once they are all joined together. (Ex: We have 3 reviewers using a 1-5 scale, we will join all their review DFs into one DF. Review columns will be: Reviewer_TP_15_[1-3], Reviewer_Notes_[1-3], and Reviewer_TP_Label_[1-3])
   
-comparison <- list_reviewer %>% 
-  reduce(full_join, 
-         by = c("Row_Number","Date", "EssenceID", select_fields),
-         suffix = paste0("_",1:n_reviewers)) %>%
-  ## Reorder Variables ##
+# Step 1: Assign Reviewer ID # Suffixes to Each Reviewer Variable (to allow us to distinguish when all ratings are joined together)
+
+for(i in seq_along(list_reviewer)){
+  
+  list_reviewer[[i]] <- list_reviewer[[i]] %>%
+    rename_with(.data =.,
+                .cols = contains("Reviewer"),
+                .fn = ~paste0(.,"_",i))
+}
+  
+# Step 2: Join All Reviewer DFs together and reorder variables
+  
+comparison <- list_reviewer %>%
+  reduce(full_join, by = c("Row_Number","Date", "EssenceID", select_fields)) %>%
   select(Row_Number, Date, EssenceID,
          matches("[0-9]{2}\\_[0-9]{1,}"), ## Reviewer_TP_## variables
          matches("Label\\_[0-9]{1,}"), # Reviewer_TP_Label variables

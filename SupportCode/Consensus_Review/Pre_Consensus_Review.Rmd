@@ -92,7 +92,7 @@ prep_cm <- function(df, use_case){
     
     df_prepped <- df_prepped %>%
       mutate(across(
-        .cols = matches("Reviewer\\_TP\\_Label\\_[0-9]{1,}"),
+        .cols = matches("Reviewer\\_TP\\_Label"),
         .fns = ~factor(.x, 
                        levels = c("True Positive", "False Positive"), 
                        labels = c("Positive", "Negative"))))
@@ -155,6 +155,10 @@ list_reviewer[[i]] <- readxl::read_excel(path = paste0("1_Reviewed_Data\\Reviewe
 
 names(list_reviewer)[[i]] <- paste0("Reviewer_",i)
 }
+
+# Save for Confusion Matrix Generation (line ~460)
+list_reviewer_cm <- list_reviewer 
+
 ```
 
 ```{r Join All Reviewer Data}
@@ -455,14 +459,12 @@ if(n_reviewers == 2){ # Cohen's original Kappa only appropriate for 2 reviewers
 ```{r Query Performance by Reviewer}
 
 # Step 1: Prepare Data for Confusion Matrix
-list_reviewer_cm <- list()
 
 for(i in 1:n_reviewers){
   
-  list_reviewer_cm[[i]] <- list_reviewer[[i]] %>% 
+  list_reviewer_cm[[i]] <- list_reviewer_cm[[i]] %>% 
     prep_cm(df=., use_case = "reviewer")
 }
-
 
 # Step 2: Dynamically Render Query Performance by Review Tabbed Widgets using list_reviewer. SOURCE: https://stackoverflow.com/questions/42631642/creating-dynamic-tabs-in-rmarkdown
 
@@ -475,10 +477,9 @@ query_performance_template <- c(
     "```{r}\n", # Initializes R code to create 1) Tabbed Widget and 2) Insert ES Text.
     "caret::confusionMatrix(data=list_reviewer_cm[[{{i}}]]$Definition, reference = list_reviewer_cm[[{{i}}]]$Reviewer_TP_Label)", # Print confusion matrix
     "```\n", # Ends R Code and adds a space (to differentiate tabbed widgets)
-    "\n"
-  ) 
+    "\n")
 
-reviewer_query_performance <- lapply(seq_along(list_reviewer), function(i) {knitr::knit_expand(text= query_performance_template)}) # Use keyfindings_template above, and render it via knitr::knit_expand()
+reviewer_query_performance <- lapply(seq_along(list_reviewer), function(i) {knitr::knit_expand(text= query_performance_template)}) # Use query_performance_template above, and render it via knitr::knit_expand()
 
 ```
 

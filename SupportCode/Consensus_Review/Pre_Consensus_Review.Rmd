@@ -231,7 +231,8 @@ if(n_reviewers == 1){
   
   cat(paste0(
     '# Instructions\n',
-    'After rendering this R Markdown report, query performance metrics will be generated below. There is no need to run **Post_Consensus_Review.Rmd** unless you wish to conduct an additional validation review cycle with multiple participating reviewers.'
+    'After rendering this R Markdown report, query performance metrics will be generated below. There is no need to run **Post_Consensus_Review.Rmd** unless you wish to conduct an additional validation review cycle with multiple participating reviewers.',
+    '<br> <br>'
   ))
   
 }else if(n_reviewers > 1){
@@ -247,14 +248,12 @@ if(n_reviewers == 1){
     '- After a consensus decision has been made, fill in the **Consensus_Label** variable with the agreed upon review category.\n',
     '- (*Optional; if helpful*) Fill out the **Consensus_Edits** to explain which reviewer(s) changed their review category and rating upon coming to a consensus decision. This documentation will provide clarity as to how disagreements were resolved and what pieces of information may be useful to informing final decisions.\n',
     '\n',
-    'After completing the consensus review process and running **Post_Consensus_Review.Rmd**, query performance metrics (utilizing consensus labels) will be generated. Additionally, **Consensus_Data.xlsx** will be copied and subset to remove the no longer needed *Reviewer* variables. This data will be called **Consensus_Data_Clean.xlsx**.'
+    'After completing the consensus review process and running **Post_Consensus_Review.Rmd**, query performance metrics (utilizing consensus labels) will be generated. Additionally, **Consensus_Data.xlsx** will be copied and subset to remove the no longer needed *Reviewer* variables. This data will be called **Consensus_Data_Clean.xlsx**.',
+    '<br> <br>'
     ))
 }
 
 ```
-
-<br />
-<br />
 
 ```{r Assessing Interrater Reliability Text, results = 'asis'}
 if(n_reviewers > 1){
@@ -336,8 +335,13 @@ list_reviewer_comparison[["distributions"]] %>%
 }
 ```
 
-<br />
-<br />
+```{r, results='asis'}
+if(n_reviewers > 1){
+  cat(
+    paste0('<br> <br>')
+    )
+}
+```
 
 ```{r IRR Setup}
 if(n_reviewers > 1){
@@ -384,8 +388,13 @@ cat(list_reviewer_IRR[["Percent Agreement: Review Categories"]])
 }
 ```
 
-<br />
-<br />
+```{r, results='asis'}
+if(n_reviewers > 1){
+  cat(
+    paste0('<br> <br>')
+    )
+}
+```
 
 ```{r Percent Agreement Review Scales Text, results = 'asis'}
 if(n_reviewers > 1){
@@ -411,8 +420,13 @@ if(n_reviewers > 1){
 }
 ```
 
-<br />
-<br />
+```{r, results='asis'}
+if(n_reviewers > 1){
+  cat(
+    paste0('<br> <br>')
+    )
+}
+```
 
 `r if(n_reviewers == 2){paste0('## ','Cohens Kappa: Review Scales')}`
 `r if(n_reviewers > 2){paste0('## ','Lights Kappa: Review Scales')}`
@@ -463,8 +477,13 @@ if(n_reviewers == 2){ # Cohen's original Kappa only appropriate for 2 reviewers
 
 ```
 
-<br />
-<br />
+```{r, results='asis'}
+if(n_reviewers > 1){
+  cat(
+    paste0('<br> <br>')
+    )
+}
+```
 
 # Query Performance (by Reviewer) {.tabset}
 
@@ -500,7 +519,7 @@ reviewer_query_performance <- lapply(seq_along(list_reviewer), function(i) {knit
 ```{r Write Reviewer RData File}
 if(n_reviewers == 1){
   
-    save(list_reviewer, list_reviewer_comparison, list_reviewer_cm, file = "1_Reviewed_Data\\Reviewer_Data.RData")
+    save(list_reviewer, list_reviewer_cm, file = "1_Reviewed_Data\\Reviewer_Data.RData")
   
 }else if(n_reviewers > 1){
   

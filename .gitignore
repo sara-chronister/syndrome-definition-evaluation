@@ -64,6 +64,7 @@ Output_ThreeDefs/*
 
 # Ignore Validation Review Folders
 **/Validation_Review/
+!SupportCode/Validation_Review
 
 # Ignore Knitted Syndrome Validation Templates
 *.html

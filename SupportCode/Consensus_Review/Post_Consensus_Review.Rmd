@@ -25,28 +25,21 @@ pull_no_na <- function(df, variable){
 cut_review_scale <- function(scale_low, scale_high){
   
   rating_scale <- seq(from = scale_low, to = scale_high, by = 1) # Create rating scale vector (of integers)
-  scale_length <- length(rating_scale) 
-  n_chunks <- scale_length %% 2 # 0 remainder for even, 1 remainder for odd
-  
+  scale_length <- length(rating_scale)
+  n_chunks <- ifelse((scale_length %% 2) == 0, 2, 3)  # scale_length %% 2 is 0 for even length scales and 1 for odd length scales
+
   rating_categories <- list()
   
-  if(n_chunks == 0){
+  if(n_chunks == 2){ # FP = scale_low to first half of rating_scale; TP = second half of rating_scale to scale_high
     
-    half <- scale_length %/% 2
-    tp_floor <- half + 1
+    rating_categories[["False Positive"]] <- seq(from = scale_low, to = rating_scale[(scale_length/2)], by = 1)
+    rating_categories[["True Positive"]] <- seq(from = rating_scale[((scale_length/2))+1], to = scale_high, by = 1)
     
-    rating_categories[["False Positive"]] <- seq(from = scale_low, to = half, by = 1)
-    rating_categories[["True Positive"]] <- seq(from = tp_floor, to = scale_high, by = 1)
+  }else if(n_chunks == 3){ # FP = scale_low to 1 before median of rating_scale; Uncertain = median value of rating scale; TP = 1 after median of rating scale to scale_high. 
     
-  }else if(n_chunks != 0){
-    
-    half <- (scale_length %/% 2 + 1)
-    fp_ceiling <- half - 1
-    tp_floor <- half + 1 
-      
-    rating_categories[["False Positive"]] <- seq(from = scale_low, to = fp_ceiling, by = 1)
-    rating_categories[["Uncertain"]] <- half
-    rating_categories[["True Positive"]] <- seq(from = tp_floor, to = scale_high, by = 1)
+    rating_categories[["False Positive"]] <- seq(from = scale_low, to = (median(rating_scale) - 1), by = 1)
+    rating_categories[["Uncertain"]] <- median(rating_scale)
+    rating_categories[["True Positive"]] <- seq(from = (median(rating_scale) + 1), to = scale_high, by = 1)
   }
   
   return(rating_categories)

@@ -266,6 +266,7 @@ if(n_reviewers > 1){
 ```
 
 ```{r Reviewer Distributions Setup}
+if(n_reviewers > 1){
 
 list_reviewer_comparison <- list()
 
@@ -305,9 +306,11 @@ list_reviewer_comparison[["distributions"]] <- list_reviewer_comparison[["distri
   
 }
 
+}
 ```
 
 ```{r Reviewer Distributions Text, results = 'asis'}
+if(n_reviewers > 1){
 
 cat(
     paste0('## Reviewer Distributions\n',
@@ -315,10 +318,11 @@ cat(
     )
   )
   
-
+}
 ```
 
 ```{r Reviewer Distributions}
+if(n_reviewers > 1){
 
 list_reviewer_comparison[["distributions"]] %>% 
   select(-EssenceID, `Rating Categories` = Rating_Categories, `Rating Scale` = Rating_Scale) %>%
@@ -329,6 +333,7 @@ list_reviewer_comparison[["distributions"]] %>%
   modify_header(label ~ "") %>%
   bold_labels()
 
+}
 ```
 
 <br />

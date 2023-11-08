@@ -496,14 +496,13 @@ if(n_reviewers == 1){
 
 <br />
 <br />
+
 ```{r Query Performance Consensus Text, results='asis'}
 if(n_reviewers > 1){
-  
-  cat(paste0(
-    '# Query Performance (Consensus)\n',
-    'Examining definitions using a consensus review framework may provide less-biased estimates than those of an individual reviewer as multiple backgrounds, skill sets, and perspectives are included in the classification of a record.'
-  ))
-  
+  cat(
+    paste0('# Query Performance (Consensus) \n',
+           'Examining definitions using a consensus review framework may provide less-biased estimates than those of an individual reviewer as multiple backgrounds, skill sets, and perspectives are included in the classification of a record.')
+    )
 }
 ```
 
@@ -541,8 +540,3 @@ if(n_reviewers > 1){
   
 }
 ```
-
-
-
-
-

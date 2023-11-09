@@ -360,14 +360,24 @@ for(i in seq_along(validation_review_defs)){
   save(filepath, DefinitionInformation,
        file = paste0(filepath,"\\Resources\\Consensus_Review_Parameters.RData"))
   
-  # Step 4c: Copy Pre_Consensus_Review.Rmd code template to each definition validation review folder.
-  file.copy(from = "SupportCode\\Consensus_Review\\Pre_Consensus_Review.Rmd",
-            to = paste0(filepath))
   
-  # Step 4d: Copy Post_Consensus_Review.Rmd code template to each definition validation review folder.
-  file.copy(from = "SupportCode\\Consensus_Review\\Post_Consensus_Review.Rmd",
-            to = paste0(filepath))
+  # Step 4c: Copy Validation Summary R Markdown code template(s) to each definition validation review folder.
 
+  if(n_reviewers == 1){ # Consensus Review not feasible with 1 reviewer --> Singular Validation_Summary.Rmd
+  
+  file.copy(from = "SupportCode\\Validation_Review\\Validation_Summary.Rmd",
+            to = paste0(filepath))
+    
+  }else if(n_reviewers > 1){ # Only include Post-Consensus Review RMD if there are enough reviewers to do Consensus Review.
+    
+  # Pre Consensus Review Code Template
+  file.copy(from = "SupportCode\\Validation_Review\\Validation_Summary_Pre_Consensus_Review.Rmd",
+            to = paste0(filepath))
+    
+  # Post Consensus Review Code Template
+  file.copy(from = "SupportCode\\Validation_Review\\Validation_Summary_Post_Consensus_Review.Rmd",
+            to = paste0(filepath))  
+    }
   }
 }
 ```

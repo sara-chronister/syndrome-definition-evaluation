@@ -62,9 +62,9 @@ Output_OneDefs/*
 Output_TwoDefs/*
 Output_ThreeDefs/*
 
-# Ignore Validation Review Folders
+# Ignore Validation Review Folders (except for SupportCode/Validation_Review which includes template code)
 **/Validation_Review/
-!SupportCode/Validation_Review
+!SupportCode/Validation_Review 
 
 # Ignore Knitted Syndrome Validation Templates
 *.html

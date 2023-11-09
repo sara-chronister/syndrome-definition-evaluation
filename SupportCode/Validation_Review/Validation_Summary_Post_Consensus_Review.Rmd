@@ -200,7 +200,7 @@ comparison <- comparison %>%
 ```
 
 ---
-title: "Post-Consensus Review: `r definition`"
+title: "Validation Summary (Post Consensus Review): `r definition`"
 ---
 
 **Jurisdiction**: `r jurisdiction`  

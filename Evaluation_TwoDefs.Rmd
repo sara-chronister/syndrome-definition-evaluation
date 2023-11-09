@@ -570,7 +570,6 @@ for(i in seq_along(validation_review_defs)){
   list[[i]] <- get(validation_review_defs[i]) %>%
     distinct(EssenceID, .keep_all = TRUE) %>% # Deduplicate records
     add_date_components(df=.) %>% # Generate Date Components (Date --> Weekday, Week, Month, Year)
-    mutate(Row_Number = row_number()) %>% # Generate Row # tags
     get_sample(df=.,
                sample_metric = SampleMetric,
                sample_value = SampleValue,
@@ -579,7 +578,7 @@ for(i in seq_along(validation_review_defs)){
     mutate(!!paste0("Reviewer_TP_",ReviewScaleLow, ReviewScaleHigh) := NA,
           Reviewer_Notes = NA) %>%
     ## REORDER VARIABLES: BSI, REVIEWER VARS, EVERYTHING ELSE
-    select(Row_Number, Date, EssenceID,
+    select(Date, EssenceID,
            !!paste0("Reviewer_TP_", ReviewScaleLow, ReviewScaleHigh),
            Reviewer_Notes,everything(),
            -Weekday, -Week, -Month, -Year) %>%

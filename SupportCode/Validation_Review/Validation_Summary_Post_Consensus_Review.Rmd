@@ -174,8 +174,8 @@ for(i in seq_along(list_reviewer)){
 # Step 2: Join All Reviewer DFs together and reorder variables
   
 comparison <- list_reviewer %>%
-  reduce(full_join, by = c("Row_Number","Date", "EssenceID", select_fields)) %>%
-  select(Row_Number, Date, EssenceID,
+  reduce(full_join, by = c("Date", "EssenceID", select_fields)) %>%
+  select(Date, EssenceID,
          matches("[0-9]{2}\\_[0-9]{1,}"), ## Reviewer_TP_## variables
          matches("Label\\_[0-9]{1,}"), # Reviewer_TP_Label variables
          matches("Notes\\_[0-9]{1,}"), # Reviewer_Notes variables
@@ -194,7 +194,7 @@ comparison <- comparison %>%
                  first(c_across(Reviewer_TP_Label_1:!!(paste0("Reviewer_TP_Label_",n_reviewers))))), # Agreement assess the IRR of Qualitative Review Categories (FP/Uncertain/TP),
          Date = as.Date(Date)) %>% 
   ### Reorder variables ###
-  select(Row_Number, Date, EssenceID, Agreement, everything())
+  select(Date, EssenceID, Agreement, everything())
 
 }
 ```

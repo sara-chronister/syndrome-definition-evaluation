@@ -106,7 +106,7 @@ return(df_prepped)
 ```{r Setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
 
-load("Resources\\Consensus_Review_Parameters.RData")
+load("Resources\\Validation_Review_Parameters.RData")
 
 pacman::p_load(caret,
                gtsummary,

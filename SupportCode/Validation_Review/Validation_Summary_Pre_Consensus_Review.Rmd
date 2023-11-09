@@ -239,7 +239,7 @@ if(n_reviewers == 1){
   
   cat(paste0(
     '# Consensus Review Instructions\n',
-    'After rendering this R Markdown report, validation reviews by each ofthe participating reviewers will be compared to assess agreement and disagreement for each reviewed record. Additionally, query performance metrics (by reviewer) and interrater reliability metrics will be generated below. These metrics have been provided to assess how closely aligned participants were in their validation reviews and address any issues that may have emerged during the validation review process.\n',
+    'After rendering this R Markdown report, validation reviews by each o fthe participating reviewers will be compared to assess agreement and disagreement for each reviewed record. Additionally, query performance metrics (by reviewer) and interrater reliability metrics will be generated below. These metrics have been provided to assess how closely aligned participants were in their validation reviews and address any issues that may have emerged during the validation review process.\n',
     'When you are ready to discuss validation review findings and come to a consensus decision among the participating reviewers (particularly for records where there were disagreements), access the following file:  **2_Consensus_Data/Consensus_Data.xlsx**.\n',
     '\n',
     '[Within **Consensus_Data.xlsx**:]{.underline}\n',

@@ -358,8 +358,7 @@ for(i in seq_along(validation_review_defs)){
   
   # Step 4b: Save all parameters needed to run Consensus_Review.Rmd template
   save(filepath, DefinitionInformation,
-       file = paste0(filepath,"\\Resources\\Consensus_Review_Parameters.RData"))
-  
+       file = paste0(filepath,"\\Resources\\Validation_Review_Parameters.RData"))
   
   # Step 4c: Copy Validation Summary R Markdown code template(s) to each definition validation review folder.
 

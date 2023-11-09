@@ -106,7 +106,7 @@ return(df_prepped)
 ```{r Setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
 
-load("Resources\\Consensus_Review_Parameters.RData")
+load("Resources\\Validation_Review_Parameters.RData")
 
 pacman::p_load(caret,
                gtsummary,
@@ -561,15 +561,15 @@ if(n_reviewers > 1){
 }
 ```
 
-```{r Write Clean Consensus Data}
+```{r Write Subset Consensus Data}
 if(n_reviewers > 1){
   
   # Generate Consensus Data Clean (Remove Unnecessary Review Variables)
-  list_consensus[["Consensus_Data_Clean"]] <- list_consensus[["Consensus_Data"]] %>% 
+  list_consensus[["Consensus_Data_Subset"]] <- list_consensus[["Consensus_Data"]] %>% 
     select(-Agreement, -Consensus_Edits, -matches("Reviewer"))  # Remove all Reviewer Variables (except Consensus_Label)
   
   # Write Excel File
-  writexl::write_xlsx(list_consensus[["Consensus_Data_Clean"]], path = "2_Consensus_Data\\Consensus_Data_Clean.xlsx")
+  writexl::write_xlsx(list_consensus[["Consensus_Data_Subset"]], path = "2_Consensus_Data\\Consensus_Data_Subset.xlsx")
   
   # Write RData file
   save(list_consensus, file = "2_Consensus_Data\\Consensus.RData")

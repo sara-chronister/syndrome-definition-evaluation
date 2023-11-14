@@ -713,12 +713,12 @@ for(i in seq_along(validation_review_defs)){
                sample_value = SampleValue,
                strat_sample = StratifiedSample,
                strat_vars = StratifiedVariables) %>% # SAMPLE
-    mutate(!!paste0("Reviewer_TP_",ReviewScaleLow, ReviewScaleHigh) := NA,
-          Reviewer_Notes = NA) %>%
+    mutate(Review_Rating = NA,
+          Notes = NA) %>%
     ## REORDER VARIABLES: BSI, REVIEWER VARS, EVERYTHING ELSE
     select(Date, EssenceID,
-           !!paste0("Reviewer_TP_", ReviewScaleLow, ReviewScaleHigh),
-           Reviewer_Notes,everything(),
+           Review_Rating, Notes,
+           everything(),
            -Weekday, -Week, -Month, -Year) %>%
     ## REMOVE ALL CHARACTERS WHICH MAY CAUSE XML ERRORS WITH EXCEL FILES
     mutate(across(.cols = where(is.character), 
@@ -771,8 +771,3 @@ for(i in seq_along(validation_review_defs)){
 ```
 ___
 *The template for this report was created by Sara Chronister. For questions, ideas for improvement/collaboration, or attribution, please reach out to <sara.chronister@doh.wa.gov>.*
-
-
-
-
-

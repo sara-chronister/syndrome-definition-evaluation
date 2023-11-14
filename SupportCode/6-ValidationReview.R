@@ -60,7 +60,7 @@ get_sample <- function(df, sample_metric, sample_value,
     }
     
 
-    }else if(sample_metric == "n"){
+    }else if(sample_metric == "number"){
     
     if(strat_sample == TRUE){ # STRATIFIED RANDOM SAMPLING BY COUNTS
       

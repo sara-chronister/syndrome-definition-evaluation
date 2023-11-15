@@ -101,7 +101,48 @@ prep_cm <- function(df, use_case){
 return(df_prepped)
 }
 
+## Function 4: Modified caret::confusionMatrix()
+
+confusion_matrix <- function(df, use_case){
+  
+  # Step 0: Generate storage list
+  list_storage <- list()
+  
+  # Step 1: Generate caret::confusionMatrix()
+  if(use_case == "reviewer"){
+     CM <- caret::confusionMatrix(data = df$Definition, # Query detected record?
+                               reference = df$Review_Category) # Query classification accurate?  
+     
+  }else if(use_case == "consensus"){
+     CM <- caret::confusionMatrix(data = df$Definition, reference = df$Review_Category_Consensus) 
+  }
+
+  # Step 2: Extract caret 2x2 table from CM
+  list_storage[["table"]] <- CM$table
+  
+  # Step 3: Extract PPV & Accuracy (95% CI) from CM
+  list_storage[["metrics"]] <- broom::tidy(CM) %>%
+    filter(term %in% c("accuracy", "pos_pred_value")) %>% # Only metrics we want to keep
+    mutate(across(.cols = where(is.numeric), .fns = ~ round(.x, digits = 2))) %>% # Round metrics to 2 decimals
+    mutate(value = ifelse(!is.na(conf.low) & !is.na(conf.high),
+                          paste0(estimate," (",conf.low,", ",conf.high,")"), estimate), # Combine CI w/estimate
+           term = case_when( # Relabel terms/metrics
+             term == "pos_pred_value" ~  "positive predictive value (PPV)",
+             term == "accuracy" ~ "accuracy (95% CI)",
+             TRUE ~ term)) %>%
+    arrange(desc(term)) %>% # Display PPV first then Accuracy. 
+    select(metric = term, value) %>%
+    as.data.frame() # Convert to DF to allow printing. 
+  
+  
+  if(use_case == "consensus"){
+    print(list_storage)
+  }
+  
+  return(list_storage)
+}
 ```
+
 
 ```{r Setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
@@ -507,7 +548,7 @@ if(length(ReviewScale) == 2){ # TP, FP
     "```\n",
     "\n",
     "```{r}\n", # Initializes R code to create 1) Tabbed Widget and 2) Insert ES Text.
-    "caret::confusionMatrix(data=list_reviewer_cm[[{{i}}]]$Definition, reference = list_reviewer_cm[[{{i}}]]$Review_Category)", # Print confusion matrix
+    "list_reviewer_cm[[{{i}}]] %>% confusion_matrix(df=., use_case = 'reviewer')", # Print confusion matrix
     "```\n", # Ends R Code and adds a space (to differentiate tabbed widgets)
     "\n")
   
@@ -521,7 +562,7 @@ if(length(ReviewScale) == 2){ # TP, FP
     "```\n",
     "\n",
     "```{r}\n", # Initializes R code to create 1) Tabbed Widget and 2) Insert ES Text.
-    "caret::confusionMatrix(data=list_reviewer_cm[[{{i}}]]$Definition, reference = list_reviewer_cm[[{{i}}]]$Review_Category)", # Print confusion matrix
+    "list_reviewer_cm[[{{i}}]] %>% confusion_matrix(df=., use_case = 'reviewer')", # Print confusion matrix
     "```\n", # Ends R Code and adds a space (to differentiate tabbed widgets)
     "\n")
 }

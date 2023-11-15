@@ -272,7 +272,7 @@ if(n_reviewers == 1){
   
   cat(paste0(
     '# Instructions\n',
-    'After rendering this R Markdown report, query performance metrics will be generated below.(Note: Records assigned the **Uncertain** review category will not be included in query performance metric calculations). There is no need to run **Validation_Summary_Post_Consensus_Review.Rmd** unless you wish to conduct an additional validation review cycle with multiple participating reviewers.',
+    'After rendering this R Markdown report, query performance metrics will be generated below (**Note: ** Records assigned the **Uncertain** review category will not be included in query performance metric calculations).',
     '<br> <br>'
   ))
   

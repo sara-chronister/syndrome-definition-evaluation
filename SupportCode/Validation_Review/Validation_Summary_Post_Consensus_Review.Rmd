@@ -148,7 +148,14 @@ knitr::opts_chunk$set(echo = FALSE)
 
 load("Resources\\Validation_Review_Parameters.RData")
 
-pacman::p_load(caret,
+if ("pacman" %in% rownames(installed.packages()) == FALSE) {
+  install.packages("pacman")
+}
+
+library(pacman)
+
+pacman::p_load(broom,
+               caret,
                gtsummary,
                irr,
                readxl,

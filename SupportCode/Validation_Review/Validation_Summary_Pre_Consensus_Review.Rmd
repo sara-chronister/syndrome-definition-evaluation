@@ -78,7 +78,7 @@ assign_review_label <- function(df, review_scale_low = ReviewScaleLow, review_sc
 prep_cm <- function(df, use_case){
   
   df_prepped <- df %>%
-    mutate(Definition = "Positive", # Prediction Variable (Query Tagged) --> Will always be 1. 
+    mutate(Definition = "Positive", # Prediction Variable (aka whether the query tagged/identified the record) --> Will always be 1. 
          Definition = factor(Definition, levels = c("Positive", "Negative")))
   
   if(use_case == "reviewer"){
@@ -159,9 +159,9 @@ if(n_reviewers > 1){
   
 # Full Join All Reviewer Data Frames
 
-# Note: Each data frame will have added numeric suffixes added to their review columns. These suffixes can be used to identify individual reviewer scores once they are all joined together. (Ex: We have 3 reviewers using a 1-5 scale, we will join all their review DFs into one DF. Review columns will be: Reviewer_TP_15_[1-3], Reviewer_Notes_[1-3], and Reviewer_TP_Label_[1-3])
+# Note: Each data frame will have added (_R#) suffixes added to their review columns. These suffixes can be used to identify individual reviewers once all of their review variables are joined together. (Ex: We have 3 reviewers you will see Review_Ratings_R[1-3], Review_Categories_R[1-3], Notes_R[1-3]).
   
-# Step 1: Assign Reviewer ID # Suffixes to Each Reviewer Variable (to allow us to distinguish when all ratings are joined together)
+# Step 1: Assign Reviewer ID (_R#) Suffixes to Each Reviewer Variable (to allow us to distinguish when all ratings are joined together)
 
 for(i in seq_along(list_reviewer)){
   
@@ -231,7 +231,7 @@ if(n_reviewers == 1){
   
   cat(paste0(
     '# Instructions\n',
-    'After rendering this R Markdown report, query performance metrics will be generated below. There is no need to run **Post_Consensus_Review.Rmd** unless you wish to conduct an additional validation review cycle with multiple participating reviewers.',
+    'After rendering this R Markdown report, query performance metrics will be generated below.(Note: Records assigned the **Uncertain** review category will not be included in query performance metric calculations). There is no need to run **Validation_Summary_Post_Consensus_Review.Rmd** unless you wish to conduct an additional validation review cycle with multiple participating reviewers.',
     '<br> <br>'
   ))
   
@@ -239,16 +239,16 @@ if(n_reviewers == 1){
   
   cat(paste0(
     '# Consensus Review Instructions\n',
-    'After rendering this R Markdown report, validation reviews by each o fthe participating reviewers will be compared to assess agreement and disagreement for each reviewed record. Additionally, query performance metrics (by reviewer) and interrater reliability metrics will be generated below. These metrics have been provided to assess how closely aligned participants were in their validation reviews and address any issues that may have emerged during the validation review process.\n',
+    'After rendering this R Markdown report, validation reviews by each of the participating reviewers will be compared to assess agreement and disagreement for each reviewed record. Additionally, query performance metrics (by reviewer) and interrater reliability metrics will be generated below. These metrics have been provided to assess how closely aligned participants were in their validation reviews and address any issues that may have emerged during the validation review process. (Note: Records assigned the **Uncertain** review category will not be included in query performance metric calculations). \n',
     'When you are ready to discuss validation review findings and come to a consensus decision among the participating reviewers (particularly for records where there were disagreements), access the following file:  **2_Consensus_Data/Consensus_Data.xlsx**.\n',
     '\n',
     '[Within **Consensus_Data.xlsx**:]{.underline}\n',
     '\n',
-    '- Discuss records where there are disagreements between the participating reviewers (the **Agreement** variable will be **FALSE**).\n',
-    '- After a consensus decision has been made, fill in the **Consensus_Label** variable with the agreed upon review category.\n',
-    '- (*Optional; if helpful*) Fill out the **Consensus_Edits** to explain which reviewer(s) changed their review category and rating upon coming to a consensus decision. This documentation will provide clarity as to how disagreements were resolved and what pieces of information may be useful to informing final decisions.\n',
+    '- Discuss records where there are disagreements between the participating reviewers (i.e. records where the **Agreement** variable will be **FALSE**).\n',
+    '- After a consensus decision has been made, fill in the **Review_Category_Consensus** variable with the agreed upon review category.\n',
+    '- (*Optional; if helpful*) Fill out the **Notes_Consensus** to explain which reviewer(s) changed their review category and rating upon coming to a consensus decision. This documentation will provide clarity as to how disagreements were resolved and what pieces of information may be useful to informing final record classifications\n',
     '\n',
-    'After completing the consensus review process and running **Post_Consensus_Review.Rmd**, query performance metrics (utilizing consensus labels) will be generated. Additionally, **Consensus_Data.xlsx** will be copied and subset to remove the no longer needed *Reviewer* variables. This data will be called **Consensus_Data_Clean.xlsx**.',
+    'After completing the consensus review process and running **Validation_Summary_Post_Consensus_Review.Rmd**, query performance metrics (utilizing consensus review categories) will be generated. Additionally, **Consensus_Data.xlsx** will be copied and subset to remove the no longer needed *Reviewer* variables. This data will be called **Consensus_Data_Subset.xlsx**.',
     '<br> <br>'
     ))
 }

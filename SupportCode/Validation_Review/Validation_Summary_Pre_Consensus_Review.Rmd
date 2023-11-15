@@ -56,20 +56,20 @@ assign_review_label <- function(df, review_scale_low = ReviewScaleLow, review_sc
   if(length(rating_categories) == 2){ # If review_scale was even, only FP/TP (No Uncertain)
     
     df_labelled <- df %>%
-      mutate(Reviewer_TP_Label = case_when(
-        get(paste0("Reviewer_TP_",review_scale_low, review_scale_high)) %in% rating_categories[["False Positive"]] ~ "False Positive",
-        get(paste0("Reviewer_TP_",review_scale_low, review_scale_high)) %in% rating_categories[["True Positive"]] ~ "True Positive"))
+      mutate(Review_Category = case_when(
+        Review_Rating %in% rating_categories[["False Positive"]] ~ "False Positive",
+        Review_Rating %in% rating_categories[["True Positive"]] ~ "True Positive"))
     
   }else if(length(rating_categories) == 3){ # If review_scale was odd, FP/Uncertain/TP
     
     df_labelled <- df %>%
-      mutate(Reviewer_TP_Label = case_when(
-        get(paste0("Reviewer_TP_",review_scale_low, review_scale_high)) %in% rating_categories[["False Positive"]] ~ "False Positive",
-        get(paste0("Reviewer_TP_",review_scale_low, review_scale_high)) %in% rating_categories[["Uncertain"]] ~ "Uncertain",
-        get(paste0("Reviewer_TP_",review_scale_low, review_scale_high)) %in% rating_categories[["True Positive"]] ~ "True Positive"))
+      mutate(Review_Category = case_when(
+        Review_Rating %in% rating_categories[["False Positive"]] ~ "False Positive",
+        Review_Rating %in% rating_categories[["Uncertain"]] ~ "Uncertain",
+        Review_Rating %in% rating_categories[["True Positive"]] ~ "True Positive"))
   }
   
-  # Return labelled dataframe to global environment
+  # Return labelled data frame to global environment
   return(df_labelled)
 }
 
@@ -85,7 +85,7 @@ prep_cm <- function(df, use_case){
     
     df_prepped <- df_prepped %>%
       mutate(across(
-        .cols = matches("Reviewer\\_TP\\_Label"),
+        .cols = matches("^Review_Category"),
         .fns = ~factor(.x, 
                        levels = c("True Positive", "False Positive"), 
                        labels = c("Positive", "Negative"))))
@@ -93,7 +93,7 @@ prep_cm <- function(df, use_case){
   }else if(use_case == "consensus"){
     
     df_prepped <- df_prepped %>%
-      mutate(Consensus_Label = factor(Consensus_Label, # caret requires ordered factors -- Reference Variable (Validation Review)
+      mutate(Review_Category_Consensus = factor(Review_Category_Consensus, # caret requires ordered factors 
                                       levels = c("True Positive", "False Positive"), 
                                       labels = c("Positive", "Negative"))) # shorten factor labels
   }
@@ -167,8 +167,8 @@ for(i in seq_along(list_reviewer)){
   
   list_reviewer[[i]] <- list_reviewer[[i]] %>%
     rename_with(.data =.,
-                .cols = contains("Reviewer"),
-                .fn = ~paste0(.,"_",i))
+                .cols = c(Review_Rating, Review_Category, Notes),
+                .fn = ~paste0(.,"_R",i))
 }
   
 # Step 2: Join All Reviewer DFs together and reorder variables
@@ -176,9 +176,9 @@ for(i in seq_along(list_reviewer)){
 comparison <- list_reviewer %>%
   reduce(full_join, by = c("Date", "EssenceID", select_fields)) %>%
   select(Date, EssenceID,
-         matches("[0-9]{2}\\_[0-9]{1,}"), ## Reviewer_TP_## variables
-         matches("Label\\_[0-9]{1,}"), # Reviewer_TP_Label variables
-         matches("Notes\\_[0-9]{1,}"), # Reviewer_Notes variables
+         matches("Review\\_Rating"), ## Review_Rating(_R#) variable
+         matches("Review\\_Category"), # Reviewer_Category(_R#) variable
+         matches("^Notes"), # Notes(_R#) variable
          everything()) # This reordering is needed to create the Agreement variable.
 
 }
@@ -190,8 +190,8 @@ if(n_reviewers > 1){
 comparison <- comparison %>%
   rowwise() %>%
   mutate(Agreement =
-           all(c_across(Reviewer_TP_Label_1:!!(paste0("Reviewer_TP_Label_",n_reviewers))) ==
-                 first(c_across(Reviewer_TP_Label_1:!!(paste0("Reviewer_TP_Label_",n_reviewers))))), # Agreement assess the IRR of Qualitative Review Categories (FP/Uncertain/TP),
+           all(c_across(Review_Category_R1:!!(paste0("Review_Category_R",n_reviewers))) ==
+                 first(c_across(Review_Category_R1:!!(paste0("Review_Category_R",n_reviewers))))), # Agreement assess the IRR of Qualitative Review Categories (FP/Uncertain/TP),
          Date = as.Date(Date)) %>% 
   ### Reorder variables ###
   select(Date, EssenceID, Agreement, everything())
@@ -206,11 +206,11 @@ if(n_reviewers > 1){
  
   comparison %>%
   arrange(Agreement) %>% # Disagreements at the top
-  mutate(Consensus_Label = case_when(
-    Agreement == TRUE ~ Reviewer_TP_Label_1,
+  mutate(Review_Category_Consensus = case_when(
+    Agreement == TRUE ~ Review_Category_R1,
     TRUE ~ NA),
-    Consensus_Edits = ifelse(Agreement == TRUE, "-", NA)) %>%
-  select(Date, EssenceID, Agreement, Consensus_Label, Consensus_Edits, everything()) %>%
+    Notes_Consensus = ifelse(Agreement == TRUE, "-", NA)) %>%
+  select(Date, EssenceID, Agreement, Review_Category_Consensus, Notes_Consensus, everything()) %>%
   writexl::write_xlsx(x=.,path = paste0("2_Consensus_Data\\Consensus_Data.xlsx")) 
   
 }
@@ -271,22 +271,21 @@ list_reviewer_comparison <- list()
 
 # To Showcase Distribution of Review Categories and Review Scales by Rater
 list_reviewer_comparison[["rating_categories"]] <- comparison %>%
-  select(EssenceID, matches("\\_Label\\_[0-9]{1,}")) %>%
+  select(EssenceID, matches("^Review_Category")) %>%
   pivot_longer(data =., 
-               cols = contains("Reviewer"),
+               cols = contains("Review_Category"),
                names_to = "Reviewer",
                values_to = "Rating_Categories") %>%
-  mutate(Reviewer = str_remove_all(Reviewer, pattern = "\\_TP\\_Label"),
-         Reviewer = str_replace_all(Reviewer, pattern = "[:punct:]", replacement = " "))
+  mutate(Reviewer = str_replace_all(Reviewer, pattern = "Review_Category_R", replacement = "Reviewer "))
 
 list_reviewer_comparison[["rating_scales"]] <- comparison %>%
-  select(EssenceID, matches("[0-9]{2}\\_[0-9]{1,}")) %>%
+  select(EssenceID, matches("^Review_Rating")) %>%
   pivot_longer(data =., 
-               cols = contains("Reviewer"),
+               cols = contains("Review_Rating"),
                names_to = "Reviewer",
                values_to = "Rating_Scale") %>%
-  mutate(Reviewer = str_remove_all(Reviewer, pattern = "\\_TP\\_[0-9]{2,}"),
-         Reviewer = str_replace_all(Reviewer, pattern = "[:punct:]", replacement = " "))
+  mutate(Reviewer = str_replace_all(Reviewer, pattern = "Review_Rating_R", replacement = "Reviewer "))
+
 
 list_reviewer_comparison[["distributions"]] <- list_reviewer_comparison[["rating_categories"]] %>%
   left_join(., list_reviewer_comparison[["rating_scales"]], by = join_by("EssenceID", "Reviewer")) %>%
@@ -313,7 +312,7 @@ if(n_reviewers > 1){
 
 cat(
     paste0('## Reviewer Distributions\n',
-           'This sections examines the overall distributions of review categories (qualitative labels) and review scales (quantitative values) applied by each reviewer.'
+           'This sections examines the overall distributions of review categories (qualitative labels) and review ratings (quantitative values) applied by each reviewer.'
     )
   )
   
@@ -352,7 +351,7 @@ list_reviewer_IRR <- list()
 # To Generate IRR Metrics
 
 comparison_IRR <- comparison %>%
-  select(matches("[0-9]{2}\\_[0-9]{1,}")) # Include only the review columns with assigned values on the rating scale, removes other variables (ex: Review_TP_15_[REVIEWER#]). 
+  select(matches("^Review_Rating")) # Include only the review columns with assigned values on the rating scale, removes other variables (ex: Review_TP_15_[REVIEWER#]). 
   
 }
 ```
@@ -396,11 +395,11 @@ if(n_reviewers > 1){
 }
 ```
 
-```{r Percent Agreement Review Scales Text, results = 'asis'}
+```{r Percent Agreement Review Ratings Text, results = 'asis'}
 if(n_reviewers > 1){
   cat(
-    paste0('## Percent Agreement: Review Scales\n',
-           'This section examines the level of agreement across the **specific, quantitative review scale rating** applied to each record. For this validation review, review scale ratings were nested within the review categories using the following schema: ')
+    paste0('## Percent Agreement: Review Ratings\n',
+           'This section examines the level of agreement across the **specific, quantitative review ratings** applied to each record. For this validation review, review ratings were nested within the review categories using the following schema: ')
   )
 }
 ```
@@ -415,7 +414,7 @@ if(n_reviewers > 1){
 ```{r Percent Agreement Review Scales}
 if(n_reviewers > 1){
 
-(list_reviewer_IRR[["Percent Agreement: Review Scales"]] <- comparison_IRR %>% irr::agree(.))
+(list_reviewer_IRR[["Percent Agreement: Review Ratings"]] <- comparison_IRR %>% irr::agree(.))
 
 }
 ```
@@ -499,16 +498,33 @@ for(i in 1:n_reviewers){
 
 # Step 2: Dynamically Render Query Performance by Review Tabbed Widgets using list_reviewer. SOURCE: https://stackoverflow.com/questions/42631642/creating-dynamic-tabs-in-rmarkdown
 
-query_performance_template <- c(
+if(length(ReviewScale) == 2){ # TP, FP
+  
+  query_performance_template <- c(
     "```{r, echo=FALSE, results='asis'}\n",
-    "cat(paste0('## ', 'Reviewer ', {{i}},'\n'),
-    paste0('**Reviewer Name: **', DefinitionInformation[['ValidationReviewInformation']]$ReviewerName[{{i}}],'\n'))",
+    "cat(
+    paste0('## ', 'Reviewer ', {{i}},' (',DefinitionInformation[['ValidationReviewInformation']]$ReviewerName[{{i}}],')','\n'))",
     "```\n",
     "\n",
     "```{r}\n", # Initializes R code to create 1) Tabbed Widget and 2) Insert ES Text.
-    "caret::confusionMatrix(data=list_reviewer_cm[[{{i}}]]$Definition, reference = list_reviewer_cm[[{{i}}]]$Reviewer_TP_Label)", # Print confusion matrix
+    "caret::confusionMatrix(data=list_reviewer_cm[[{{i}}]]$Definition, reference = list_reviewer_cm[[{{i}}]]$Review_Category)", # Print confusion matrix
     "```\n", # Ends R Code and adds a space (to differentiate tabbed widgets)
     "\n")
+  
+}else if(length(ReviewScale) == 3){ # TP, Uncertain, FP
+  
+    query_performance_template <- c(
+    "```{r, echo=FALSE, results='asis'}\n",
+    "cat(
+    paste0('## ', 'Reviewer ',{{i}},' (', DefinitionInformation[['ValidationReviewInformation']]$ReviewerName[{{i}}],')','\n'),
+    paste0('**Note: ** Records with the review category of **Uncertain** are excluded from query performance calculations.', '\n'))",
+    "```\n",
+    "\n",
+    "```{r}\n", # Initializes R code to create 1) Tabbed Widget and 2) Insert ES Text.
+    "caret::confusionMatrix(data=list_reviewer_cm[[{{i}}]]$Definition, reference = list_reviewer_cm[[{{i}}]]$Review_Category)", # Print confusion matrix
+    "```\n", # Ends R Code and adds a space (to differentiate tabbed widgets)
+    "\n")
+}
 
 reviewer_query_performance <- lapply(seq_along(list_reviewer), function(i) {knitr::knit_expand(text= query_performance_template)}) # Use query_performance_template above, and render it via knitr::knit_expand()
 
@@ -526,4 +542,3 @@ if(n_reviewers == 1){
   save(list_reviewer, list_reviewer_comparison, list_reviewer_cm, list_reviewer_IRR, file = "1_Reviewed_Data\\Reviewer_Data.RData")
 }
 ```
-

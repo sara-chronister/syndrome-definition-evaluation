@@ -237,7 +237,7 @@ write.csv(file = paste0(output_folder,def1_short," All Visits.csv"),
           row.names = FALSE)
 
 # Def1 matched elements
-write.csv(file = paste0(output_folder,"Matched_Elements/",def1_short," Matched Elements.csv"),
+write.csv(file = paste0(output_folder,"Matched_Elements\\",def1_short," Matched Elements.csv"),
           x = def1_elements_detected,
           row.names = FALSE)
 

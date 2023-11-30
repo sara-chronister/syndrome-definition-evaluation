@@ -1,4 +1,4 @@
-# Syndrome Definition Evaluation
+# Syndrome Definition Evaluation Toolkit
 
 ## Background:
 

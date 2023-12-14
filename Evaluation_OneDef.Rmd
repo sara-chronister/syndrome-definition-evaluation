@@ -236,6 +236,9 @@ write.csv(file = paste0(output_folder,def1_short," All Visits.csv"),
           x = def1,
           row.names = FALSE)
 
+# Create Matched Elements Subfolder
+fs::dir_create(paste0(output_folder, "Matched_Elements"))
+
 # Def1 matched elements
 write.csv(file = paste0(output_folder,"Matched_Elements\\",def1_short," Matched Elements.csv"),
           x = def1_elements_detected,

@@ -246,23 +246,6 @@ comparison <- comparison %>%
 }
 ```
 
-<!-- Write Data -->
-
-```{r Write Consensus Dataset}
-if(n_reviewers > 1){
- 
-  comparison %>%
-  arrange(Agreement) %>% # Disagreements at the top
-  mutate(Review_Category_Consensus = case_when(
-    Agreement == TRUE ~ Review_Category_R1,
-    TRUE ~ NA),
-    Notes_Consensus = ifelse(Agreement == TRUE, "-", NA)) %>%
-  select(Date, EssenceID, Agreement, Review_Category_Consensus, Notes_Consensus, everything()) %>%
-  writexl::write_xlsx(x=.,path = paste0("2_Consensus_Data\\Consensus_Data.xlsx")) 
-  
-}
-```
-
 ---
 title: "Validation Summary (Pre Consensus Review): `r definition`"
 ---

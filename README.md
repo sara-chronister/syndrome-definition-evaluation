@@ -54,5 +54,23 @@ The purpose of this tool is to allow ESSENCE users to evaluate the data details 
 
 * Navigate to `2_Consensus_Data/Consensus_Data.xlsx` to discuss disagreements between reviewers (records where `Agreement = FALSE`). After coming to a consensus, update `Review_Category_Consensus` to indicate the final status of the record(s). (Optional) You may record the conversations and/or information that caused reviewer(s) to change their initial rating in `Note_Consensus` (if this contextual information may be helpful in the future). **The Consensus Review process is complete, save and exit `Consensus_Data.xlsx`**
 * Run `Validation_Summary_Post_Consensus.Rmd` to generate a short report detailing **final estimates** of the syndrome definition's accuracy.
+
+
+  ### Output File Inventory
+
+| Folder | File  | Description | 
+| ------------- | ------------- | ------------- |
+| `SupportCode` | | R scripts containing custom functions **to support loading ESSENCE credentials** as well as pulling/cleaning data for reports. |
+| | `DefinitionInformationTable.xlsx`| Define evaluation process parameters and supply the syndrome definitions you wish to evaluate. |
+| | `Evaluation_#Defs.Rmd` | R markdown report used to launch entire syndrome validation process. Choose the respective `.Rmd` template based on the number of syndromes you wish to evaluate. |
+| | `Evaluation_#Defs.html` | Rendered R markdown report showcasing syndrome syntax, volumes of emergency department visits, and relative overlap between multiple syndromes. |
+|`Output_#Defs` | *Filenames reflect syndrome abbrevations*  | Multiple linelist files of ESSENCE DataDetails records based on the syndrome definition(s) (singular or multiple overlap) they fall under. |
+|`Output_#Defs/Matched_Elements` | *Filenames reflect syndrome abbreviations* | Mulitple files of C_BioSense_IDs and a matrix of 0/1 variables indicating the syndrome syntax components that were identified within the respective record. | 
+|`Output_#Defs/Validation_Review`|*Nested subfolders supporting Validation Review for each syndrome being evaluated*||
+|`Output_#Defs/Validation_Review/1_Reviewed_Data`|`Reviewer_#_Data.xlsx`| Contains separate validation review excel files for each reviewer. |
+|`Output_#Defs/Validation_Review`|`Validation_Summary.Rmd` (1 reviewer only) or `Validation_Summary_Pre_Consensus.Rmd` (2+ reviewers only)| R Markdown report that calculates syndrome accuracy metrics (1 reviewer: final metrics, 2+ reviewers: preliminary metrics). For 2+ reviewers, it also generates `Consensus_Data.xlsx`. |
+|`Output_#Defs/Validation_Review/2_Consensus_Data`|`Consensus_Data.xlsx`| Linelist file that facilitates consensus review/discussion of record(s) with disagreement between reviewers (records that have `Agreement = FALSE`. After coming to a consensus decision, the final status of the record is updated in `Review_Category_Consensus`. |
+|`Output_#Defs/Validation_Review`|`Validation_Summary_Post_Consensus.Rmd` (2+ reviewers only)| R Markdown report that calculates final, consensus syndrome accuracy metrics. |
+
 ___
 *For questions, ideas for improvement/collaboration, or attribution, please reach out to <sara.chronister@doh.wa.gov>.*

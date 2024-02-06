@@ -16,7 +16,7 @@ The purpose of this tool is to allow ESSENCE users to evaluate the data details 
 * Unzip the files to the location that you want the project files to be stored.
 
 ### 2) In Excel:
-* Open the `"DefinitionInformationTable.xlsx"` file
+* Open the `"DefinitionInformationTable.xlsx"` file.
 * **Follow the instructions for setting up the evaluation in all tabs.** Detailed information about each of the fields is in the top row. **DO NOT CHANGE THE LOCATIONS OF ANY OF THE FIELDS**. The program will fail if you do.
 * Keep in mind that if you want to evaluate one definition, you must update the def1 row of the "DefinitionInformation" tab. For evaluation of two definitions, update the def1 and def2 rows, and for three definitions update all rows in the "DefinitionInformation" tab. 
 * Save (without changing the name of the file) once you have all the information you need about your definitions.
@@ -24,7 +24,7 @@ The purpose of this tool is to allow ESSENCE users to evaluate the data details 
 ### 3) In RStudio: 
 * In your file location, open the `"SyndromeEvaluation.Rproj"` file.
 * In RStudio navigate to the Files tab (by default in the bottom right pane) and open the `"SupportCode"` folder.
-  + Open the `"3-UserCredentials.R"` file and follow the instructions. Remember to comment out all lines again by adding a # at the beginning of each line when you have finished.
+  + Open the `"2-UserCredentials.R"` file and follow the instructions. Remember to comment out all lines again by adding a # at the beginning of each line when you have finished.
 * Open either the `"Evaluation_OneDef.Rmd"`, `"Evaluation_TwoDefs.Rmd"`, or `"Evaluation_OneDef.Rmd"` file (based on the number of queries you wish to evaluate).
   + You can rename any of these files to reflect the definition(s) you are evaluating. This will be the file name of the HTML report generated.
 * To run the report, look for a button at the top of the script that says `"Knit"` :yarn:. Click that button and wait for your report to run. When it is finished it will generate an HTML file that can be opened using any browser (except Internet Explorer) and can be shared with anyone via email, shared folder location, etc.
@@ -33,7 +33,7 @@ The purpose of this tool is to allow ESSENCE users to evaluate the data details 
 > * For subsequent uses, be sure your user credentials (ESSENCE and local, if necessary) are up to date. Update your credentials in the `"SupportCode/2-UserCredentials.R"` file as needed.
 
 > [!IMPORTANT]
-> * Result files with be stored in the `Output_` folder corresponding to the `Evaluation_.Rmd` you ran. (Example: If you run `Evaluation_OneDef.Rmd` then result files will be stored in `Output_OneDef`).
+> * Result files with be stored in the `Output_` folder corresponding to the `Evaluation_#Defs.Rmd` you ran. (Example: If you run `Evaluation_OneDef.Rmd` then result files will be stored in `Output_OneDef`).
 
 ### 4) Validation Review:
 **This tool also supports a linelist, consensus manual review process (referred to as Validation Review) to estimate accuracy metrics of syndrome definitions.**
@@ -51,7 +51,7 @@ The purpose of this tool is to allow ESSENCE users to evaluate the data details 
 * **2+ reviewers**, run `Validation_Summary_Pre_Consensus.Rmd` (found in `Output_#Defs/ValidationReview/DefX` folder) to generate a short report detailing **preliminary estimates** of the syndrome definition's accuracy, **and to begin the Consensus Review process to ajudicate records where reviewers had differing `Review_Rating`'s.**
 
 * Navigate to `Output_#Defs/ValidationReview/2_Consensus_Data/Consensus_Data.xlsx` to discuss disagreements between reviewers (records where `Agreement = FALSE`).
-* After coming to a consensus, update the `Review_Category_Consensus` column to indicate the final status of the record(s). (Optional) You may record the conversations and/or information that caused reviewer(s) to change their initial rating in `Note_Consensus` (if this contextual information may be helpful in the future).
+* After coming to a consensus, update the `Review_Category_Consensus` column to indicate the final status of the record(s). (*Optional*) You may record the conversations and/or information that caused reviewer(s) to change their initial rating in `Note_Consensus` (if this contextual information may be helpful in the future).
   + At this stage of consensus review, the intent is to reach consensus on whether a visit is either a `True Positive` or a `False Positive` rather than a number on a numeric scale, therefore the `Review Category_Consensus` column should only have values of either `True Positive`, or `False Positive`. Note that `Uncertain` is also an option, though it should be used sparingly and will only appear if there is a scale that starts and ends on an odd number, i.e., 1-3 or 1-5. 
 * **The Consensus Review process is complete, save and exit `Consensus_Data.xlsx`**
 * Run `Validation_Summary_Post_Consensus.Rmd` to generate a short report detailing **final estimates** of the syndrome definition's accuracy.

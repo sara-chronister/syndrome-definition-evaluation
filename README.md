@@ -17,7 +17,7 @@ The purpose of this tool is to allow ESSENCE users to evaluate the data details 
 
 ### 2) In Excel:
 * Open the `"DefinitionInformationTable.xlsx"` file
-* Fill out all relevant information in all tabs. Detailed information about each of the fields is in the top row. **DO NOT CHANGE THE LOCATIONS OF ANY OF THE FIELDS**. The program will fail if you do. 
+* **Follow the instructions for setting up the evaluation in all tabs.** Detailed information about each of the fields is in the top row. **DO NOT CHANGE THE LOCATIONS OF ANY OF THE FIELDS**. The program will fail if you do.
 * Keep in mind that if you want to evaluate one definition, you must update the def1 row of the "DefinitionInformation" tab. For evaluation of two definitions, update the def1 and def2 rows, and for three definitions update all rows in the "DefinitionInformation" tab. 
 * Save (without changing the name of the file) once you have all the information you need about your definitions.
 
@@ -39,20 +39,21 @@ The purpose of this tool is to allow ESSENCE users to evaluate the data details 
 **This tool also supports a linelist, consensus manual review process (referred to as Validation Review) to estimate accuracy metrics of syndrome definitions.**
 
 >[!TIP]
-> Validation Review is toggled on/off in the "ValidationReviewInformation" tab of `"DefinitionInformationTable.xlsx"` (*default setting is on*). If it is toggled on, a `Validation_Review` subfolder will be present within the `Output_` folder for all the `Evaluation_.Rmd` reports you ran.
+> Validation Review is set to run by default. To turn off the Validation Review, go to the "Setup" tab of `"DefinitionInformationTable.xlsx"` and set the value for Column G Row 3 to to FALSE. 
 
-* Within `Validation_Review` navigate to the syndrome(s) of interest and then to the `1_Reviewed_Data` subfolder. For each reviewer, there will be a separate folder (`Reviewer_#`) and excel file (`Reviewer_1_Data.xlsx`) for their manual linelist review of ESSENCE DataDetails records.
-* (Each reviewer) Within the excel file, review all records and record 1) syndrome definition accuracy ratings (in the `Review_Rating` column), and 2) (*Optional*) contextual notes for that rating (in the `Notes` column). 
+* In the `Output_#Defs` folder there will be a `Validation_Review` folder
+* Within the `Validation_Review` folder, navigate to the syndrome(s) of interest and then to the `1_Reviewed_Data` subfolder. For each reviewer, there will be a separate folder (`Reviewer_#`) and excel file (`Reviewer_#_Data.xlsx`) for their manual linelist review of ESSENCE DataDetails records.
+* Within the excel file, each review should review all records independently and record:
+  + Accuracy rating (in the `Review_Rating` column) for each row using the numeric scale set in Columns G and H of the `ValidationReviewInformation` tab in the `DefinitionInformationTable` Excel file
+  + (*Optional*) contextual notes for that rating (in the `Notes` column)
 
-> [!NOTE]
-> `Review_Rating` accepts **numeric values** that denote whether records are "true positives" or accurately reflect the condition of interest. Review scales are defined in the "ValidationReviewInformation" tab of `"DefinitionInformationTable.xlsx"`. Some examples of review scales include:
-> - 0-1 (0: False Positive | 1: True Positive)  **Default**
-> - 1-3 (1: Unlikely | 2:  Uncertain | 3: Likely) 
+* **1 reviewer**, run `Validation_Summary.Rmd` (found in `Output_#Defs/ValidationReview/DefX` folder) to generate a short report detailing the syndrome definition's accuracy.
+* **2+ reviewers**, run `Validation_Summary_Pre_Consensus.Rmd` (found in `Output_#Defs/ValidationReview/DefX` folder) to generate a short report detailing **preliminary estimates** of the syndrome definition's accuracy, **and to begin the Consensus Review process to ajudicate records where reviewers had differing `Review_Rating`'s.**
 
-* **1 reviewer**, run `Validation_Summary.Rmd` to generate a short report detailing the syndrome definition's accuracy.
-* **2+ reviewers**, run `Validation_Summary_Pre_Consensus.Rmd` to generate a short report detailing **preliminary estimates** of the syndrome definition's accuracy, **and to begin the Consensus Review process to ajudicate records where reviewers had differing `Review_Rating`'s.**
-
-* Navigate to `2_Consensus_Data/Consensus_Data.xlsx` to discuss disagreements between reviewers (records where `Agreement = FALSE`). After coming to a consensus, update `Review_Category_Consensus` to indicate the final status of the record(s). (Optional) You may record the conversations and/or information that caused reviewer(s) to change their initial rating in `Note_Consensus` (if this contextual information may be helpful in the future). **The Consensus Review process is complete, save and exit `Consensus_Data.xlsx`**
+* Navigate to `Output_#Defs/ValidationReview/2_Consensus_Data/Consensus_Data.xlsx` to discuss disagreements between reviewers (records where `Agreement = FALSE`).
+* After coming to a consensus, update the `Review_Category_Consensus` column to indicate the final status of the record(s). (Optional) You may record the conversations and/or information that caused reviewer(s) to change their initial rating in `Note_Consensus` (if this contextual information may be helpful in the future).
+  + At this stage of consensus review, the intent is to reach consensus on whether a visit is either a `True Positive` or a `False Positive` rather than a number on a numeric scale, therefore the `Review Category_Consensus` column should only have values of either `True Positive`, or `False Positive`. Note that `Uncertain` is also an option, though it should be used sparingly and will only appear if there is a scale that starts and ends on an odd number, i.e., 1-3 or 1-5. 
+* **The Consensus Review process is complete, save and exit `Consensus_Data.xlsx`**
 * Run `Validation_Summary_Post_Consensus.Rmd` to generate a short report detailing **final estimates** of the syndrome definition's accuracy.
 
 

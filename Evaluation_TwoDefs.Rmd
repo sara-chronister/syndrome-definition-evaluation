@@ -19,6 +19,7 @@ query_end <- DefinitionInformation[["Setup"]]$EndDate %>% as.Date()
 jurisdiction <- DefinitionInformation[["Setup"]]$Jurisdiction
 
 select_fields <- DefinitionInformation[["AppliedFields"]] %>% pull_no_na(df=., variable = "Field")
+deduplicate_ddx <- DefinitionInformation[["ValidationReviewInformation"]] %>% pull_no_na(df=., variable = "DeduplicateDDx")
 
 # Define Output Folder 
 output_folder <- "Output_TwoDefs\\"
@@ -49,6 +50,8 @@ def1 <- def1_full %>%
   mutate(Date = as.Date(Date, format='%m/%d/%Y')) %>%
   filter(Date >= query_start) %>%
   filter(Date <= query_end)
+
+if(deduplicate_ddx == TRUE){def1 <- def1 %>% dedup_dx(df=., keep_raw = FALSE)}
 
 def1_total <- nrow(def1)
 def1_total_pretty <- format(def1_total, big.mark = ",", scientific = FALSE)
@@ -106,6 +109,8 @@ def2 <- def2_full %>%
   mutate(Date = as.Date(Date, format='%m/%d/%Y')) %>%
   filter(Date >= query_start) %>%
   filter(Date <= query_end)
+
+if(deduplicate_ddx == TRUE){def2 <- def2 %>% dedup_dx(df=., keep_raw = FALSE)}
 
 def2_total <- nrow(def2)
 def2_total_pretty <- format(def2_total, big.mark = ",", scientific = FALSE)

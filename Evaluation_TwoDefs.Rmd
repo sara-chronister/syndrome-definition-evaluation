@@ -35,7 +35,9 @@ def1_table <- DefinitionInformation[["DefinitionInformation"]] %>% filter(defX =
 def1_name <- def1_table$Syndrome
 def1_short <- def1_table$Abbreviation
 def1_structure <- clean_query_essence(def1_table$Structure)
-def1_structure_print <- str_replace_all(def1_table$Structure,"\\^","\\\\^")
+def1_structure_print <- def1_table$Structure %>%
+  str_replace_all(., pattern = "\\^", replacement = "\\\\^") %>%
+  str_replace_all(., pattern = "\\_", replacement = "\\\\_") # Prevents R Markdown from interpreting "_" as start/end of bold commands.
 def1_url <- def1_table$API
 
 ```
@@ -94,7 +96,9 @@ def2_table <- DefinitionInformation[["DefinitionInformation"]] %>% filter(defX =
 def2_name <- def2_table$Syndrome
 def2_short <- def2_table$Abbreviation
 def2_structure <- clean_query_essence(def2_table$Structure)
-def2_structure_print <- str_replace_all(def2_table$Structure,"\\^","\\\\^")
+def2_structure_print <- def2_table$Structure %>%
+  str_replace_all(., pattern = "\\^", replacement = "\\\\^") %>%
+  str_replace_all(., pattern = "\\_", replacement = "\\\\_") # Prevents R Markdown from interpreting "_" as start/end of bold commands.
 def2_url <- def2_table$API
 
 ```
@@ -207,7 +211,7 @@ join_vars <- c("Date", "EssenceID", select_fields)
 
 two_defs <- full_join(def1, def2, by = join_vars) %>%
   replace_na(replace = list(def1 = 0, def2 = 0)) %>% 
-  mutate(Total_Defs = def1+def2) 
+  mutate(Total_Defs = def1+def2)
 
 Def1_vs_Def2 <- two_defs
 colnames(Def1_vs_Def2)[which(colnames(Def1_vs_Def2)=="def1")] <- def1_short

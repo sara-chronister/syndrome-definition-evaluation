@@ -1,4 +1,4 @@
-# Syndrome Definition Evaluation
+# Syndrome Definition Evaluation Toolkit
 
 ## Background:
 The purpose of this tool is to allow ESSENCE users to evaluate the data details (line level) results of one, two, or three syndrome definitions at a time. This project produces several important outputs: 

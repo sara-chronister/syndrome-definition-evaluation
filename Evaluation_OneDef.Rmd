@@ -35,7 +35,9 @@ def1_table <- DefinitionInformation[["DefinitionInformation"]] %>% filter(defX =
 def1_name <- def1_table$Syndrome
 def1_short <- def1_table$Abbreviation
 def1_structure <- clean_query_essence(def1_table$Structure)
-def1_structure_print <- str_replace_all(def1_table$Structure,"\\^","\\\\^")
+def1_structure_print <- def1_table$Structure %>%
+  str_replace_all(., pattern = "\\^", replacement = "\\\\^") %>%
+  str_replace_all(., pattern = "\\_", replacement = "\\\\_") # Prevents R Markdown from interpreting "_" as start/end of bold commands.
 def1_url <- def1_table$API
 
 ```

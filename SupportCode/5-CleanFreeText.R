@@ -159,3 +159,194 @@ clean_TriageNotesOrig <- function(data = my_file) {
   
   return(data)
 }
+
+
+### Deduplicate DischargeDiagnosis Variables ###
+
+dedup_dx <- function(df, keep_raw = FALSE){
+  
+  # Step 0: Create Cleaned Data Frame
+  df_clean <- df
+  
+  # Step 1: Identify the variables present within the data frame
+  all_ddx_cleaning_vars <- c("DischargeDiagnosis", "DDParsed", "Diagnosis_Combo",
+                             "CCDD", "CCDDParsed")
+  
+  ddx_vars <- intersect(all_ddx_cleaning_vars, names(df)) # All ddx vars in present in df (for cleaning)
+  
+  # Step 2: (TOGGLE) Keep uncleaned variables too? 
+  if(keep_raw == TRUE){
+    
+    df_clean <- df_clean %>%
+      mutate(across(.cols = all_of(ddx_vars),
+                    .fns = list(raw = ~.)))
+  }
+  
+  
+  # [Clean] Diagnosis_Combo
+  if("Diagnosis_Combo" %in% ddx_vars){
+    ## Description: Within Diagnosis_Combo, there are ";" directly in front of ICD-10 CM codes (ex: ";F32.A") as well as within the attached, free-text definitions. This is a problem that must be addressed before segmenting the string into a vector of substrings.
+    
+    ## Approach: Match ONLY the ";" in front of the ICD-10 CM codes, and turn into a "|". Then segment the string into a vector of substrings using "|" (to avoid any problematic mix ups).
+    
+    df_clean <- df_clean %>%
+      mutate(Diagnosis_Combo = str_replace_all(Diagnosis_Combo,
+                                               pattern = ";([:alpha:]{1}[:alnum:]{2}\\.*[:alnum:]*)", # Look for ";" and the ICD-10 CM immediately following it. 
+                                               replacement = "|\\1")) # Replace ";" for "|", keep the same ICD-10 CM
+    
+    # Note: In the replacement, "\\1" is a back-reference to the ICD-10 CM pattern surrounded by () following the ";" in the pattern. For more information on regex back-references, see: https://www.regular-expressions.info/backref.html
+  }
+  
+  
+  
+  # Step 2: Deduplicate Discharge Diagnosis Codes (DischargeDiagnosis, DDParsed, Diagnosis_Combo Only)
+  
+  ## Description: If one of the 3 variables are in the data frame, it's split pattern will be added and then 
+  ## the variable will be de-duplicated in the for-loop below. If 0/3 variables aren't present, for-loop won't
+  ## run.
+  
+  ddx_vars_split_pattern <- c()
+  
+  if("DischargeDiagnosis" %in% ddx_vars){ddx_vars_split_pattern <- c(ddx_vars_split_pattern, ";")}
+  if("DDParsed" %in% ddx_vars){ddx_vars_split_pattern <- c(ddx_vars_split_pattern, ";")}
+  if("Diagnosis_Combo" %in% ddx_vars){ddx_vars_split_pattern <- c(ddx_vars_split_pattern, "\\|")}
+  
+  if(!is.null(ddx_vars_split_pattern)){
+    
+    for(i in seq_along(ddx_vars_split_pattern)){
+      
+      # 2a: Split string into character vectors of substrings
+      df_clean <- df_clean %>%
+        mutate(!!paste0(ddx_vars[i],"_list") := str_split(get(ddx_vars[i]), 
+                                                          pattern = ddx_vars_split_pattern[i])) # Split string by ddx_vars_split_pattern
+      
+      # 2b: Clean character vectors of substrings (remove "", and duplicates) Remove character vector elements that are "". (Typically beginning/end of DischargeDiagnosis and DDParsed)
+      
+      df_clean <- df_clean %>%
+        mutate(!!paste0(ddx_vars[i],"_list") := lapply(get(paste0(ddx_vars[i],"_list")), 
+                                                       function(vec) unique(vec[vec != ""]))) # Remove duplicates and ""
+      
+      # 2c: Re-collapse de-duplicated ddx codes into a single string
+      df_clean <- df_clean %>%
+        mutate(!!paste0(ddx_vars[i]) := sapply(get(paste0(ddx_vars[i],"_list")), 
+                                               function(list) paste(list, collapse = ";"))) # Collapse substrings together with ";"
+    }
+    
+  }
+  
+  
+  # [Clean] DischargeDiagnosis & DDParsed
+  
+  ## Description: Add leading & trailing ";" to DischargeDiagnosis and DDParsed.
+  
+  if("DischargeDiagnosis" %in% ddx_vars){
+    
+    df_clean <- df_clean %>% 
+      mutate(DischargeDiagnosis = ifelse(DischargeDiagnosis != "NA" & !is.na(DischargeDiagnosis), 
+                                         paste0(";",DischargeDiagnosis,";"), NA))} # Add ";" unless NA
+  
+  if("DDParsed" %in% ddx_vars){
+    
+    df_clean <- df_clean %>% 
+      mutate(DDParsed = ifelse(DDParsed != "NA" & !is.na(DDParsed), 
+                               paste0(";",DDParsed,";"), NA))} # Add ";" unless NA
+  
+  
+  
+  # Step 3: Deduplicate Discharge Diagnosis Codes (CCDD, CCDDParsed)
+  
+  # 3a: Quick-Method (Deduplicated DischargeDiagnosis & DDParsed already available)
+  
+  ## Description: Split CC-DD, and append the CC portion on to the already de-duplicated DischargeDiagnosis (DD) portion from above. 
+  
+  if("CCDD" %in% ddx_vars & "DischargeDiagnosis" %in% ddx_vars){
+    
+    df_clean <- df_clean %>%
+      tidyr::separate(data = ., col = CCDD, into = c("CCParsed", "DD_remove"), sep = "\\|") %>% # Split by "|" separating CC and DD
+      mutate(CCDD = ifelse(!is.na(DischargeDiagnosis),
+                           paste(CCParsed, DischargeDiagnosis, sep = " | "), paste(CCParsed,"|"))) %>% # Combine CCParsed with previously de-duped DischargeDiagnosis
+      select(-CCParsed, -DD_remove) # Remove raw component variables (de-duped CCDD created)
+  }
+  
+  if("CCDDParsed" %in% ddx_vars & "DDParsed" %in% ddx_vars){
+    
+    df_clean <- df_clean %>%
+      tidyr::separate(dat = ., col = CCDDParsed, into = c("CCParsed", "DD_remove"), sep = "\\|") %>% # Split by the "|" separating CC and DD
+      mutate(CCDDParsed = ifelse(!is.na(DDParsed),
+                                 paste(CCParsed, DDParsed, sep = " | "), paste(CCParsed,"|"))) %>% # Combine CCParsed with previously de-duped DDParsed
+      select(-CCParsed, -DD_remove) # Remove raw component variables (de-duped CCDD created)
+  }
+  
+  
+  #3b: Long-Method (Deduplicated DischargeDiagnosis & DDParsed NOT already available)
+  
+  if("CCDD" %in% ddx_vars & !"DischargeDiagnosis" %in% ddx_vars){
+    
+    # Step 1: Split CC-DD, make DD into a character vector of substrings (individual ICD-10 CM)
+    df_clean <- df_clean %>%
+      tidyr::separate(data =., col = CCDD, into = c("CCParsed", "DD"), sep = "\\|") %>% # Split by "|" separating CC and DD
+      mutate(across(
+        .cols = c(CCParsed, DD), 
+        .fns = ~ifelse(.x == "", 
+                       NA, str_trim(.x, side = "both")))) %>% # convert "" to NA, trim whitespace
+      mutate(DD_list = str_split(DD, pattern = ";")) # Split DD string into character vector (substrings) by ";"
+    
+    # Step 2: Remove duplicates and ""
+    df_clean$DD_list <- lapply(df_clean$DD_list, function(vec) unique(vec[vec != ""])) # Remove duplicates and ""
+    
+    # Step 3: Recombine DD (now de-duplicated)
+    df_clean$DD <- sapply(df_clean$DD_list, function(list) paste(list, collapse = ";")) # Recombine DD substrings (";" between each)
+    
+    # Step 4: Recombine CC-DD (now de-duplicated)
+    df_clean <- df_clean %>%
+      mutate(DD = ifelse(!is.na(DD) & DD != "NA", 
+                         paste0(";",DD,";"), NA), # Add starting/ending ";" on DD
+             CCDD = ifelse(!is.na(DD),
+                           paste(CCParsed, DD, sep = " | "), paste(CCParsed,"|"))) %>% # Recombine CCParsed and DD (now deduplicated)
+      select(-DD, -CCParsed,  -DD_list) # Remove raw components (CCDD deduplicated created)
+    
+  }
+  
+  if("CCDDParsed" %in% ddx_vars & !"DDParsed" %in% ddx_vars){
+    
+    # Step 1
+    df_clean <- df_clean %>%
+      tidyr::separate(data =., col = CCDDParsed, into = c("CCParsed", "DDParsed"), sep = "\\|") %>% # Split by "|" separating CC and DD
+      mutate(across(
+        .cols = c(CCParsed, DDParsed), 
+        .fns = ~ifelse(.x == "", 
+                       NA, str_trim(.x, side = "both")))) %>% # convert "" to NA, trim whitespace
+      mutate(DDParsed_list = str_split(DDParsed, pattern = ";")) # Split DD string into character vector (substrings) by ";"
+    
+    # Step 2
+    df_clean$DDParsed_list <- lapply(df_clean$DDParsed_list, function(vec) unique(vec[vec != ""])) # Remove duplicates and ""
+    
+    # Step 3
+    df_clean$DDParsed <- sapply(df_clean$DDParsed_list, function(list) paste(list, collapse = ";")) # Recombine DD substrings (";" between each)
+    
+    # Step 4
+    df_clean <- df_clean %>%
+      mutate(DDParsed = ifelse(!is.na(DDParsed) & DDParsed != "NA", 
+                               paste0(";",DDParsed,";"), NA), # Add starting/ending ";" on DD
+             CCDDParsed = ifelse(!is.na(DDParsed),
+                                 paste(CCParsed, DDParsed, sep = " | "), paste(CCParsed,"|"))) %>% # Recombine CCParsed and DD (now deduplicated)
+      select(-CCParsed, -DDParsed, -DDParsed_list) # Remove components (CCDDParsed deduplicated has been created)
+    
+  }
+  
+  
+  # Step 4: Clean Up & Return Data to Global Environment
+  
+  df_clean <- df_clean %>% select(-ends_with("_list")) # remove list variables
+  
+  if(keep_raw == TRUE){
+    
+    df_clean <- df_clean %>% select(-ends_with("_raw"), everything()) # Make "_raw" variables appear last. 
+    
+  }else if(keep_raw == FALSE){
+    
+    df_clean <- df_clean %>% select(-ends_with("_raw"))
+  }
+  
+  return(df_clean)
+}

@@ -2,30 +2,35 @@
 output: html_document
 ---
 
+<!-- Setup -->
+
 ```{r setup, include=FALSE}
 
 knitr::opts_chunk$set(echo = TRUE)
 
-files.source <- list.files("SupportCode")
-sapply(paste0("SupportCode/",files.source),source)
+files.source <- list.files("SupportCode", pattern = "\\.R")
+sapply(paste0("SupportCode\\",files.source),source)
 
-setup_information <- read.xlsx("DefinitionInformationTable.xlsx", sheet = "Setup", rows = c(2:3), cols = c(1:6), detectDates = TRUE)
+# Read in all DefinitionInformationTable excel sheets into a single, named list.
+DefinitionInformation <- multiplesheets(fname = "DefinitionInformationTable.xlsx")
 
-query_start <- as.Date(setup_information$StartDate)
-query_end <- as.Date(setup_information$EndDate)
-jurisdiction <- setup_information$Jurisdiction
+query_start <- DefinitionInformation[["Setup"]]$StartDate %>% as.Date()
+query_end <- DefinitionInformation[["Setup"]]$EndDate %>% as.Date()
+jurisdiction <- DefinitionInformation[["Setup"]]$Jurisdiction
 
-select_fields_table <- read.xlsx("DefinitionInformationTable.xlsx", sheet = "AppliedFields", rows = c(2:10), cols = 1) %>% 
-  filter(!is.na(Field)) 
-select_fields <- select_fields_table$Field
+select_fields <- DefinitionInformation[["AppliedFields"]] %>% pull_no_na(df=., variable = "Field")
+deduplicate_ddx <- DefinitionInformation[["ValidationReviewInformation"]] %>% pull_no_na(df=., variable = "DeduplicateDDx")
 
-information_table <- read.xlsx("DefinitionInformationTable.xlsx", sheet = "DefinitionInformation", rows = c(2:5), cols = c(1:7))
+# Define Output Folder 
+output_folder <- "Output_ThreeDefs\\"
 
 ```
 
+<!-- Def1 -->
+
 ```{r def1_setup, echo=FALSE, message=FALSE, warning=FALSE}
 
-def1_table <- information_table[information_table$defX=="def1",]
+def1_table <- DefinitionInformation[["DefinitionInformation"]] %>% filter(defX == "def1")
 
 def1_name <- def1_table$Syndrome
 def1_short <- def1_table$Abbreviation
@@ -47,6 +52,8 @@ def1 <- def1_full %>%
   mutate(Date = as.Date(Date, format='%m/%d/%Y')) %>%
   filter(Date >= query_start) %>%
   filter(Date <= query_end)
+
+if(deduplicate_ddx == TRUE){def1 <- def1 %>% dedup_dx(df=., keep_raw = FALSE)}
 
 def1_total <- nrow(def1)
 def1_total_pretty <- format(def1_total, big.mark = ",", scientific = FALSE)
@@ -80,10 +87,11 @@ def1_elements_detected_table <- def1_elements_detected %>%
 
 ```
 
+<!-- Def2 -->
 
 ```{r def2_setup, echo=FALSE, message=FALSE, warning=FALSE}
 
-def2_table <- information_table[information_table$defX=="def2",]
+def2_table <- DefinitionInformation[["DefinitionInformation"]] %>% filter(defX == "def2")
 
 def2_name <- def2_table$Syndrome
 def2_short <- def2_table$Abbreviation
@@ -105,6 +113,8 @@ def2 <- def2_full %>%
   mutate(Date = as.Date(Date, format='%m/%d/%Y')) %>%
   filter(Date >= query_start) %>%
   filter(Date <= query_end)
+
+if(deduplicate_ddx == TRUE){def2 <- def2 %>% dedup_dx(df=., keep_raw = FALSE)}
 
 def2_total <- nrow(def2)
 def2_total_pretty <- format(def2_total, big.mark = ",", scientific = FALSE)
@@ -138,10 +148,11 @@ def2_elements_detected_table <- def2_elements_detected %>%
 
 ```
 
+<!-- Def3 -->
 
 ```{r def3_setup, echo=FALSE, message=FALSE, warning=FALSE}
 
-def3_table <- information_table[information_table$defX=="def3",]
+def3_table <- DefinitionInformation[["DefinitionInformation"]] %>% filter(defX == "def3")
 
 def3_name <- def3_table$Syndrome
 def3_short <- def3_table$Abbreviation
@@ -163,6 +174,8 @@ def3 <- def3_full %>%
   mutate(Date = as.Date(Date, format='%m/%d/%Y')) %>%
   filter(Date >= query_start) %>%
   filter(Date <= query_end)
+
+if(deduplicate_ddx == TRUE){def3 <- def3 %>% dedup_dx(df=., keep_raw = FALSE)}
 
 def3_total <- nrow(def3)
 def3_total_pretty <- format(def3_total, big.mark = ",", scientific = FALSE)
@@ -204,8 +217,8 @@ author: `r query_start` to `r query_end`
   
 **Jurisdiction**: `r jurisdiction`  
 **Report Created**: `r Sys.Date()`    
-**Point of Contact**: `r setup_information$PointOfContact` (`r setup_information$POCEmail`)    
-**Organization**: `r setup_information$Organization`
+**Point of Contact**: `r DefinitionInformation[["Setup"]]$PointOfContact` (`r DefinitionInformation[["Setup"]]$POCEmail`)    
+**Organization**: `r DefinitionInformation[["Setup"]]$Organization`
 
 
 ***  
@@ -512,7 +525,6 @@ my_file <- clean_TriageNotesOrig()
 
 ```
 
-
 ```{r top_terms, echo=FALSE, message = FALSE, warning = FALSE, fig.width=10, fig.height=8}
 
 def_sets <- list(my_file[my_file$def1==1,],
@@ -572,72 +584,206 @@ ggplot(data = top_words_combined) +
 
 ```
 
+<!-- Writing Linelists -->
+
 ```{r output, echo=FALSE, message=FALSE, warning=FALSE}
 
 
 # All Visits
-write.csv(file = "Output_ThreeDefs/Three Defs All Visits.csv",
+write.csv(file = paste0(output_folder, "Three Defs All Visits.csv"),
           x = three_defs_table,
           row.names = FALSE)
 
 # Def1 only
-write.csv(file = paste0("Output_ThreeDefs/",def1_short," Only Visits.csv"),
+write.csv(file = paste0(output_folder,def1_short," Only Visits.csv"),
           x = three_defs_table[three_defs_table$def1_only==1,],
           row.names = FALSE)
 
 # Def2 only
-write.csv(file = paste0("Output_ThreeDefs/",def2_short," Only Visits.csv"),
+write.csv(file = paste0(output_folder,def2_short," Only Visits.csv"),
           x = three_defs_table[three_defs_table$def2_only==1,],
           row.names = FALSE)
 
 # Def3 only
-write.csv(file = paste0("Output_ThreeDefs/",def3_short," Only Visits.csv"),
+write.csv(file = paste0(output_folder,def3_short," Only Visits.csv"),
           x = three_defs_table[three_defs_table$def3_only==1,],
           row.names = FALSE)
 
 # Def1 and Def2 
-write.csv(file = paste0("Output_ThreeDefs/",def1_short," and ",def2_short," Visits.csv"),
+write.csv(file = paste0(output_folder,def1_short," and ",def2_short," Visits.csv"),
           x = three_defs_table[three_defs_table$def1_def2==1,],
           row.names = FALSE)
 
 # Def1 and Def3 
-write.csv(file = paste0("Output_ThreeDefs/",def1_short," and ",def3_short," Visits.csv"),
+write.csv(file = paste0(output_folder,def1_short," and ",def3_short," Visits.csv"),
           x = three_defs_table[three_defs_table$def1_def3==1,],
           row.names = FALSE)
 
 # Def2 and Def3 
-write.csv(file = paste0("Output_ThreeDefs/",def2_short," and ",def3_short," Visits.csv"),
+write.csv(file = paste0(output_folder,def2_short," and ",def3_short," Visits.csv"),
           x = three_defs_table[three_defs_table$def2_def3==1,],
           row.names = FALSE)
 
 # Def1 and Def2 and Def3
-write.csv(file = paste0("Output_ThreeDefs/",def1_short, " and ",def2_short," and ",def3_short," Visits.csv"),
+write.csv(file = paste0(output_folder,def1_short, " and ",def2_short," and ",def3_short," Visits.csv"),
           x = three_defs_table[three_defs_table$All ==1,],
           row.names = FALSE)
 
+
+# Create Matched Elements Subfolder
+fs::dir_create(paste0(output_folder, "Matched_Elements"))
+
 # Def1 matched elements
-write.csv(file = paste0("Output_ThreeDefs/",def1_short," Matched Elements.csv"),
+write.csv(file = paste0(output_folder,"Matched_Elements\\",def1_short," Matched Elements.csv"),
           x = def1_elements_detected,
           row.names = FALSE)
 
 # Def2 matched elements
-write.csv(file = paste0("Output_ThreeDefs/",def2_short," Matched Elements.csv"),
+write.csv(file = paste0(output_folder,"Matched_Elements\\",def2_short," Matched Elements.csv"),
           x = def2_elements_detected,
           row.names = FALSE)
 
 # Def3 matched elements
-write.csv(file = paste0("Output_ThreeDefs/",def3_short," Matched Elements.csv"),
+write.csv(file = paste0(output_folder,"Matched_Elements/",def3_short," Matched Elements.csv"),
           x = def3_elements_detected,
           row.names = FALSE)
 
-
 ```
 
+<!-- Validation Review -->
 
+```{r validation review setup, include=FALSE}
+
+validation_review <- DefinitionInformation[["Setup"]]$ValidationReview
+
+
+if(validation_review == TRUE){
+
+## Identify # of Reviewers
+n_reviewers <- DefinitionInformation[["ValidationReviewInformation"]]$ReviewerID %>% max()
+
+# ## Identify Definitions to be Reviewed
+validation_review_defs <- c("def1", "def2", "def3") # Change based on Evaluation Template #
+
+## Establish Sampling Parameters
+SampleMetric <- DefinitionInformation[["ValidationReviewInformation"]] %>% pull_no_na(df=., variable = "SampleMetric")
+SampleValue <- DefinitionInformation[["ValidationReviewInformation"]] %>% pull_no_na(df=., variable = "SampleValue")
+StratifiedSample <- DefinitionInformation[["ValidationReviewInformation"]] %>% pull_no_na(df=., variable = "StratifiedSample")
+StratifiedVariables <- DefinitionInformation[["ValidationReviewInformation"]] %>% 
+  pull_no_na(df=., variable = "StratifiedVariables") %>% # Pull StratifiedVariables (remove NAs)
+  strsplit(., split = ",") %>% # Split single string "A, B" into a string vector c("A"," B") using the comma
+  unlist() %>%  # Unlist (strsplit() puts new vector into a list)
+  str_trim(., side="both") # Remove all whitespace on every string in the string vector: c("A", " B") --> c("A","B")
+
+# Establish Review Scale
+ReviewScaleLow <- DefinitionInformation[["ValidationReviewInformation"]]$ReviewScaleLow[1]
+ReviewScaleHigh <- DefinitionInformation[["ValidationReviewInformation"]]$ReviewScaleHigh[1]
+
+}
+```
+
+```{r validation review file directories, include=FALSE}
+if(validation_review == TRUE){
+
+## Create Validation Review File Directories
+
+for(i in seq_along(validation_review_defs)){ # for each definition specified (i) create the following filepaths
+  
+  # Step 1: Create folder name for each definition undergoing validation review
+  def_review_folder <- name_def_review_folder(definition = validation_review_defs[i])
+
+  # Step 2: Create folders for each stage of a definition's validation review process
+  fs::dir_create(paste0(output_folder, "Validation_Review\\",def_review_folder,"\\Resources"))
+  fs::dir_create(paste0(output_folder, "Validation_Review\\",def_review_folder,"\\1_Reviewed_Data"))
+
+  if(n_reviewers > 1){ # Only create consensus data folders if > 1 reviewer.
+      fs::dir_create(paste0(output_folder, "Validation_Review\\",def_review_folder,"\\2_Consensus_Data"))
+    }
+  
+  # Step 3: Create subfolders for each reviewer examining a definition
+  for(j in 1:n_reviewers){ # for each reviewer specified (j) create reviewer specific subfolder (within each definition being reviewed)
+    
+  fs::dir_create(paste0(output_folder, "Validation_Review\\",def_review_folder,"\\1_Reviewed_Data\\Reviewer_",j))
+    }
+  }
+rm(def_review_folder)
+}
+```
+
+```{r validation reviewer files, include=FALSE}
+if(validation_review == TRUE){
+
+# Development Note: I will attempt to keep all Reviewer columns the same across IE #'s (Reviewer_TP_## and Reviewer_Notes) and then seek to differentiate these columns across Reviewers after the joining where R will auto-assign .x.y.z etc prefixes. This will likely be easier to work with than generating code to scan a flexible # of uniquely generated var names. 
+
+list <- list()
+
+for(i in seq_along(validation_review_defs)){
+  
+  # Step 1: Formatting Data for Reviewers
+  
+  list[[i]] <- get(validation_review_defs[i]) %>%
+    distinct(EssenceID, .keep_all = TRUE) %>% # Deduplicate records
+    add_date_components(df=.) %>% # Generate Date Components (Date --> Weekday, Week, Month, Year)
+    get_sample(df=.,
+               sample_metric = SampleMetric,
+               sample_value = SampleValue,
+               strat_sample = StratifiedSample,
+               strat_vars = StratifiedVariables) %>% # SAMPLE
+    mutate(Review_Rating = NA,
+          Notes = NA) %>%
+    ## REORDER VARIABLES: BSI, REVIEWER VARS, EVERYTHING ELSE
+    select(Date, EssenceID,
+           Review_Rating, Notes,
+           everything(),
+           -Weekday, -Week, -Month, -Year) %>%
+    ## REMOVE ALL CHARACTERS WHICH MAY CAUSE XML ERRORS WITH EXCEL FILES
+    mutate(across(.cols = where(is.character), 
+                  .fns = ~ str_replace_all(string=., pattern = "[^[:graph:]]", replacement = " "))) # Replace all non-printable characters with a space (to prevent XML encoding issues when writing EXCEL files). 
+  
+  # Step 2: Create folder name for each definition undergoing validation review
+  
+  def_review_folder <- name_def_review_folder(definition = validation_review_defs[i])
+  
+  # Step 3: Save Review Data (1 copy for each reviewer examining each definition)
+  
+  for(j in 1:n_reviewers){ # for each reviewer specified (j) create reviewer specific subfolder (within each definition being reviewed)
+    
+    list[[i]] %>%
+      writexl::write_xlsx(x=., 
+                 path = paste0(output_folder, "Validation_Review\\",def_review_folder,"\\1_Reviewed_Data\\Reviewer_",j,
+                             "\\Reviewer_",j,"_Data.xlsx"))
+  }
+  
+  # Step 4: Set up Consensus Review Code for each definition's Validation Review Folder
+  
+  # Problem: When folks are running SyS Eval_ template, they have not yet started validation review --> so not yet time for Comparison/Consensus process --> need an additional script/button they can run when ready (Consensus_Review.Rmd).
+  
+  # Step 4a: Create a filepath  for each definition validation review
+  filepath <- paste0(output_folder, "Validation_Review\\", def_review_folder)
+  
+  # Step 4b: Save all parameters needed to run Consensus_Review.Rmd template
+  save(filepath, DefinitionInformation,
+       file = paste0(filepath,"\\Resources\\Validation_Review_Parameters.RData"))
+  
+  # Step 4c: Copy Validation Summary R Markdown code template(s) to each definition validation review folder.
+
+  if(n_reviewers == 1){ # Consensus Review not feasible with 1 reviewer --> Singular Validation_Summary.Rmd
+  
+  file.copy(from = "SupportCode\\Validation_Review\\Validation_Summary.Rmd",
+            to = paste0(filepath))
+    
+  }else if(n_reviewers > 1){ # Only include Post-Consensus Review RMD if there are enough reviewers to do Consensus Review.
+    
+  # Pre Consensus Review Code Template
+  file.copy(from = "SupportCode\\Validation_Review\\Validation_Summary_Pre_Consensus_Review.Rmd",
+            to = paste0(filepath))
+    
+  # Post Consensus Review Code Template
+  file.copy(from = "SupportCode\\Validation_Review\\Validation_Summary_Post_Consensus_Review.Rmd",
+            to = paste0(filepath))  
+    }
+  }
+}
+```
 ___
 *The template for this report was created by Sara Chronister. For questions, ideas for improvement/collaboration, or attribution, please reach out to <sara.chronister@doh.wa.gov>.*
-
-
-
-
-

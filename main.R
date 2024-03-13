@@ -29,4 +29,7 @@ if(!file_exists(paste0(params$output_folder,"Data.RData"))){
   
 }else{load(paste0(params$output_folder,"Data.RData"))}
 
-## 3) Render Template
+## 3) Validation Review
+if(params$validation_review$enable_validation_review == TRUE){
+  source(here::here("Scripts", "3_validation_review.R"))
+}

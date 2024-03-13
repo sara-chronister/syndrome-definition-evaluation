@@ -6,6 +6,11 @@
 
 # =======================================================================
 
+# Change -----
+
+## Define Number of Queries Being Evaluated (def1, def2, def3)
+n_queries_eval <- 2 
+
 # Set Up -----
 
 ## Install/Load Packages & Custom Functions
@@ -14,9 +19,6 @@ sapply(paste0("Scripts\\SupportCode\\",files.source),source)
 
 ## Read in all DefinitionInformationTable excel sheets into a single, named list.
 DefinitionInformation <- multiplesheets(fname = "DefinitionInformationTable.xlsx")
-
-## Define Number of Queries Being Evaluated
-n_queries_eval <- 2
 
 # Source Scripts -----
 

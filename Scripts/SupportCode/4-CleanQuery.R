@@ -32,7 +32,7 @@ detect_elements <- function(data, terms, text_field) {
   terms_colnames <- str_replace_all(terms," ",".")
   
   terms_detected_setup <- data %>%
-    select(EssenceID,field = !!text_field) %>%
+    select(C_BioSense_ID, field = !!text_field) %>%
     mutate(field = str_to_lower(field),
            TruePositive = "")
   
@@ -43,12 +43,12 @@ detect_elements <- function(data, terms, text_field) {
       dplyr::mutate(term = str_detect(field,terms[i])) %>%
       dplyr::mutate(term = ifelse(term==TRUE,1,0))
     
-    names(terms_detected_list[[i]]) <- c("EssenceID",text_field,"TruePositive",paste("element",terms_colnames[i],sep="_"))
+    names(terms_detected_list[[i]]) <- c("C_BioSense_ID",text_field,"TruePositive",paste(text_field,terms_colnames[i],sep="_"))
   }
   
   terms_detected <- purrr::reduce(terms_detected_list,full_join) %>%
-    select(EssenceID,TruePositive,text_field,everything()) %>%
+    select(C_BioSense_ID,TruePositive,text_field,everything()) %>%
     distinct()
-  return(terms_detected)  
   
+  return(terms_detected)  
 }

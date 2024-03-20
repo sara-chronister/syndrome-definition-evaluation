@@ -15,6 +15,9 @@ params <- list()
 ### Number of Queries to Evaluate
 params$n_queries_eval <- n_queries_eval
 
+### Vector of Query Abbreviations to Evaluate
+params$queries_abbrev <- DefinitionInformation[["DefinitionInformation"]]$Abbreviation[1:params$n_queries_eval]
+
 ### Dates & Geographies
 params$start_date <- DefinitionInformation[["Setup"]]$StartDate %>% as.Date()
 params$end_date <- DefinitionInformation[["Setup"]]$EndDate %>% as.Date()
@@ -90,6 +93,9 @@ params$filepaths$output <- case_when(
   params$n_queries_eval == 1 ~ "Output/OneDef/",
   params$n_queries_eval == 2 ~ "Output/TwoDefs/",
   params$n_queries_eval == 3 ~ "Output/ThreeDefs/")
+
+#### Definition_Overlap
+params$filepaths$definition_overlap <- paste0(params$filepaths$output,"Definition_Overlap/")
 
 #### Matched_Elements
 params$filepaths$matched_elements <- paste0(params$filepaths$output,"Matched_Elements/")

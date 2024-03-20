@@ -100,9 +100,33 @@ params$filepaths$definition_overlap <- paste0(params$filepaths$output,"Definitio
 #### Matched_Elements
 params$filepaths$matched_elements <- paste0(params$filepaths$output,"Matched_Elements/")
 
-#### Validation_Review
+#### Validation_Review (Base Folder)
 if(params$validation_review$enable_validation_review == TRUE){
   params$filepaths$validation_review <- paste0(params$filepaths$output,"Validation_Review/")
 }
 
-lapply(params$filepaths, dir_create) # Create Filepaths
+#### Create Folders
+lapply(params$filepaths, dir_create) # Create Filepaths  
+
+
+#### Validation_Review (Subfolders)
+
+if(params$validation_review$enable_validation_review == TRUE){
+  
+  for(i in seq_along(params$queries_abbrev)){ # for each definition specified (i) create the following filepaths
+    
+    # Step 2: Create folders for each stage of a definition's validation review process
+    fs::dir_create(paste0(params$filepaths$validation_review, "/",params$queries_abbrev[i],"/Resources"))
+    fs::dir_create(paste0(params$filepaths$validation_review, "/",params$queries_abbrev[i],"/1_Reviewed_Data"))
+    
+    if(params$validation_review$n_reviewers > 1){ # Only create consensus data folders if > 1 reviewer.
+      fs::dir_create(paste0(params$filepaths$validation_review, "/",params$queries_abbrev[i],"/2_Consensus_Data"))
+    }
+    
+    # Step 3: Create subfolders for each reviewer examining a definition
+    for(j in 1:params$validation_review$n_reviewers){ # for each reviewer specified (j) create reviewer specific subfolder (within each definition being reviewed)
+      
+      fs::dir_create(paste0(params$filepaths$validation_review, "/",params$queries_abbrev[i],"/1_Reviewed_Data/Reviewer_",j))
+    }
+  }
+}

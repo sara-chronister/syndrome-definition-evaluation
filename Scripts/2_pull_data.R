@@ -198,3 +198,6 @@ syndrome_eval_list$Overlap %>%
 # All Visits (Regardless of Matching/Overlap)
 syndrome_eval_list$Overlap %>%
   write.csv(file = paste0(params$filepaths$definition_overlap, "All Visits.csv"))
+
+# Clean Up -----
+rm(list = ls(pattern = "def|filename|Overlap"))

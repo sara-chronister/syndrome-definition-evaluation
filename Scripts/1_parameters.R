@@ -16,7 +16,9 @@ params <- list()
 params$n_queries_eval <- n_queries_eval
 
 ### Vector of Query Abbreviations to Evaluate
+params$queries <- DefinitionInformation[["DefinitionInformation"]]$Syndrome[1:params$n_queries_eval]
 params$queries_abbrev <- DefinitionInformation[["DefinitionInformation"]]$Abbreviation[1:params$n_queries_eval]
+
 
 ### Dates & Geographies
 params$start_date <- DefinitionInformation[["Setup"]]$StartDate %>% as.Date()
@@ -131,3 +133,14 @@ if(params$validation_review$enable_validation_review == TRUE){
   }
 }
 rm(i, j)
+
+
+# Report Parameters  -----
+
+## Report Query Title
+params$report$query_title <- switch(params$n_queries_eval,
+                                    params$queries,
+                                    paste0(params$queries[1]," and ", params$queries[2]),
+                                    paste0(params$queries[1],", ",params$queries[2],", and ",params$queries[3]))
+
+

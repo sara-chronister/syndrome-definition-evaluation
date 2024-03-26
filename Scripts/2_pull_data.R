@@ -50,7 +50,9 @@ for(i in 1:params$n_queries_eval){
                               TRUE ~ Fields)) %>%
     pull(Fields)
   
+  defX_list$setup$detect_elements_fields_regex <- paste(defX_list$setup$detect_elements_fields, collapse="|")
     
+  
   ## Results -----
   
   ### Pull API Data (DataDetails)
@@ -88,12 +90,28 @@ for(i in 1:params$n_queries_eval){
   
   #### Combine all field-specific detect elements into one data frame
   defX_list$analysis$elements_detected <- bind_cols(list_detect_elements) %>%
+    mutate(TruePositive = NA) %>%
     rename(C_BioSense_ID = C_BioSense_ID...1) %>%
-    select(-matches(".*\\..*")) %>% # Remove duplicate variables
     mutate(across(
       .cols = where(is.numeric),
-      .fns = ~ ifelse(is.na(.), 0, .)))
+      .fns = ~ ifelse(is.na(.), 0, .))) %>%
+    select(C_BioSense_ID, TruePositive, all_of(defX_list$setup$detect_elements_fields),
+           everything(), -matches(".*\\..*")) # Remove duplicate variables
   
+  #### Elements Detected Table
+  defX_list$analysis$elements_detected_table <- defX_list$analysis$elements_detected %>%
+    pivot_longer(cols = where(is.numeric), names_to = "Syndrome Element", values_to = "Match") %>%
+    mutate(Field = str_extract(`Syndrome Element`, pattern = defX_list$setup$detect_elements_fields_regex),
+           `Syndrome Element` = str_remove_all(`Syndrome Element`, defX_list$setup$detect_elements_fields_regex), # Remove DE Variable Prefix
+           `Syndrome Element` = str_replace_all(`Syndrome Element`, "\\."," "), # Remove punctuation
+           `Syndrome Element` = str_sub(`Syndrome Element`, start = 2)) %>% # Remove final _ after DE Variable Prefix
+    full_join(defX_list$setup$structure) %>% # Full Join Syndrome Element Classification Crosswalk (DDx vs Free-text)
+    mutate(`Syndrome Element` = ifelse(`Element Type` == "Diagnosis Code", 
+                                       str_to_sentence(`Syndrome Element`), `Syndrome Element`)) %>%
+    group_by(Field, `Syndrome Element`, `Element Type`) %>%
+    summarize(Matches = sum(Match, na.rm = TRUE)) %>%
+    arrange(desc(Matches))
+    
   # rename the list to match the number of the definition
   assign(paste0("def",i,"_list"), defX_list) ## Consider using params$queries_
 }
@@ -162,7 +180,7 @@ if(params$n_queries_eval > 1){
 }
 
 ## Add Row Totals (via Overlap DF)
-syndrome_eval_list$defs_total <- nrow(syndrome_eval_list$Overlap)
+syndrome_eval_list$defs_total <- nrow(syndrome_eval_list[[overlap_name]])
 syndrome_eval_list$defs_total_pretty <- format(syndrome_eval_list$defs_total, big.mark = ",", scientific = FALSE)
 
 
@@ -238,4 +256,4 @@ syndrome_eval_list[[overlap_name]] %>%
   write.csv(file = paste0(params$filepaths$definition_overlap, "All Visits.csv"))
 
 # Clean Up -----
-rm(list = ls(pattern = "filename"))
+rm(list = ls(pattern = "filename|Overlap|list_detect_elements"))

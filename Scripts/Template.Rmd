@@ -101,6 +101,8 @@ if(params$n_queries_eval >= 3){
 ***  
 `r if(params$n_queries_eval >= 2){paste0('### Defintion Comparison')}`
 
+<!-- Timeseries Comparison --> 
+
 `r if(params$n_queries_eval == 1){paste0('#### Visits over time')}`
 `r if(params$n_queries_eval >= 2){paste0('#### Visits by syndrome over time {.tabset}')}`
 
@@ -161,8 +163,11 @@ switch(params$n_queries_eval,
 
 ```
 
+<!-- Demographics Comparison --> 
+
 `r if(params$n_queries_eval >= 2){paste0('#### Demographics Comparison)}`
-```{r prep demo table}
+
+```{r prep demographics table}
 
 df_demo <- switch(params$n_queries_eval,
                   bind_rows(syndrome_eval_list[[1]]$results$clean, .id = "id"),
@@ -227,7 +232,8 @@ names(table) <- str_remove_all(string = names(table), pattern = "\\*")
 
 ## Render gtsummary table in DT
 table %>% 
-  DT::datatable(rownames=FALSE) %>%
+  DT::datatable(rownames=FALSE, 
+                options = list(pageLength = nrow(table), dom = "t"), filter = "top", escape = FALSE) %>%
   formatStyle(
     columns = 'Demographic',
     fontWeight = styleEqual(c("AgeGroup","Sex","Race","Ethnicity"),"bold")) # https://rstudio.github.io/DT/010-style.html
@@ -243,38 +249,27 @@ demo_table %>%
 
 ```
 
-  
-  
-#### The total number of visits identified by all definitions combined was **`r three_defs_total_pretty`**.   
-  
-#### Number and percent of all identified visits captured by each definition:        
-```{r def_summary, echo=FALSE, message=FALSE, warning=FALSE, fig.height=3}
+<!-- Count Comparison --> 
 
-defX_results <- syndrome_eval_list[[overlap_name]] %>%
+`r if(params$n_queries_eval >= 2){paste0('#### The total number of visits identified by all definitions combined was **',syndrome_eval_list$defs_total_pretty,'**')}`
+  
+`r if(params$n_queries_eval >= 2){paste0('#### Number and percent of all identified visits captured by each definition:')}`
+
+```{r def_summary, echo=FALSE, message=FALSE, warning=FALSE, fig.height=3}
+if(params$n_queries_eval >= 2){
+
+  all_def_summary <- syndrome_eval_list[[overlap_name]] %>%
   select(all_of(params$queries_abbrev)) %>%
   summarize(across(
     .cols = everything(),
     .fns = ~ sum(.))) %>%
   pivot_longer(., cols = everything(), names_to = "Def", values_to = "Count") %>%
-  mutate(Percent )
-
-
-def1_results <- data.frame(Def = def1_name, Count = sum(three_defs_table$def1)) %>%
-  mutate(Percent = round(Count/nrow(three_defs_table),3),
+  mutate(Total = syndrome_eval_list$defs_total,
+         Percent = round(Count/Total,3),
          Percent.Display = paste0(Percent*100,"%"))
 
-def2_results <- data.frame(Def = def2_name, Count = sum(three_defs_table$def2)) %>%
-  mutate(Percent = round(Count/nrow(three_defs_table),3),
-         Percent.Display = paste0(Percent*100,"%"))
-
-def3_results <- data.frame(Def = def3_name, Count = sum(three_defs_table$def3)) %>%
-  mutate(Percent = round(Count/nrow(three_defs_table),3),
-         Percent.Display = paste0(Percent*100,"%"))
-
-all_def_results <- bind_rows(def1_results, def2_results, def3_results)
-
-
-ggplot(data = all_def_results, aes(x = Percent, y = reorder(Def,Percent))) +
+all_def_summary %>%
+  ggplot(data=., aes(x = Percent, y = reorder(Def,Percent))) +
   geom_bar(stat = "identity") +
   geom_text(aes(label=Count, x = Percent-.01), hjust="top", color = "white", size = 3) +
   geom_text(aes(label=Percent.Display, x = Percent+.01), hjust="bottom", color = "black", size = 3) +
@@ -284,36 +279,29 @@ ggplot(data = all_def_results, aes(x = Percent, y = reorder(Def,Percent))) +
   theme(panel.grid = element_blank(),
         axis.title.x = element_blank(),
         axis.title.y = element_blank(),
-        legend.position = "none")
-
-
+        legend.position = "none")  
+}
 ```
-  
-#### Number and percent of all identified visits captured by each observed combination of definitions: {.tabset}     
-  
+
+`r if(params$n_queries_eval >= 2){paste0('#### Number and percent of all identified visits captured by each observed combination of definitions: {.tabset}')}`
+
 ```{r def_comparison, echo=FALSE, message=FALSE, warning=FALSE}
-
-three_defs_combinations <- data.frame(Definitions = 
-                                        c(paste(def1_short,def2_short,sep=", "),
-                                          paste(def1_short,def3_short,sep=", "),
-                                          paste(def2_short,def3_short,sep=", "),
-                                          paste(def1_short,def2_short,def3_short,sep=", "),
-                                          paste0(def1_short),
-                                          paste0(def2_short),
-                                          paste0(def3_short)))
-
-three_defs_summary <- three_defs_table %>%
-  dplyr::count(Definitions, name = "Visits") %>%
-  mutate(Percent = paste0(round(Visits/sum(Visits)*100,1),"%")) %>%
-  full_join(three_defs_combinations) %>%
-  replace_na(list(Visits=0,
-                  Percent="0%")) %>%
+if(params$n_queries_eval >= 2){
+  
+  all_def_summary <- syndrome_eval_list[[overlap_name]] %>%
+  count(Definitions, name = "Visits") %>%
+  mutate(Total = syndrome_eval_list$defs_total,
+         Percent = paste0(round(Visits/Total,3)*100,"%")) %>%
+  replace_na(list(Visits=0, Percent="0%")) %>%
   arrange(desc(Visits))
 
-reactable(three_defs_summary)
-
+  all_def_summary %>%
+    DT::datatable(options = list(pageLength = nrow(all_def_summary), dom = "t"), filter = "top", escape = FALSE)
+}
 ```
-  
+
+<!-- Overlap Venn Diagrams --> 
+
 ##### Overlap plot, not to scale  
   
 ```{r venn, echo=FALSE, message=FALSE, warning=FALSE}

@@ -162,8 +162,7 @@ switch(params$n_queries_eval,
 ```
 
 `r if(params$n_queries_eval >= 2){paste0('#### Demographics Comparison)}`
-
-```{r demographics_table, echo=FALSE, message=FALSE, warning=FALSE}
+```{r prep demo table}
 
 df_demo <- switch(params$n_queries_eval,
                   bind_rows(syndrome_eval_list[[1]]$results$clean, .id = "id"),
@@ -184,13 +183,14 @@ df_demo <- df_demo %>%
     TRUE ~ NA))
 
 
+### EXTRA STEPS FOR NATIVE DT TABLE (DEMO_TABLE2)
 demographics <- c("Race", "Ethnicity", "AgeGroup", "Sex")
 list_demo_table <- list()
- 
+
 for(i in seq_along(demographics)){
 
-  list_demo_table[[demographics[i]]] <- demo_table %>%
-    group_by(!!sym(demographics[i])) %>%
+  list_demo_table[[demographics[i]]] <- df_demo %>%
+    group_by(Syndrome, !!sym(demographics[i])) %>%
     complete() %>% # Include factor levels with 0 counts.
     summarize(Count = n()) %>%
     mutate(Percent = Count / sum(Count) * 100)
@@ -200,19 +200,46 @@ rm(i)
 
 demo_table <- bind_rows(list_demo_table) %>%
   pivot_longer(.,
-               cols = -c("Count","Percent"),
+               cols = -c("Syndrome","Count","Percent"),
                names_to = "Demographic",
                values_to = "Identity") %>%
   filter(!is.na(Identity)) %>%
-  select(Demographic, Identity, Count, Percent) %>%
-  arrange(Demographic)
+  mutate(Percent = paste0(round(Percent,2),"%")) %>%
+  select(Syndrome, Demographic, Identity, Count, Percent) %>%
+  arrange(Syndrome, Demographic)
+
+
+```
+
+```{r demographics_table_1, echo=FALSE, message=FALSE, warning=FALSE}
+
+## Generate gtsummary table & convert to tibble for DT import
+table <- df_demo %>%
+  tbl_summary(include = c(AgeGroup, Sex, Race, Ethnicity), by = Syndrome) %>%
+  add_p() %>%
+  modify_header(label = "Demographic") %>%
+  bold_labels() %>%
+  as_tibble(.) %>% # https://www.danieldsjoberg.com/gtsummary/reference/as_tibble.gtsummary.html
+  mutate(Demographic = str_remove_all(Demographic, pattern = "\\_"))
+  
+## Clean Names
+names(table) <- str_remove_all(string = names(table), pattern = "\\*")
+
+## Render gtsummary table in DT
+table %>% 
+  DT::datatable(rownames=FALSE) %>%
+  formatStyle(
+    columns = 'Demographic',
+    fontWeight = styleEqual(c("AgeGroup","Sex","Race","Ethnicity"),"bold")) # https://rstudio.github.io/DT/010-style.html
+
+# It would be best if I could get Demographic Category headers into their own column (for searching)
+
+```
+
+```{r demographics_table_2, echo=FALSE, message=FALSE, warning=FALSE}
 
 demo_table %>%
-  select(-Demographic) %>%
-  DT::datatable(rownames = FALSE,
-    extensions = 'RowGroup',
-    options = list(rowGroup = list(dataSrc = 1)),
-    colnames = c('', '', 'Count', 'Percent'))
+  DT::datatable()
 
 ```
 
@@ -222,6 +249,15 @@ demo_table %>%
   
 #### Number and percent of all identified visits captured by each definition:        
 ```{r def_summary, echo=FALSE, message=FALSE, warning=FALSE, fig.height=3}
+
+defX_results <- syndrome_eval_list[[overlap_name]] %>%
+  select(all_of(params$queries_abbrev)) %>%
+  summarize(across(
+    .cols = everything(),
+    .fns = ~ sum(.))) %>%
+  pivot_longer(., cols = everything(), names_to = "Def", values_to = "Count") %>%
+  mutate(Percent )
+
 
 def1_results <- data.frame(Def = def1_name, Count = sum(three_defs_table$def1)) %>%
   mutate(Percent = round(Count/nrow(three_defs_table),3),
@@ -373,71 +409,7 @@ ggplot(data = top_words_combined) +
 
 ```
 
-<!-- Writing Linelists -->
 
-```{r output, echo=FALSE, message=FALSE, warning=FALSE}
-
-
-# All Visits
-write.csv(file = paste0(output_folder, "Three Defs All Visits.csv"),
-          x = three_defs_table,
-          row.names = FALSE)
-
-# Def1 only
-write.csv(file = paste0(output_folder,def1_short," Only Visits.csv"),
-          x = three_defs_table[three_defs_table$def1_only==1,],
-          row.names = FALSE)
-
-# Def2 only
-write.csv(file = paste0(output_folder,def2_short," Only Visits.csv"),
-          x = three_defs_table[three_defs_table$def2_only==1,],
-          row.names = FALSE)
-
-# Def3 only
-write.csv(file = paste0(output_folder,def3_short," Only Visits.csv"),
-          x = three_defs_table[three_defs_table$def3_only==1,],
-          row.names = FALSE)
-
-# Def1 and Def2 
-write.csv(file = paste0(output_folder,def1_short," and ",def2_short," Visits.csv"),
-          x = three_defs_table[three_defs_table$def1_def2==1,],
-          row.names = FALSE)
-
-# Def1 and Def3 
-write.csv(file = paste0(output_folder,def1_short," and ",def3_short," Visits.csv"),
-          x = three_defs_table[three_defs_table$def1_def3==1,],
-          row.names = FALSE)
-
-# Def2 and Def3 
-write.csv(file = paste0(output_folder,def2_short," and ",def3_short," Visits.csv"),
-          x = three_defs_table[three_defs_table$def2_def3==1,],
-          row.names = FALSE)
-
-# Def1 and Def2 and Def3
-write.csv(file = paste0(output_folder,def1_short, " and ",def2_short," and ",def3_short," Visits.csv"),
-          x = three_defs_table[three_defs_table$All ==1,],
-          row.names = FALSE)
-
-
-# Create Matched Elements Subfolder
-fs::dir_create(paste0(output_folder, "Matched_Elements"))
-
-# Def1 matched elements
-write.csv(file = paste0(output_folder,"Matched_Elements\\",def1_short," Matched Elements.csv"),
-          x = def1_elements_detected,
-          row.names = FALSE)
-
-# Def2 matched elements
-write.csv(file = paste0(output_folder,"Matched_Elements\\",def2_short," Matched Elements.csv"),
-          x = def2_elements_detected,
-          row.names = FALSE)
-
-# Def3 matched elements
-write.csv(file = paste0(output_folder,"Matched_Elements/",def3_short," Matched Elements.csv"),
-          x = def3_elements_detected,
-          row.names = FALSE)
-
-```
 
 <!-- Validation Review -->
 

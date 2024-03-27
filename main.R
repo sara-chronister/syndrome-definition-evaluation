@@ -30,6 +30,3 @@ source(here::here("Scripts", "1_parameters.R"))
 
 ## 2) Data Pull & Cleaning Script
 source(here::here("Scripts", "2_pull_data.R"))
-  
-## 3) Validation Review
-source(here::here("Scripts", "3_validation_review.R"))

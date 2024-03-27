@@ -66,11 +66,20 @@ for(i in 1:params$n_queries_eval){
     mutate(across(
       .cols = where(is.character),
       .fns = ~ifelse(. == "none", NA, .))) %>%
+    clean_demographics(df=.) %>%
+    clean_clinical_information(df=.) %>%
     select(Date, C_BioSense_ID, everything()) # Reorder variables
   
   #### Deduplicate DDx Codes
   if(params$deduplicate_ddx == TRUE){defX_list$results$clean <- defX_list$results$clean %>% dedup_dx(df=., keep_raw=FALSE)}
   
+  ### Create Timeseries Summary
+  defX_list$results$timeseries <- defX_list$results$clean %>%
+    count(Date, name = "Visits") %>%
+    filter(between(Date, params$start_date, params$end_date)) %>%
+    full_join(params$all_dates) %>%
+    mutate(Syndrome = defX_list$setup$info$Abbreviation) %>%
+    replace_na(list(Visits = 0))
   
   ## Analysis -----
   

@@ -19,10 +19,10 @@ params$n_queries_eval <- n_queries_eval
 params$queries <- DefinitionInformation[["DefinitionInformation"]]$Syndrome[1:params$n_queries_eval]
 params$queries_abbrev <- DefinitionInformation[["DefinitionInformation"]]$Abbreviation[1:params$n_queries_eval]
 
-
 ### Dates & Geographies
 params$start_date <- DefinitionInformation[["Setup"]]$StartDate %>% as.Date()
 params$end_date <- DefinitionInformation[["Setup"]]$EndDate %>% as.Date()
+params$all_dates <- data.frame(Date = seq.Date(from = as.Date(params$start_date), to = as.Date(params$end_date), by = "day")) # To fill in timeseries summaries with 0's (if no visits observed)
 params$jurisdiction <- DefinitionInformation[["Setup"]]$Jurisdiction
 
 ### ESSENCE Fields to Pull & Analyze
@@ -143,4 +143,4 @@ params$report$query_title <- switch(params$n_queries_eval,
                                     paste0(params$queries[1]," and ", params$queries[2]),
                                     paste0(params$queries[1],", ",params$queries[2],", and ",params$queries[3]))
 
-
+params$report$ts_linecolors <- c("#E24E42", "#008F95", "#E9B000")

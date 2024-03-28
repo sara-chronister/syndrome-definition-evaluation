@@ -300,24 +300,25 @@ if(params$n_queries_eval >= 2){
 }
 ```
 
-<!-- Overlap Venn Diagrams --> 
+<!-- Overlap Diagrams --> 
 
-##### Overlap plot, not to scale  
-  
+`r if(params$n_queries_eval >= 2){paste0('##### Overlap plot, not to scale')}`
+
 ```{r venn, echo=FALSE, message=FALSE, warning=FALSE}
-
-plot(venn(Def1_vs_Def2_vs_Def3[,which(colnames(Def1_vs_Def2_vs_Def3)==def1_short):which(colnames(Def1_vs_Def2_vs_Def3)==def3_short)]))
-
+if(params$n_queries_eval >= 2){
+ plot(eulerr::venn(syndrome_eval_list[[overlap_name]] %>% select(all_of(params$queries_abbrev))), 
+      labels = TRUE, legend = list(side = "right"), quantities = TRUE)
+}
 ```
-  
-##### Overlap plot, to scale  
-  
+
+`r if(params$n_queries_eval >= 2){paste0('##### Overlap plot, to scale')}`
+
 ```{r euler, echo=FALSE, message=FALSE, warning=FALSE}
-
-plot(euler(Def1_vs_Def2_vs_Def3[,which(colnames(Def1_vs_Def2_vs_Def3)==def1_short):which(colnames(Def1_vs_Def2_vs_Def3)==def3_short)]),quantities = TRUE)
-
+if(params$n_queries_eval >= 2){
+ plot(eulerr::euler(syndrome_eval_list[[overlap_name]] %>% select(all_of(params$queries_abbrev))), 
+      labels = TRUE, legend = list(side = "right"), quantities = TRUE)
+}
 ```
-  
   
 ***   
 ### Top terms (besides "patient")
@@ -399,65 +400,7 @@ ggplot(data = top_words_combined) +
 
 
 
-<!-- Validation Review -->
 
-```{r validation review setup, include=FALSE}
-
-validation_review <- DefinitionInformation[["Setup"]]$ValidationReview
-
-
-if(validation_review == TRUE){
-
-## Identify # of Reviewers
-n_reviewers <- DefinitionInformation[["ValidationReviewInformation"]]$ReviewerID %>% max()
-
-# ## Identify Definitions to be Reviewed
-validation_review_defs <- c("def1", "def2", "def3") # Change based on Evaluation Template #
-
-## Establish Sampling Parameters
-SampleMetric <- DefinitionInformation[["ValidationReviewInformation"]] %>% pull_no_na(df=., variable = "SampleMetric")
-SampleValue <- DefinitionInformation[["ValidationReviewInformation"]] %>% pull_no_na(df=., variable = "SampleValue")
-StratifiedSample <- DefinitionInformation[["ValidationReviewInformation"]] %>% pull_no_na(df=., variable = "StratifiedSample")
-StratifiedVariables <- DefinitionInformation[["ValidationReviewInformation"]] %>% 
-  pull_no_na(df=., variable = "StratifiedVariables") %>% # Pull StratifiedVariables (remove NAs)
-  strsplit(., split = ",") %>% # Split single string "A, B" into a string vector c("A"," B") using the comma
-  unlist() %>%  # Unlist (strsplit() puts new vector into a list)
-  str_trim(., side="both") # Remove all whitespace on every string in the string vector: c("A", " B") --> c("A","B")
-
-# Establish Review Scale
-ReviewScaleLow <- DefinitionInformation[["ValidationReviewInformation"]]$ReviewScaleLow[1]
-ReviewScaleHigh <- DefinitionInformation[["ValidationReviewInformation"]]$ReviewScaleHigh[1]
-
-}
-```
-
-```{r validation review file directories, include=FALSE}
-if(validation_review == TRUE){
-
-## Create Validation Review File Directories
-
-for(i in seq_along(validation_review_defs)){ # for each definition specified (i) create the following filepaths
-  
-  # Step 1: Create folder name for each definition undergoing validation review
-  def_review_folder <- name_def_review_folder(definition = validation_review_defs[i])
-
-  # Step 2: Create folders for each stage of a definition's validation review process
-  fs::dir_create(paste0(output_folder, "Validation_Review\\",def_review_folder,"\\Resources"))
-  fs::dir_create(paste0(output_folder, "Validation_Review\\",def_review_folder,"\\1_Reviewed_Data"))
-
-  if(n_reviewers > 1){ # Only create consensus data folders if > 1 reviewer.
-      fs::dir_create(paste0(output_folder, "Validation_Review\\",def_review_folder,"\\2_Consensus_Data"))
-    }
-  
-  # Step 3: Create subfolders for each reviewer examining a definition
-  for(j in 1:n_reviewers){ # for each reviewer specified (j) create reviewer specific subfolder (within each definition being reviewed)
-    
-  fs::dir_create(paste0(output_folder, "Validation_Review\\",def_review_folder,"\\1_Reviewed_Data\\Reviewer_",j))
-    }
-  }
-rm(def_review_folder)
-}
-```
 
 ```{r validation reviewer files, include=FALSE}
 if(validation_review == TRUE){

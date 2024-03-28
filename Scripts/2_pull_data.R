@@ -65,9 +65,10 @@ for(i in 1:params$n_queries_eval){
            Date = as.Date(Date, format='%m/%d/%Y')) %>% # Convert Date to Date type variable.
     mutate(across(
       .cols = where(is.character),
-      .fns = ~ifelse(. == "none", NA, .))) %>%
+      .fns = ~ifelse(. == "none", NA, .)))
     clean_demographics(df=.) %>%
     clean_clinical_information(df=.) %>%
+    clean_freetext(df=., keep_raw = FALSE, parse_abbrev = FALSE, text_case = "original") %>% # Prep's free-text for text mining
     select(Date, C_BioSense_ID, everything()) # Reorder variables
   
   #### Deduplicate DDx Codes
@@ -210,59 +211,28 @@ rm(i)
 
 ## Definition Overlap (.csv)
 
-# Match Only 1 Definition
-if(params$n_queries_eval > 1){ # If only 1 definition is evaluated use "All Defs Visits.csv"
-  for(i in 1:params$n_queries_eval){
-    
-    syndrome_eval_list[[overlap_name]] %>%
-      filter(Definitions == params$queries_abbrev[i]) %>%
-      write.csv(file = paste0(params$filepaths$definition_overlap,"1_", params$queries_abbrev[i], " Only Visits.csv"))
-  }
-}
+### Pull out all unique combinations into individual data frames
+definition_overlap_list <- split(syndrome_eval_list[[overlap_name]], syndrome_eval_list[[overlap_name]]$Definitions)
 
+### Add name prefixes indicating the number of definitions in a combination
+names(definition_overlap_list) <- case_when(
+  str_count(names(definition_overlap_list), pattern = "\\,") == 0 ~ paste0("1_",names(definition_overlap_list)),
+  str_count(names(definition_overlap_list), pattern = "\\,") == 1 ~ paste0("2_",names(definition_overlap_list)),
+  str_count(names(definition_overlap_list), pattern = "\\,") == 2 ~ paste0("3_",names(definition_overlap_list)))
 
-## Match Only 2 Definitions
-if(params$n_queries_eval == 3){ # 2 definition combinations are only of interest if evaluating 3 definitions simultaneously. 1 definition being evaluated (combinations not possible); 2 definitions being evaluated used "All Defs Visits.csv"
-  
-  ### Identify All Unique 2 Definition Combinations
-  combinations <- syndrome_eval_list[[overlap_name]] %>% 
-    filter(Total_Defs == 2) %>% 
-    distinct(Definitions) %>%
-    pull(Definitions)
-  
-  ### Create 2 Definition Combination File Names
-  combination_filenames <- combinations %>%
-    str_to_upper(.) %>%
-    str_replace_all(string = ., pattern = ",", replacement = " and")
-  
-  ### For Loop: Filter & Write CSV for all Unique Combinations
-  for(i in seq_along(combinations)){
-    
-    syndrome_eval_list[[overlap_name]] %>%
-      filter(Definitions == combinations[i]) %>%
-      write.csv(file = paste0(params$filepaths$definition_overlap,"2_", combination_filenames[i], " Visits.csv"))
-  }
-  rm(i)
-}
+### Clean data frame names
+names(definition_overlap_list) <- names(definition_overlap_list) %>%
+  str_remove_all(., pattern = " ") %>%
+  str_replace_all(., pattern = "\\,", replacement = "\\_")
 
-
-## Match All Definitions
-all_matched_filename <- syndrome_eval_list[[overlap_name]] %>% 
-  filter(Total_Defs == params$n_queries_eval) %>% 
-  distinct(Definitions) %>%
-  pull(Definitions)%>%
-  str_to_upper(.) %>%
-  str_replace_all(string = ., pattern = ",", replacement = " and")
-
-### Write CSV
-syndrome_eval_list[[overlap_name]] %>%
-  filter(Total_Defs == params$n_queries_eval) %>%
-  write.csv(file = paste0(params$filepaths$definition_overlap,params$n_queries_eval,"_", all_matched_filename, " Visits.csv"))
-
+### Save all data frames in list
+lapply(names(definition_overlap_list), function(name) { write_csv(definition_overlap_list[[name]], 
+                                                                  file = paste0(params$filepaths$definition_overlap,name,".csv"))})
 
 # All Visits (Regardless of Matching/Overlap)
 syndrome_eval_list[[overlap_name]] %>%
   write.csv(file = paste0(params$filepaths$definition_overlap, "All Visits.csv"))
 
+
 # Clean Up -----
-rm(list = ls(pattern = "filename|Overlap|list_detect_elements"))
+rm(list = ls(pattern = "filename|Overlap|list_detect_elements|definition_overlap_list|defX_list"))

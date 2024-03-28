@@ -29,4 +29,7 @@ DefinitionInformation <- multiplesheets(fname = "DefinitionInformationTable.xlsx
 source(here::here("Scripts", "1_parameters.R"))
 
 ## 2) Data Pull & Cleaning Script
-source(here::here("Scripts", "2_pull_data.R"))
+if(!file_exists(paste0(params$filepaths$output,paste(params$queries_abbrev, collapse="_"),".RData"))){
+  
+  source(here::here("Scripts", "2_pull_data.R"))
+}

@@ -105,7 +105,7 @@ clean_clinical_information <- function(df){
 
 ## Discharge Diagnoses -----
 
-#### Deduplicate DischargeDiagnosis Variables ####
+### Deduplicate DischargeDiagnosis Variables ###
 dedup_dx <- function(df, keep_raw = FALSE){
   
   # Step 0: Create Cleaned Data Frame
@@ -297,160 +297,161 @@ dedup_dx <- function(df, keep_raw = FALSE){
 
 ## Free-Text -----
 
-#### ChiefComplaintUpdates ####
-clean_ChiefComplaintUpdates <- function(data = my_file) {
-  data2 <- data %>%
-    dplyr::select(ChiefComplaintUpdates) %>%
-    mutate(ChiefComplaintUpdates = str_replace_all(ChiefComplaintUpdates, "[[:cntrl:]]|<BR>|[?.!???'+):@]|\\|", "")) %>%
-    mutate(ChiefComplaintUpdates = str_replace_all(ChiefComplaintUpdates,"\\{[[:digit:]]\\}", "")) %>%
-    mutate(ChiefComplaintUpdates = str_replace_all(ChiefComplaintUpdates,";|\\\\|\\/", " ")) %>%
-    mutate(ChiefComplaintUpdates = str_trim(ChiefComplaintUpdates, side = "both")) %>%
-    mutate(ChiefComplaintUpdates = toupper(ChiefComplaintUpdates)) %>%
-    mutate(ChiefComplaintUpdates = str_replace_all(ChiefComplaintUpdates, "PT", "PATIENT")) %>%
-    mutate(number_chars_updates = str_count(ChiefComplaintUpdates),
-           number_words_ccupdates = str_count(ChiefComplaintUpdates, boundary("word"))) %>%
-    mutate(
-      number_words_ccupdates = case_when(ChiefComplaintUpdates == "NA" ~ 0, TRUE ~ as.numeric(as.character(.$number_words_ccupdates))),
-      number_chars_updates = case_when(ChiefComplaintUpdates == "NA" ~ 0, TRUE ~ as.numeric(as.character(.$number_chars_updates)))) 
+### Parse Abbreviations ###
+parse_abbrev <- function(text, abbrev_crosswalk){
   
-  data3 <- dplyr::select(.data = data,-ChiefComplaintUpdates)
+  # Step 1) Set up Abbreviation Crosswalk
+  names(abbrev_crosswalk) <- paste0("\\b",names(abbrev_crosswalk),"\\b") # Add "\\b" to names of abbrev_parsed (add word boundaries, used for pattern matching).
   
-  data <- bind_cols(data3, data2)
+  # Step 2) Set Up Parsed Text Object
+  parsed_text <- text
   
-  return(data)
+  # Step 3) Parse Abbreviations
+  for(i in seq_along(abbrev_crosswalk)){
+    
+    parsed_text <- str_replace_all(parsed_text, 
+                                   pattern = regex(names(abbrev_crosswalk)[i], ignore_case = TRUE),
+                                   replacement = unname(abbrev_crosswalk)[i])
+  }
+  
+  # Step 3) Return Parsed Text to Global Environment
+  return(parsed_text)
 }
 
-#### ChiefComplaintOrig ####
-clean_ChiefComplaintOriginal <- function(data = my_file) {
-  data2 <- data %>%
-    dplyr::select(ChiefComplaintOrig) %>%
-    mutate(ChiefComplaintOrig = str_replace_all(ChiefComplaintOrig, "[[:cntrl:]]", "")) %>%
-    mutate(ChiefComplaintOrig = str_replace_all(ChiefComplaintOrig, "[[:alnum:]];[[:alnum:]]", " ")) %>%
-    mutate(ChiefComplaintOrig = str_trim(ChiefComplaintOrig, side = "both")) %>%
-    mutate(ChiefComplaintOrig = if_else(nchar(ChiefComplaintOrig)==2, "NA", ChiefComplaintOrig)) %>%
-    mutate(ChiefComplaintOrig = toupper(ChiefComplaintOrig)) %>%
-    mutate(ChiefComplaintOrig = str_replace_na(ChiefComplaintOrig, replacement = "NA")) %>%
-    mutate(ChiefComplaintOrig = str_replace_all(ChiefComplaintOrig, " PT | PT|PT ", " PATIENT ")) %>%
-    mutate(number_chars_orig = str_count(ChiefComplaintOrig),
-           number_words_ccorig = str_count(ChiefComplaintOrig, boundary("word"))) %>%
-    mutate(
-      number_words_ccorig = case_when(ChiefComplaintOrig == "NA" ~ 0, TRUE ~ as.numeric(as.character(.$number_words_ccorig))),
-      number_chars_orig = case_when(ChiefComplaintOrig == "NA" ~ 0, TRUE ~ as.numeric(as.character(.$number_chars_orig)))) 
+### Clean Free Text ###
+clean_freetext <- function(df, keep_raw = FALSE, parse_abbrev = FALSE, na_label = NA, text_case = "original"){
   
-  data3 <- dplyr::select(.data = data,-ChiefComplaintOrig)
+  # Step 0: Create Cleaned Data Frame
+  df_clean <- df
   
-  data <- bind_cols(data3, data2)
+  # Step 1: Identify the variables present within the data frame.
+  all_freetext_cleaning_vars <- c("ChiefComplaintOrig", "ChiefComplaintUpdates", "ChiefComplaintParsed", 
+                                  "DischargeDiagnosis", "CCDD", "Admit_Reason_Combo", "TriageNotesOrig")
   
-  return(data)
-}
-
-#### DischargeDiagnosis ####
-clean_DischargeDiagnosis <- function(data = my_file) {
-  data2 <- data %>%
-    dplyr::select(DischargeDiagnosis) %>%
-    mutate(DischargeDiagnosis = str_replace_all(DischargeDiagnosis, "[[:cntrl:]]|<BR>|[?.!???'+):]", "")) %>%
-    mutate(DischargeDiagnosis = str_replace_all(DischargeDiagnosis, "\\\\|([a-zA-Z])/([\\d])|([\\d])/([a-zA-Z])|([a-zA-Z])/([a-zA-Z])|([\\d])/([\\d])|;", " ")) %>%
-    mutate(DischargeDiagnosis = str_trim(DischargeDiagnosis, side = "both")) %>%
-    mutate(DischargeDiagnosis = if_else(nchar(DischargeDiagnosis)<=2, "NA", DischargeDiagnosis)) %>%
-    mutate(DischargeDiagnosis = str_replace_na(DischargeDiagnosis, replacement = "NA")) %>%
-    mutate(number_chars_dx = str_count(DischargeDiagnosis),
-           number_words_dx = str_count(DischargeDiagnosis, boundary("word"))) %>%
-    mutate(
-      number_chars_dx = case_when(DischargeDiagnosis == "NA" ~ 0, TRUE ~ as.numeric(as.character(.$number_chars_dx))),
-      number_words_dx = case_when(DischargeDiagnosis == "NA" ~ 0, TRUE ~ as.numeric(as.character(.$number_words_dx)))) 
+  freetext_vars <- intersect(all_freetext_cleaning_vars, names(df)) # All free text cleaning vars present in df (for cleaning)
   
-  data3 <- dplyr::select(.data = data,-DischargeDiagnosis)
+  # Step 2: (TOGGLE) Keep uncleaned variables too?
+  if(keep_raw == TRUE){
+    
+    df_clean <- df_clean %>%
+      mutate(across(.cols = all_of(freetext_vars), 
+                    .fns = list(raw = ~.)))
+  }
   
-  data <- bind_cols(data3, data2)
+  # Step 3: Parse Abbreviations 
+  if(parse_abbrev == TRUE){
+    
+    # ADD ABBREVATIONS TO BE PARSED HERE ("ABBREV" = "PARSED")
+    abbreviation_crosswalk <- c("pt" = "patient", 
+                                "px" = "pain",
+                                "pn" = "pain",
+                                "dx" = "diagnosis",
+                                "hx" = "history",
+                                "fx" = "fracture",
+                                "rx" = "prescription",
+                                "sx" = "symptom",
+                                "sob" = "shortness of breath",
+                                "N/V" = "nausea and vomiting",
+                                "loc" = "loss of consciousness",
+                                "ams" = "altered mental status",
+                                "abd" = "abdominal",
+                                "glf" = "ground level fall",
+                                "c\\/o" = "complains of",
+                                "f\\/u" = "follow up",
+                                "inj" = "injury",
+                                "od" = "overdose",
+                                "mvc" = "motor vehicle collision",
+                                "mva" = "motor vehicle accident",
+                                "lac" = "laceration",
+                                "acc" = "accident",
+                                "poss" = "possible",
+                                "bilat" = "bilateral",
+                                "l" = "left",
+                                "lt" = "left",
+                                "lft" = "left",
+                                "r" = "right",
+                                "rt" = "right")
+    
+    df_clean <- df_clean %>%
+      mutate(across(
+        .cols = all_of(freetext_vars), ~parse_abbrev(.x, abbreviation_crosswalk)
+      )) 
+  }
   
-  return(data)
-}
-
-#### CCDD ####
-clean_CCDD <- function(data = my_file) {
-  data2 <- data %>%
-    dplyr::select(CCDD) %>%
-    mutate(CCDD = str_replace_all(CCDD, "[[:cntrl:]]|<BR>|[?.!???'+):]", "")) %>%
-    mutate(CCDD = str_replace_all(CCDD, "\\\\|;|([a-zA-Z])/([\\d])|([\\d])/([a-zA-Z])|([a-zA-Z])/([a-zA-Z])|([\\d])/([\\d])|\\W", " ")) %>%
-    mutate(CCDD = str_trim(CCDD, side = "both")) %>%
-    mutate(CCDD = if_else(nchar(CCDD)<=2, "NA", CCDD)) %>%
-    mutate(CCDD = str_replace_na(CCDD, replacement = "NA")) %>%
-    mutate(number_chars_CCDD = str_count(CCDD),
-           number_words_CCDD = str_count(CCDD, boundary("word"))) %>%
-    mutate(
-      number_chars_CCDD = case_when(CCDD == "NA" ~ 0, TRUE ~ as.numeric(as.character(.$number_chars_CCDD))),
-      number_words_CCDD = case_when(CCDD == "NA" ~ 0, TRUE ~ as.numeric(as.character(.$number_words_CCDD)))) 
+  # Step 4: Cleaning Steps Applied Equally to All Fields
   
-  data3 <- dplyr::select(.data = data,-CCDD)
+  # Process:
+  # 4a) Define Replacement & Removal characters
+  # 4b) Replace characters (via replacement_vec)
+  # 4c) Remove characters (via removal_vec)
+  # 4d) Handle NAs
+  # 4e) Trim white space and remove unnecessary punctuation (if applicable)
+  # 4f) Convert long spaces to a single space
+  # 4g) Adjust case of text (default - mixed, UPPERCASE, lowercase)
   
-  data <- bind_cols(data3, data2)
+  # Step 4a: Define Removal and Replacement patterns 
   
-  return(data)
-}
-
-#### ChiefComplaintParsed ####
-clean_ChiefComplaintParsed <- function(data = my_file) {
-  data2 <- data %>%
-    dplyr::select(ChiefComplaintParsed) %>%
-    mutate(ChiefComplaintParsed = str_replace_all(ChiefComplaintParsed, "[[:cntrl:]]", "")) %>%
-    mutate(ChiefComplaintParsed = str_trim(ChiefComplaintParsed, side = "both")) %>%
-    mutate(ChiefComplaintParsed = if_else(nchar(ChiefComplaintParsed)==2, "NA", ChiefComplaintParsed)) %>%
-    mutate(ChiefComplaintParsed = str_replace_na(ChiefComplaintParsed, replacement = "NA")) %>%
-    mutate(number_chars_parsed = str_count(ChiefComplaintParsed),
-           number_words_parsed = str_count(ChiefComplaintParsed, boundary("word"))) %>%
-    mutate(
-      number_words_parsed = case_when(ChiefComplaintParsed == "NA" ~ 0, TRUE ~ as.numeric(as.character(.$number_words_parsed))),
-      number_chars_parsed = case_when(ChiefComplaintParsed == "NA" ~ 0, TRUE ~ as.numeric(as.character(.$number_chars_parsed)))) 
+  # ADD CHARACTERS TO REPLACE WITH A SPACE (" ") HERE
+  replacement_vec <- c(";", 
+                       "\\\\", 
+                       "\\/", 
+                       "\\\\n",
+                       "([a-zA-Z])/([\\d])", 
+                       "([\\d])/([a-zA-Z])")
   
-  data3 <- dplyr::select(.data = data,-ChiefComplaintParsed)
+  # ADD CHARACTERS TO REMOVE HERE
+  removal_vec <- c("[[:cntrl:]]", # Control Characters
+                   "<BR>", # Linebreaks 
+                   "<.*?>", # Remove XML Characters (Problem in TriageNotesOrig) Source: https://stackoverflow.com/questions/17227294/removing-html-tags-from-a-string-in-r
+                   "\\{[[:digit:]]\\}", # {#} (ChiefComplaintUpdates)
+                   "[?.!'+()):@|]") # Any of these punctuation
   
-  data <- bind_cols(data3, data2)
   
-  return(data)
-}
-
-#### Admit_Reason_Combo ####
-clean_Admit_Reason_Combo <- function(data = my_file) {
-  data2 <- data %>%
-    dplyr::select(Admit_Reason_Combo) %>%
-    mutate(Admit_Reason_Combo = str_replace_all(Admit_Reason_Combo, "[[:cntrl:]]", "")) %>%
-    mutate(Admit_Reason_Combo = str_trim(Admit_Reason_Combo, side = "both")) %>%
-    mutate(Admit_Reason_Combo = if_else(nchar(Admit_Reason_Combo)==2, "NA", Admit_Reason_Combo)) %>%
-    mutate(Admit_Reason_Combo = toupper(Admit_Reason_Combo)) %>%
-    mutate(Admit_Reason_Combo = str_replace_na(Admit_Reason_Combo, replacement = "NA")) %>%
-    mutate(Admit_Reason_Combo = str_replace_all(Admit_Reason_Combo, "PT", "PATIENT")) %>%
-    mutate(number_chars_admit = str_count(Admit_Reason_Combo),
-           number_words_admit = str_count(Admit_Reason_Combo, boundary("word"))) %>%
-    mutate(
-      number_words_admit = case_when(Admit_Reason_Combo == "NA" ~ 0, TRUE ~ as.numeric(as.character(.$number_words_admit))),
-      number_chars_admit = case_when(Admit_Reason_Combo == "NA" ~ 0, TRUE ~ as.numeric(as.character(.$number_chars_admit)))) 
+  df_clean <- df_clean %>%
+    # 4b) Replace Characters (replacement_vec)
+    mutate(across(
+      .cols = all_of(freetext_vars),
+      .fns = ~str_replace_all(., pattern = paste0(replacement_vec, collapse = "|"), replacement = " ")
+    )) %>%
+    # 4c) Remove Characters (removal_vec)
+    mutate(across(
+      .cols = all_of(freetext_vars),
+      .fns = ~str_remove_all(., pattern = paste0(removal_vec, collapse = "|"))
+    )) %>%
+    # 4d) Handle NA's (Convert segments to na_label)
+    mutate(across(
+      .cols = all_of(freetext_vars),
+      .fns = ~ifelse(. %in% c(NA, "NA", "none", "NONE") | nchar(.) <= 2, na_label, .)
+    )) %>%
+    # 4e) Trim extra white space
+    mutate(across(
+      .cols = all_of(freetext_vars),
+      .fns = ~str_trim(., side = "both")
+    )) %>%
+    # 4f) Remove unnecessarily long spaces (2+ spaces+ --> 1 space)
+    mutate(across(
+      .cols = all_of(freetext_vars),
+      .fns = ~str_replace_all(., pattern = "\\s{2,}", replacement = " ")
+    ))
   
-  data3 <- dplyr::select(.data = data,-Admit_Reason_Combo)
+  # 4g) (TOGGLE) Adjust case of text
+  if(text_case == "upper"){
+    
+    df_clean <- df_clean %>%
+      mutate(across(
+        .cols = all_of(freetext_vars),
+        .fns = ~str_to_upper(.)
+      ))
+    
+  }else if(text_case == "lower"){
+    
+    df_clean <- df_clean %>%
+      mutate(across(
+        .cols = all_of(freetext_vars),
+        .fns = ~str_to_lower(.)
+      ))
+  }
   
-  data <- bind_cols(data3, data2)
-  
-  return(data)
-}
-
-#### TriageNotesOrig ####
-clean_TriageNotesOrig <- function(data = my_file) {
-  data2 <- data %>%
-    dplyr::select(TriageNotesOrig) %>%
-    mutate(TriageNotesOrig = str_replace_all(TriageNotesOrig, "[[:cntrl:]]", "")) %>%
-    mutate(TriageNotesOrig = str_trim(TriageNotesOrig, side = "both")) %>%
-    mutate(TriageNotesOrig = if_else(nchar(TriageNotesOrig)==2, "NA", TriageNotesOrig)) %>%
-    mutate(TriageNotesOrig = toupper(TriageNotesOrig)) %>%
-    mutate(TriageNotesOrig = str_replace_na(TriageNotesOrig, replacement = "NA")) %>%
-    mutate(TriageNotesOrig = str_replace_all(TriageNotesOrig, "PT", "PATIENT")) %>%
-    mutate(number_chars_triage = str_count(TriageNotesOrig),
-           number_words_triage = str_count(TriageNotesOrig, boundary("word"))) %>%
-    mutate(
-      number_words_admit = case_when(TriageNotesOrig == "NA" ~ 0, TRUE ~ as.numeric(as.character(.$number_words_triage))),
-      number_chars_admit = case_when(TriageNotesOrig == "NA" ~ 0, TRUE ~ as.numeric(as.character(.$number_chars_triage)))) 
-  
-  data3 <- dplyr::select(.data = data,-TriageNotesOrig)
-  
-  data <- bind_cols(data3, data2)
-  
-  return(data)
+  # Return Clean DF 
+  return(df_clean)
 }

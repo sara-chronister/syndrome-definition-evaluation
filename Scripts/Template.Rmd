@@ -324,21 +324,6 @@ if(params$n_queries_eval >= 2){
 ### Top terms (besides "patient")
 #### Top 5 occurring terms for each definition and each field of interest:
 
-```{r word_prep, echo=FALSE, message = FALSE, warning = FALSE, results='hide'}
-
-my_file <- three_defs 
-
-my_file <- clean_Admit_Reason_Combo()
-my_file <- clean_ChiefComplaintOriginal()
-my_file <- clean_ChiefComplaintUpdates()
-my_file <- clean_ChiefComplaintParsed()
-my_file <- clean_CCDD()
-my_file <- clean_DischargeDiagnosis()
-my_file <- clean_TriageNotesOrig()
-
-
-```
-
 ```{r top_terms, echo=FALSE, message = FALSE, warning = FALSE, fig.width=10, fig.height=8}
 
 def_sets <- list(my_file[my_file$def1==1,],

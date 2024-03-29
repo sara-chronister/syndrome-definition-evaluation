@@ -57,7 +57,7 @@ for(i in 1:params$n_queries_eval){
   
   ### Pull API Data (DataDetails)
   defX_list$results$raw <- get_essence_data(url = defX_list$setup$url, 
-                                                start_date = params$start_date, end_date = params$end_date)
+                                            start_date = params$start_date, end_date = params$end_date)
   ### Clean API Data (DataDetails) 
   defX_list$results$clean <- defX_list$results$raw %>%
     distinct(C_BioSense_ID, .keep_all = TRUE) %>% # Remove duplicate records (if applicable)
@@ -65,7 +65,7 @@ for(i in 1:params$n_queries_eval){
            Date = as.Date(Date, format='%m/%d/%Y')) %>% # Convert Date to Date type variable.
     mutate(across(
       .cols = where(is.character),
-      .fns = ~ifelse(. == "none", NA, .)))
+      .fns = ~ifelse(. == "none", NA, .))) %>%
     clean_demographics(df=.) %>%
     clean_clinical_information(df=.) %>%
     clean_freetext(df=., keep_raw = FALSE, parse_abbrev = FALSE, text_case = "original") %>% # Prep's free-text for text mining

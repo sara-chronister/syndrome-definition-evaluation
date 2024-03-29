@@ -6,12 +6,13 @@
 
 # =======================================================================
 
-# Change -----
+# Users Change -----
 
 ## Define Number of Queries Being Evaluated (def1, def2, def3)
 n_queries_eval <- 3
 
 if(n_queries_eval > 3){stop("This tool can only analyze 3 definitions simultaneously. Please change n_queries_eval to a value <= 3.")}
+
 
 # Set Up -----
 
@@ -25,13 +26,22 @@ sapply(paste0("Scripts\\SupportCode\\",files.source),source)
 ## Read in all DefinitionInformationTable excel sheets into a single, named list.
 DefinitionInformation <- multiplesheets(fname = "DefinitionInformationTable.xlsx")
 
+
+
 # Source Scripts -----
+tictoc::tic("Syndrome Evaluation Toolkit") # Start Timing - Entire Toolkit
 
 ## 1) Parameter Script (No need to edit, pulls information from DefinitionInformation.xlsx)
 source(here::here("Scripts", "1_parameters.R"))
 
 ## 2) Data Pull & Cleaning Script
-if(!file_exists(paste0(params$filepaths$output,paste(params$queries_abbrev, collapse="_"),".RData"))){
-  source(here::here("Scripts", "2_pull_data.R"))
-  
-}else{load(paste0(params$filepaths$output,paste(params$queries_abbrev, collapse="_"),".RData"))}
+source(here::here("Scripts", "2_process_data.R"))
+
+## 3) Render Evaluation Report
+rmarkdown::render(input = "Scripts/Template.Rmd",
+                  output_dir = params$filepaths$output,
+                  output_file = paste0("Syndrome Evaluation Report.html"),
+                  params = params)
+
+
+tictoc::toc() # End Timing - Entire Toolkit

@@ -41,10 +41,8 @@ Inclusion terms and codes are displayed in the table below (exclusion terms are 
   
 ```{r def1_table, echo=FALSE, message=FALSE, warning=FALSE}
 
-DT::datatable(syndrome_eval_list[[1]]$analysis$elements_detected_table, 
-              rownames = FALSE, 
-              options = list(pageLength = nrow(syndrome_eval_list[[1]]$setup$structure), dom = "t"), 
-              filter = "top", escape = FALSE)
+syndrome_eval_list[[1]]$analysis$elements_detected_table %>%
+  create_def_component_tables(df=., def_num = 1)
 
 ```
   
@@ -65,10 +63,8 @@ DT::datatable(syndrome_eval_list[[1]]$analysis$elements_detected_table,
 ```{r def2_table, echo=FALSE, message=FALSE, warning=FALSE}
 if(params$n_queries_eval >= 2){
   
- DT::datatable(syndrome_eval_list[[2]]$analysis$elements_detected_table, 
-              rownames = FALSE, 
-              options = list(pageLength = nrow(syndrome_eval_list[[2]]$setup$structure), dom = "t"), 
-              filter = "top", escape = FALSE)
+syndrome_eval_list[[2]]$analysis$elements_detected_table %>% 
+    create_def_component_tables(df=., def_num = 2)
 }
 ```
 
@@ -89,10 +85,8 @@ if(params$n_queries_eval >= 2){
 ```{r def3_table, echo=FALSE, message=FALSE, warning=FALSE}
 if(params$n_queries_eval >= 3){
   
- DT::datatable(syndrome_eval_list[[3]]$analysis$elements_detected_table, 
-              rownames = FALSE, 
-              options = list(pageLength = nrow(syndrome_eval_list[[3]]$setup$structure), dom = "t"), 
-              filter = "top", escape = FALSE)
+syndrome_eval_list[[3]]$analysis$elements_detected_table %>% 
+    create_def_component_tables(df=., def_num = 3)
 }
 ```
 
@@ -165,7 +159,7 @@ switch(params$n_queries_eval,
 
 `r if(params$n_queries_eval >= 2){paste0('#### Demographics Comparison)}`
 
-```{r prep demographics table}
+```{r prep_demographics_table, echo=FALSE, message=FALSE, warning=FALSE}
 demographics <- c("Race", "Ethnicity", "AgeGroup", "Sex")
 
 ## Bind Demographic Data Together
@@ -239,7 +233,8 @@ demo_table %>%
                   columnDefs = list(list(targets = c(0),visible = FALSE)), # # Hide Demographic in table (except for Row Group Headers) # Source: https://stackoverflow.com/questions/75952195/remove-grouping-variable-when-using-rowgroup-extension-in-dt-r-package
                   buttons = list(
                     list(extend = 'colvis', text = 'Filter Columns'),
-                    list(extend = 'collection', buttons = c('csv','excel','pdf'), text = 'Download', filename = 'Demographic Table')
+                    list(extend = 'csv', text = 'Download CSV', filename = 'Demographic Table'),
+                    list(extend = 'excel', text = 'Download Excel', filename = 'Demographic Table'),
                   )
                 )
               )

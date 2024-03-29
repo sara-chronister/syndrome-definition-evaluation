@@ -47,6 +47,12 @@ clean_demographics <- function(df){
              Age = ifelse(Age < 0, NA, Age))
   }
   
+  if("AgeGroup" %in% names(df_clean)){
+    
+    df_clean <- df_clean %>%
+      mutate(AgeGroup = ifelse(AgeGroup == "65-1000", "65+", AgeGroup))
+  }
+  
   ## Step 1e: Regions
   if("Region" %in% names(df_clean)){
     

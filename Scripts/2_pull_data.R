@@ -183,14 +183,12 @@ names(syndrome_eval_list) <- params$queries_abbrev
 ## Add Overlap DF
 if(params$n_queries_eval > 1){
   
-  overlap_name <- paste0(paste(params$queries_abbrev, collapse="_"), "_Overlap")
-  
-  syndrome_eval_list[[overlap_name]] <- Overlap %>%
+  syndrome_eval_list[[params$overlap_name]] <- Overlap %>%
     select(Date, C_BioSense_ID, all_of(params$queries_abbrev), Total_Defs, Definitions, everything()) # Reorder columns
 }
 
 ## Add Row Totals (via Overlap DF)
-syndrome_eval_list$defs_total <- nrow(syndrome_eval_list[[overlap_name]])
+syndrome_eval_list$defs_total <- nrow(syndrome_eval_list[[params$overlap_name]])
 syndrome_eval_list$defs_total_pretty <- format(syndrome_eval_list$defs_total, big.mark = ",", scientific = FALSE)
 
 
@@ -212,7 +210,7 @@ rm(i)
 ## Definition Overlap (.csv)
 
 ### Pull out all unique combinations into individual data frames
-definition_overlap_list <- split(syndrome_eval_list[[overlap_name]], syndrome_eval_list[[overlap_name]]$Definitions)
+definition_overlap_list <- split(syndrome_eval_list[[params$overlap_name]], syndrome_eval_list[[params$overlap_name]]$Definitions)
 
 ### Add name prefixes indicating the number of definitions in a combination
 names(definition_overlap_list) <- case_when(
@@ -230,7 +228,7 @@ lapply(names(definition_overlap_list), function(name) { write_csv(definition_ove
                                                                   file = paste0(params$filepaths$definition_overlap,name,".csv"))})
 
 # All Visits (Regardless of Matching/Overlap)
-syndrome_eval_list[[overlap_name]] %>%
+syndrome_eval_list[[params$overlap_name]] %>%
   write.csv(file = paste0(params$filepaths$definition_overlap, "All Visits.csv"))
 
 

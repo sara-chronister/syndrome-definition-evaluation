@@ -227,9 +227,73 @@ names(definition_overlap_list) <- names(definition_overlap_list) %>%
 lapply(names(definition_overlap_list), function(name) { write_csv(definition_overlap_list[[name]], 
                                                                   file = paste0(params$filepaths$definition_overlap,name,".csv"))})
 
-# All Visits (Regardless of Matching/Overlap)
+## All Visits (Regardless of Matching/Overlap)
 syndrome_eval_list[[params$overlap_name]] %>%
   write.csv(file = paste0(params$filepaths$definition_overlap, "All Visits.csv"))
+
+
+## Format & Save Validation Review Data
+
+if(params$validation_review$enable_validation_review == TRUE){
+  
+  vr_list <- list()
+  
+  for(i in 1:params$n_queries_eval){
+    
+    # Step 1: Formatting Data for Reviewers
+    
+    vr_list[[i]] <- syndrome_eval_list[[i]]$results$clean %>%
+      add_date_components(df=.) %>% # Generate Date Components (Date --> Weekday, Week, Month, Year)
+      get_sample(df=.,
+                 sample_metric = params$validation_review$SampleMetric,
+                 sample_value = params$validation_review$SampleValue,
+                 strat_sample = params$validation_review$StratifiedSample,
+                 strat_vars = params$validation_review$StratifiedVariables) %>% # SAMPLE
+      mutate(Review_Rating = NA,
+             Notes = NA) %>%
+      ## REORDER VARIABLES: BSI, REVIEWER VARS, EVERYTHING ELSE
+      select(Date, C_BioSense_ID,
+             Review_Rating, Notes,
+             everything(),
+             -Weekday, -Week, -Month, -Year) %>%
+      ## REMOVE ALL CHARACTERS WHICH MAY CAUSE XML ERRORS WITH EXCEL FILES
+      mutate(across(.cols = where(is.character), 
+                    .fns = ~ str_replace_all(string=., pattern = "[^[:graph:]]", replacement = " "))) # Replace all non-printable characters with a space (to prevent XML encoding issues when writing EXCEL files). 
+    
+    
+    # Step 3: Save Review Data (1 copy for each reviewer examining each definition)
+    
+    for(j in 1:params$validation_review$n_reviewers){ # for each reviewer specified (j) create reviewer specific subfolder (within each definition being reviewed)
+      
+      vr_list[[i]] %>%
+        writexl::write_xlsx(x=., path = paste0(params$filepaths$validation_review, 
+                                          "/",params$queries_abbrev[i],
+                                          "/1_Reviewed_Data/Reviewer_",j,
+                                          "/Reviewer_",j,"_Data.xlsx"))
+    }
+    
+    # Step 4: Set up Consensus Review Code for each definition's Validation Review Folder
+    
+    # Step 4c: Copy Validation Summary R Markdown code template(s) to each definition validation review folder.
+    
+    if(params$validation_review$n_reviewers == 1){ # Consensus Review not feasible with 1 reviewer --> Singular Validation_Summary.Rmd
+      
+      file.copy(from = "Scripts/SupportCode/Validation_Review/Validation_Summary.Rmd",
+                to = paste0(params$filepaths$validation_review,"/",params$queries_abbrev[i]))
+      
+    }else if(params$validation_review$n_reviewers > 1){ # Only include Post-Consensus Review RMD if there are enough reviewers to do Consensus Review.
+      
+      # Pre Consensus Review Code Template
+      file.copy(from = "Scripts/SupportCode/Validation_Review/Validation_Summary_Pre_Consensus_Review.Rmd",
+                to = paste0(params$filepaths$validation_review,"/",params$queries_abbrev[i]))
+      
+      # Post Consensus Review Code Template
+      file.copy(from = "Scripts/SupportCode/Validation_Review/Validation_Summary_Post_Consensus_Review.Rmd",
+                to = paste0(params$filepaths$validation_review,"/",params$queries_abbrev[i]))
+    }
+  }
+}
+rm(i, j)
 
 
 # Clean Up -----

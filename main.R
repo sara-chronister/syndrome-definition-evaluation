@@ -30,6 +30,6 @@ source(here::here("Scripts", "1_parameters.R"))
 
 ## 2) Data Pull & Cleaning Script
 if(!file_exists(paste0(params$filepaths$output,paste(params$queries_abbrev, collapse="_"),".RData"))){
-  
   source(here::here("Scripts", "2_pull_data.R"))
-}
+  
+}else{load(paste0(params$filepaths$output,paste(params$queries_abbrev, collapse="_"),".RData"))}

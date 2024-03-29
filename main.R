@@ -11,6 +11,8 @@
 ## Define Number of Queries Being Evaluated (def1, def2, def3)
 n_queries_eval <- 3
 
+if(n_queries_eval > 3){stop("This tool can only analyze 3 definitions simultaneously. Please change n_queries_eval to a value <= 3.")}
+
 # Set Up -----
 
 ## Load ESSENCE Credentials

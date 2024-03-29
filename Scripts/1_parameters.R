@@ -148,4 +148,9 @@ params$report$query_title <- switch(params$n_queries_eval,
                                     paste0(params$queries[1]," and ", params$queries[2]),
                                     paste0(params$queries[1],", ",params$queries[2],", and ",params$queries[3]))
 
+## Timeseries Linecolors
 params$report$ts_linecolors <- c("#E24E42", "#008F95", "#E9B000")
+
+
+## Demographic Groups Analyzed
+params$report$demographics <- c("Race", "Ethnicity", "AgeGroup", "Sex")

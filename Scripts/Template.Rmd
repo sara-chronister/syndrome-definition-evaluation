@@ -138,6 +138,7 @@ ts_plot_same %>%
 `r if(params$n_queries_eval >= 2){paste0('#### Independent Scales')}`
  
 ```{r ts_separate_scale, echo=FALSE, message=FALSE, warning=FALSE}
+
 ## Define Storage List
 list_ts_plot <- list()
 
@@ -169,6 +170,7 @@ switch(params$n_queries_eval,
 
 ```{r prep demographics table}
 
+## Bind Demographic Data Together
 df_demo <- switch(params$n_queries_eval,
                   bind_rows(syndrome_eval_list[[1]]$results$clean, .id = "id"),
                   bind_rows(syndrome_eval_list[[1]]$results$clean, syndrome_eval_list[[2]]$results$clean, .id = "id"),
@@ -186,33 +188,6 @@ df_demo <- df_demo %>%
     Syndrome == 'def2' ~ params$queries[2],
     Syndrome == 'def3' ~ params$queries[3],
     TRUE ~ NA))
-
-
-### EXTRA STEPS FOR NATIVE DT TABLE (DEMO_TABLE2)
-demographics <- c("Race", "Ethnicity", "AgeGroup", "Sex")
-list_demo_table <- list()
-
-for(i in seq_along(demographics)){
-
-  list_demo_table[[demographics[i]]] <- df_demo %>%
-    group_by(Syndrome, !!sym(demographics[i])) %>%
-    complete() %>% # Include factor levels with 0 counts.
-    summarize(Count = n()) %>%
-    mutate(Percent = Count / sum(Count) * 100)
-}
-rm(i)
-
-
-demo_table <- bind_rows(list_demo_table) %>%
-  pivot_longer(.,
-               cols = -c("Syndrome","Count","Percent"),
-               names_to = "Demographic",
-               values_to = "Identity") %>%
-  filter(!is.na(Identity)) %>%
-  mutate(Percent = paste0(round(Percent,2),"%")) %>%
-  select(Syndrome, Demographic, Identity, Count, Percent) %>%
-  arrange(Syndrome, Demographic)
-
 
 ```
 
@@ -244,6 +219,31 @@ table %>%
 
 ```{r demographics_table_2, echo=FALSE, message=FALSE, warning=FALSE}
 
+### EXTRA STEPS FOR NATIVE DT TABLE (DEMO_TABLE2)
+demographics <- c("Race", "Ethnicity", "AgeGroup", "Sex")
+list_demo_table <- list()
+
+for(i in seq_along(demographics)){
+
+  list_demo_table[[demographics[i]]] <- df_demo %>%
+    group_by(Syndrome, !!sym(demographics[i])) %>%
+    complete() %>% # Include factor levels with 0 counts.
+    summarize(Count = n()) %>%
+    mutate(Percent = Count / sum(Count) * 100)
+}
+rm(i)
+
+
+demo_table <- bind_rows(list_demo_table) %>%
+  pivot_longer(.,
+               cols = -c("Syndrome","Count","Percent"),
+               names_to = "Demographic",
+               values_to = "Identity") %>%
+  filter(!is.na(Identity)) %>%
+  mutate(Percent = paste0(round(Percent,2),"%")) %>%
+  select(Syndrome, Demographic, Identity, Count, Percent) %>%
+  arrange(Syndrome, Demographic)
+
 demo_table %>%
   DT::datatable()
 
@@ -258,7 +258,7 @@ demo_table %>%
 ```{r def_summary, echo=FALSE, message=FALSE, warning=FALSE, fig.height=3}
 if(params$n_queries_eval >= 2){
 
-  all_def_summary <- syndrome_eval_list[[overlap_name]] %>%
+  all_def_summary <- syndrome_eval_list[[params$overlap_name]] %>%
   select(all_of(params$queries_abbrev)) %>%
   summarize(across(
     .cols = everything(),
@@ -288,7 +288,7 @@ all_def_summary %>%
 ```{r def_comparison, echo=FALSE, message=FALSE, warning=FALSE}
 if(params$n_queries_eval >= 2){
   
-  all_def_summary <- syndrome_eval_list[[overlap_name]] %>%
+  all_def_summary <- syndrome_eval_list[[params$overlap_name]] %>%
   count(Definitions, name = "Visits") %>%
   mutate(Total = syndrome_eval_list$defs_total,
          Percent = paste0(round(Visits/Total,3)*100,"%")) %>%
@@ -306,7 +306,7 @@ if(params$n_queries_eval >= 2){
 
 ```{r venn, echo=FALSE, message=FALSE, warning=FALSE}
 if(params$n_queries_eval >= 2){
- plot(eulerr::venn(syndrome_eval_list[[overlap_name]] %>% select(all_of(params$queries_abbrev))), 
+ plot(eulerr::venn(syndrome_eval_list[[params$overlap_name]] %>% select(all_of(params$queries_abbrev))), 
       labels = TRUE, legend = list(side = "right"), quantities = TRUE)
 }
 ```
@@ -315,72 +315,76 @@ if(params$n_queries_eval >= 2){
 
 ```{r euler, echo=FALSE, message=FALSE, warning=FALSE}
 if(params$n_queries_eval >= 2){
- plot(eulerr::euler(syndrome_eval_list[[overlap_name]] %>% select(all_of(params$queries_abbrev))), 
+ plot(eulerr::euler(syndrome_eval_list[[params$overlap_name]] %>% select(all_of(params$queries_abbrev))), 
       labels = TRUE, legend = list(side = "right"), quantities = TRUE)
 }
 ```
   
-***   
-### Top terms (besides "patient")
-#### Top 5 occurring terms for each definition and each field of interest:
+***
 
-```{r top_terms, echo=FALSE, message = FALSE, warning = FALSE, fig.width=10, fig.height=8}
+<!-- Text Mining --> 
 
-def_sets <- list(my_file[my_file$def1==1,],
-                 my_file[my_file$def2==1,],
-                 my_file[my_file$def3==1,])
+### Text Mining
+`r paste0('#### Top ', params$text_analysis_number_ngrams,' words (unigrams) and phrases (bigrams) for each definition and text analysis field:{.tabset}')`
 
-def_sets_names <- c(def1_short,def2_short,def3_short)
+```{r text_mining, echo=FALSE, message = FALSE, warning = FALSE, fig.width=10, fig.height=8}
 
-top_words <- list()
-word_count <- list()
+## Create TM Lists
+unigram_list <- list()
+bigram_list <- list()
 
-for (i in 1:length(def_sets)) {
+
+## Text Mine
+for(i in 1:params$n_queries_eval){
   
-  for(j in 1:length(select_fields)) {
-    
-    data <- as.data.frame(def_sets[i])
-    
-    field <- select_fields[j]
-    
-    word_count[[j]] <- data %>%
-      dplyr::select(field) %>%
-      unnest_tokens(word, !!field) %>%
-      anti_join(stop_words, by = "word") %>%
-      dplyr::count(word, name = "Count", sort=TRUE) %>%
-      filter(word!="patient") %>%
-      top_n(5) %>%
-      mutate(def = def_sets_names[i],
-             field = field)
-
-    names(word_count)[[j]] <- select_fields[j]  
-    
-    }
+  ## Unigrams
+  unigram_list[[i]] <- syndrome_eval_list[[i]]$results$clean %>%
+    textmine(df=., 
+             variables = params$fields_text_analysis, 
+             n_grams = 1, # Unigrams
+             metric = "n", 
+             top_n = params$text_analysis_number_ngrams, top_n_by_variable = TRUE)
   
-  top_words[[i]] <- plyr::ldply(word_count, data.frame)
-
-  names(top_words)[[i]] <- def_sets_names[i]
+  ## Bigrams
+  bigram_list[[i]] <- syndrome_eval_list[[i]]$results$clean %>%
+    textmine(df=., 
+             variables = params$fields_text_analysis,
+             n_grams = 2, # Bigrams
+             metric = "n", 
+             top_n = params$text_analysis_number_ngrams, top_n_by_variable = TRUE)
   
+  names(unigram_list)[i] <- names(syndrome_eval_list)[i]
+  names(bigram_list)[i] <- names(syndrome_eval_list)[i]
 }
+rm(i)
 
-top_words_combined <- ldply(top_words, data.frame) %>%
-  dplyr::arrange(Count) %>%
-  group_by(def,field) %>%
-  dplyr::mutate(order = row_number())
 
-ggplot(data = top_words_combined) +
-  geom_bar(aes(x = Count, y = as.factor(order)), stat="identity", fill = "#a4dba4") +
-  geom_text(aes(x = 0, y = as.factor(order), label = paste0(word,'  (',Count,")"), hjust = "left"), size = 3) + 
-  facet_grid(field ~ def, switch = "y", scales = "free") +
-  theme_minimal() +
-  theme(
-    axis.text = element_blank(),
-    panel.grid = element_blank(),
-    strip.text.y.left = element_text(angle = 0),
-    panel.background = element_rect(fill = NA, color = "grey40"),
-    axis.title = element_blank()
-  )
+## Bind All Text Mining (of Individual Definition(s)) Together
+unigrams <- bind_rows(unigram_list, .id = "def") %>%
+  mutate(def = factor(def, levels = params$queries_abbrev)) %>% # To preserve ordering of defs (avoid alphabetic ordering)
+  group_by(def, Field) %>%
+  mutate(order = row_number(),
+         order = fct_rev(as.factor(order))) %>%
+  select(def, field = Field, order, everything())
 
+bigrams <- bind_rows(bigram_list, .id = "def") %>%
+  mutate(def = factor(def, levels = params$queries_abbrev)) %>% # To preserve ordering of defs (avoid alphabetic ordering)
+  group_by(def, Field) %>%
+  mutate(order = row_number(),
+         order = fct_rev(as.factor(order))) %>%
+  select(def, field = Field, order, everything())
+
+rm(unigram_list, bigram_list)
+```
+
+`r paste0('##### Unigrams')`
+```{r top_unigrams, echo=FALSE, message = FALSE, warning = FALSE, fig.width=10, fig.height=8}
+bigrams %>% plot_tm(df=.)
+```
+
+`r paste0('##### Bigrams')`
+```{r top_bigrams, echo=FALSE, message = FALSE, warning = FALSE, fig.width=10, fig.height=8}
+bigrams %>% plot_tm(df=.)
 ```
 
 
@@ -463,4 +467,4 @@ for(i in seq_along(validation_review_defs)){
 }
 ```
 ___
-*The template for this report was created by Sara Chronister. For questions, ideas for improvement/collaboration, or attribution, please reach out to <sara.chronister@doh.wa.gov>.*
+*The template for this report was created by Sara Chronister & Tyler Bonnell. For questions, ideas for improvement/collaboration, or attribution, please reach out to <sara.chronister@doh.wa.gov>.*

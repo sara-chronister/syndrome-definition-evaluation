@@ -36,12 +36,14 @@ pacman::p_load(
   rmarkdown, 
   splitstackshape, 
   stringr, 
+  tictoc,
   tidyr, 
   tidytext, 
   treemap, 
   widyr, 
   writexl, 
   xtable,
+  zoo,
   update = FALSE)
 
 #### Packages not on CRAN -------------------

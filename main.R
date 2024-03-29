@@ -6,7 +6,7 @@
 
 # =======================================================================
 
-# Users Change -----
+#  ***USERS: CHANGE n_queries_eval BASED ON NEEDS*** -----
 
 ## Define Number of Queries Being Evaluated (def1, def2, def3)
 n_queries_eval <- 3

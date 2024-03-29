@@ -18,6 +18,8 @@ params$n_queries_eval <- n_queries_eval
 ### Vector of Query Abbreviations to Evaluate
 params$queries <- DefinitionInformation[["DefinitionInformation"]]$Syndrome[1:params$n_queries_eval]
 params$queries_abbrev <- DefinitionInformation[["DefinitionInformation"]]$Abbreviation[1:params$n_queries_eval]
+params$overlap_name <- paste0(paste(params$queries_abbrev, collapse="_"), "_Overlap")
+
 
 ### Dates & Geographies
 params$start_date <- DefinitionInformation[["Setup"]]$StartDate %>% as.Date()
@@ -42,6 +44,9 @@ params$fields_api_url <- params$fields %>%
 params$fields_text_analysis <- params$fields %>%
   filter(IncludeForTextAnalysis =="Yes" & (is.na(Notes)| str_detect(Notes, "Not eligible", negate=TRUE))) %>% # Some fields are not eligible for text mining (see Notes)
   pull(ESSENCEfields)
+
+params$text_analysis_number_ngrams <- 5
+
 
 #### Validation Review (Line-Level Records)
 params$fields_validation_review <- params$fields %>%  

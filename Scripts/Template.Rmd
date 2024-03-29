@@ -96,8 +96,6 @@ if(params$n_queries_eval >= 3){
 }
 ```
 
-
-  
 ***  
 `r if(params$n_queries_eval >= 2){paste0('### Defintion Comparison')}`
 
@@ -134,7 +132,6 @@ ts_plot_same %>%
       rangeslider = list(type = "date", thickness = 0.1)))
 ```
 
-
 `r if(params$n_queries_eval >= 2){paste0('#### Independent Scales')}`
  
 ```{r ts_separate_scale, echo=FALSE, message=FALSE, warning=FALSE}
@@ -169,6 +166,7 @@ switch(params$n_queries_eval,
 `r if(params$n_queries_eval >= 2){paste0('#### Demographics Comparison)}`
 
 ```{r prep demographics table}
+demographics <- c("Race", "Ethnicity", "AgeGroup", "Sex")
 
 ## Bind Demographic Data Together
 df_demo <- switch(params$n_queries_eval,
@@ -191,61 +189,60 @@ df_demo <- df_demo %>%
 
 ```
 
-```{r demographics_table_1, echo=FALSE, message=FALSE, warning=FALSE}
+```{r demographics_table, echo=FALSE, message=FALSE, warning=FALSE}
 
 ## Generate gtsummary table & convert to tibble for DT import
-table <- df_demo %>%
-  tbl_summary(include = c(AgeGroup, Sex, Race, Ethnicity), by = Syndrome) %>%
+demo_table <- df_demo %>%
+  tbl_summary(include = all_of(demographics), by = Syndrome) %>%
   add_p() %>%
-  modify_header(label = "Demographic") %>%
+  modify_header(label = "Identity") %>%
   bold_labels() %>%
-  as_tibble(.) %>% # https://www.danieldsjoberg.com/gtsummary/reference/as_tibble.gtsummary.html
-  mutate(Demographic = str_remove_all(Demographic, pattern = "\\_"))
+  as_tibble(.) %>% # Convert gtsummary to tibble Source:https://www.danieldsjoberg.com/gtsummary/reference/as_tibble.gtsummary.html
+  mutate(Identity = str_remove_all(Identity, pattern = "\\_"))
   
 ## Clean Names
-names(table) <- str_remove_all(string = names(table), pattern = "\\*")
+names(demo_table) <- str_remove_all(string = names(demo_table), pattern = "\\*")
 
-## Render gtsummary table in DT
-table %>% 
-  DT::datatable(rownames=FALSE, 
-                options = list(pageLength = nrow(table), dom = "t"), filter = "top", escape = FALSE) %>%
-  formatStyle(
-    columns = 'Demographic',
-    fontWeight = styleEqual(c("AgeGroup","Sex","Race","Ethnicity"),"bold")) # https://rstudio.github.io/DT/010-style.html
-
-# It would be best if I could get Demographic Category headers into their own column (for searching)
-
-```
-
-```{r demographics_table_2, echo=FALSE, message=FALSE, warning=FALSE}
-
-### EXTRA STEPS FOR NATIVE DT TABLE (DEMO_TABLE2)
-demographics <- c("Race", "Ethnicity", "AgeGroup", "Sex")
-list_demo_table <- list()
-
-for(i in seq_along(demographics)){
-
-  list_demo_table[[demographics[i]]] <- df_demo %>%
-    group_by(Syndrome, !!sym(demographics[i])) %>%
-    complete() %>% # Include factor levels with 0 counts.
-    summarize(Count = n()) %>%
-    mutate(Percent = Count / sum(Count) * 100)
-}
-rm(i)
+## Adjust gtsummary structure to have Demographics (Demographic Category) and Identity (Patient Demographics)
+demo_table <- demo_table %>%
+  mutate(Demographic = lag(Identity),
+         `P-Value` = lag(`p-value`)) %>%
+    filter(rowSums(is.na(.)) <= 2) %>%
+  mutate(Demographic = ifelse(!Demographic %in%  demographics, NA, Demographic),
+         Demographic = zoo::na.locf(Demographic)) %>%
+  select(Demographic, Identity, everything(), `P-Value`, -`p-value`)
 
 
-demo_table <- bind_rows(list_demo_table) %>%
-  pivot_longer(.,
-               cols = -c("Syndrome","Count","Percent"),
-               names_to = "Demographic",
-               values_to = "Identity") %>%
-  filter(!is.na(Identity)) %>%
-  mutate(Percent = paste0(round(Percent,2),"%")) %>%
-  select(Syndrome, Demographic, Identity, Count, Percent) %>%
-  arrange(Syndrome, Demographic)
+## Render DT table
 
-demo_table %>%
-  DT::datatable()
+demo_table %>% 
+  DT::datatable(., class='hover cell-border stripe',
+                rownames=FALSE, escape = FALSE, 
+                filter = "top", 
+                extensions = c("RowGroup",
+                             "Buttons",
+                             "ColReorder",
+                             "FixedColumns",
+                             "FixedHeader",
+                             "KeyTable",
+                             "Select"), # https://rstudio.github.io/DT/extensions.html
+                options = list(
+                  pageLength = nrow(table), # Set Page Length to Show all Demographic Categories
+                  dom='Bfrt', # Source: https://datatables.net/reference/option/dom
+                  autowidth = TRUE,
+                  colReorder = TRUE,
+                  scrollX = TRUE,
+                  fixedColumn = TRUE,
+                  fixedHeader = TRUE,
+                  keys = TRUE,
+                  rowGroup = list(dataSrc = 0), # Set Row Group to 1st Var in Data Set (Demographic)
+                  columnDefs = list(list(targets = c(0),visible = FALSE)), # # Hide Demographic in table (except for Row Group Headers) # Source: https://stackoverflow.com/questions/75952195/remove-grouping-variable-when-using-rowgroup-extension-in-dt-r-package
+                  buttons = list(
+                    list(extend = 'colvis', text = 'Filter Columns'),
+                    list(extend = 'collection', buttons = c('csv','excel','pdf'), text = 'Download', filename = 'Demographic Table')
+                  )
+                )
+              )
 
 ```
 
@@ -288,6 +285,7 @@ all_def_summary %>%
 ```{r def_comparison, echo=FALSE, message=FALSE, warning=FALSE}
 if(params$n_queries_eval >= 2){
   
+  ## Generate Def Comparison Metrics
   all_def_summary <- syndrome_eval_list[[params$overlap_name]] %>%
   count(Definitions, name = "Visits") %>%
   mutate(Total = syndrome_eval_list$defs_total,
@@ -295,8 +293,23 @@ if(params$n_queries_eval >= 2){
   replace_na(list(Visits=0, Percent="0%")) %>%
   arrange(desc(Visits))
 
+  ## Generate DT Table
   all_def_summary %>%
-    DT::datatable(options = list(pageLength = nrow(all_def_summary), dom = "t"), filter = "top", escape = FALSE)
+    DT::datatable(., class='hover cell-border stripe',
+                rownames=FALSE, escape = FALSE,
+                filter = "top",
+                extensions = c("Buttons", "KeyTable"),
+                options = list(
+                  pageLength = nrow(table), # Set Page Length to Show all Demographic Categories
+                  dom='Bfrt', # Source: https://datatables.net/reference/option/dom
+                  autowidth = TRUE,
+                  keys = TRUE,
+                  buttons = list(
+                    list(extend = 'colvis', text = 'Filter Columns'),
+                    list(extend = 'collection', buttons = c('csv','excel','pdf'), text = 'Download', filename = 'Demographic Table')
+                  )
+                )
+              )
 }
 ```
 
@@ -385,86 +398,6 @@ bigrams %>% plot_tm(df=.)
 `r paste0('##### Bigrams')`
 ```{r top_bigrams, echo=FALSE, message = FALSE, warning = FALSE, fig.width=10, fig.height=8}
 bigrams %>% plot_tm(df=.)
-```
-
-
-
-
-
-```{r validation reviewer files, include=FALSE}
-if(validation_review == TRUE){
-
-# Development Note: I will attempt to keep all Reviewer columns the same across IE #'s (Reviewer_TP_## and Reviewer_Notes) and then seek to differentiate these columns across Reviewers after the joining where R will auto-assign .x.y.z etc prefixes. This will likely be easier to work with than generating code to scan a flexible # of uniquely generated var names. 
-
-list <- list()
-
-for(i in seq_along(validation_review_defs)){
-  
-  # Step 1: Formatting Data for Reviewers
-  
-  list[[i]] <- get(validation_review_defs[i]) %>%
-    distinct(EssenceID, .keep_all = TRUE) %>% # Deduplicate records
-    add_date_components(df=.) %>% # Generate Date Components (Date --> Weekday, Week, Month, Year)
-    get_sample(df=.,
-               sample_metric = SampleMetric,
-               sample_value = SampleValue,
-               strat_sample = StratifiedSample,
-               strat_vars = StratifiedVariables) %>% # SAMPLE
-    mutate(Review_Rating = NA,
-          Notes = NA) %>%
-    ## REORDER VARIABLES: BSI, REVIEWER VARS, EVERYTHING ELSE
-    select(Date, EssenceID,
-           Review_Rating, Notes,
-           everything(),
-           -Weekday, -Week, -Month, -Year) %>%
-    ## REMOVE ALL CHARACTERS WHICH MAY CAUSE XML ERRORS WITH EXCEL FILES
-    mutate(across(.cols = where(is.character), 
-                  .fns = ~ str_replace_all(string=., pattern = "[^[:graph:]]", replacement = " "))) # Replace all non-printable characters with a space (to prevent XML encoding issues when writing EXCEL files). 
-  
-  # Step 2: Create folder name for each definition undergoing validation review
-  
-  def_review_folder <- name_def_review_folder(definition = validation_review_defs[i])
-  
-  # Step 3: Save Review Data (1 copy for each reviewer examining each definition)
-  
-  for(j in 1:n_reviewers){ # for each reviewer specified (j) create reviewer specific subfolder (within each definition being reviewed)
-    
-    list[[i]] %>%
-      writexl::write_xlsx(x=., 
-                 path = paste0(output_folder, "Validation_Review\\",def_review_folder,"\\1_Reviewed_Data\\Reviewer_",j,
-                             "\\Reviewer_",j,"_Data.xlsx"))
-  }
-  
-  # Step 4: Set up Consensus Review Code for each definition's Validation Review Folder
-  
-  # Problem: When folks are running SyS Eval_ template, they have not yet started validation review --> so not yet time for Comparison/Consensus process --> need an additional script/button they can run when ready (Consensus_Review.Rmd).
-  
-  # Step 4a: Create a filepath  for each definition validation review
-  filepath <- paste0(output_folder, "Validation_Review\\", def_review_folder)
-  
-  # Step 4b: Save all parameters needed to run Consensus_Review.Rmd template
-  save(filepath, DefinitionInformation,
-       file = paste0(filepath,"\\Resources\\Validation_Review_Parameters.RData"))
-  
-  # Step 4c: Copy Validation Summary R Markdown code template(s) to each definition validation review folder.
-
-  if(n_reviewers == 1){ # Consensus Review not feasible with 1 reviewer --> Singular Validation_Summary.Rmd
-  
-  file.copy(from = "SupportCode\\Validation_Review\\Validation_Summary.Rmd",
-            to = paste0(filepath))
-    
-  }else if(n_reviewers > 1){ # Only include Post-Consensus Review RMD if there are enough reviewers to do Consensus Review.
-    
-  # Pre Consensus Review Code Template
-  file.copy(from = "SupportCode\\Validation_Review\\Validation_Summary_Pre_Consensus_Review.Rmd",
-            to = paste0(filepath))
-    
-  # Post Consensus Review Code Template
-  file.copy(from = "SupportCode\\Validation_Review\\Validation_Summary_Post_Consensus_Review.Rmd",
-            to = paste0(filepath))  
-    }
-  }
-}
 ```
 ___
 *The template for this report was created by Sara Chronister & Tyler Bonnell. For questions, ideas for improvement/collaboration, or attribution, please reach out to <sara.chronister@doh.wa.gov>.*

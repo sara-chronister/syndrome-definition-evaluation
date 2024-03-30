@@ -8,28 +8,28 @@ if ("pacman" %in% rownames(installed.packages()) == FALSE) {install.packages("pa
 renv::restore()
 
 #### Load packages -----------------
-# pacman::p_load(
-#   dplyr, 
-#   DT, 
-#   eulerr, 
-#   fs, 
-#   gtsummary,
-#   janitor, 
-#   lubridate, 
-#   magrittr, 
-#   plotly, 
-#   readr, 
-#   readxl, 
-#   rmarkdown, 
-#   splitstackshape, 
-#   stringr, 
-#   tictoc,
-#   tidyr, 
-#   tidytext, 
-#   writexl, 
-#   xtable,
-#   zoo,
-#   update = FALSE)
+pacman::p_load(
+  dplyr,
+  DT,
+  eulerr,
+  fs,
+  gtsummary,
+  janitor,
+  lubridate,
+  magrittr,
+  plotly,
+  readr,
+  readxl,
+  rmarkdown,
+  splitstackshape,
+  stringr,
+  tictoc,
+  tidyr,
+  tidytext,
+  writexl,
+  xtable,
+  zoo,
+  update = FALSE)
 
 #### Update renv (if new packages utilizes) -----------------
 # renv::snapshot()

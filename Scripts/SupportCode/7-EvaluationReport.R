@@ -4,7 +4,10 @@
 
 create_def_component_tables <- function(df, def_num){
   
+  nrow_1_match <- df %>% filter(Matches >= 1) %>% nrow()
+  
   component_table <- df %>%
+    rename(`Matched Records` = Matches)
     DT::datatable(., 
                   class='hover cell-border stripe',
                   caption = paste0(params$queries[def_num],' Definition Elements (by Frequency of Occurrence)'),
@@ -12,9 +15,9 @@ create_def_component_tables <- function(df, def_num){
                   filter = "top", 
                   extensions = c("Buttons", "KeyTable", "FixedHeader"), # https://rstudio.github.io/DT/extensions.html
                   options = list(
-                    pageLength = -1,
-                    lengthMenu = list(c(5, 10, 25, 50, -1), c('5','10', '25', '50', 'All')), # Source: https://stackoverflow.com/questions/67484426/how-can-i-show-all-the-entries-with-datatable-in-r-dt-package
-                    dom='Bfrtl', # Source: https://datatables.net/reference/option/dom
+                    pageLength = nrow_1_match,
+                    lengthMenu = list(c(10, 25, 50, -1), c('10', '25', '50', 'All')), # Source: https://stackoverflow.com/questions/67484426/how-can-i-show-all-the-entries-with-datatable-in-r-dt-package
+                    dom='Blfrt', # Source: https://datatables.net/reference/option/dom
                     fixedHeader = TRUE,
                     keys = TRUE,
                     buttons = list(

@@ -12,8 +12,9 @@ create_def_component_tables <- function(df, def_num){
                   filter = "top", 
                   extensions = c("Buttons", "KeyTable", "FixedHeader"), # https://rstudio.github.io/DT/extensions.html
                   options = list(
-                    pageLength = nrow(syndrome_eval_list[[def_num]]$setup$structure), 
-                    dom='Bfrt', # Source: https://datatables.net/reference/option/dom
+                    pageLength = -1,
+                    lengthMenu = list(c(5, 10, 25, 50, -1), c('5','10', '25', '50', 'All')), # Source: https://stackoverflow.com/questions/67484426/how-can-i-show-all-the-entries-with-datatable-in-r-dt-package
+                    dom='Bfrtl', # Source: https://datatables.net/reference/option/dom
                     fixedHeader = TRUE,
                     keys = TRUE,
                     buttons = list(

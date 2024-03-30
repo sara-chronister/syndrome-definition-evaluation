@@ -38,7 +38,7 @@ source(here::here("Scripts", "1_parameters.R"))
 source(here::here("Scripts", "2_process_data.R"))
 
 ## 3) Render Evaluation Report
-rmarkdown::render(input = "Scripts/Template.Rmd",
+rmarkdown::render(input = "Scripts/Syndrome Evaluation Report Template.Rmd",
                   output_dir = params$filepaths$output,
                   output_file = paste0("Syndrome Evaluation Report.html"),
                   params = params)

@@ -159,20 +159,22 @@ if(params$n_queries_eval >= 2){
   ## Generate DT Table
   all_def_summary %>%
     DT::datatable(., class='hover cell-border stripe',
-                rownames=FALSE, escape = FALSE,
-                filter = "top",
-                extensions = c("Buttons", "KeyTable"),
-                options = list(
+                  caption = "Visits Identified by Unique Combinations of Syndromes",
+                  rownames=FALSE, escape = FALSE,
+                  filter = "top",
+                  extensions = c("Buttons", "KeyTable"),
+                  options = list(
                   pageLength = nrow(table), # Set Page Length to Show all Demographic Categories
                   dom='Bfrt', # Source: https://datatables.net/reference/option/dom
                   autowidth = TRUE,
                   keys = TRUE,
-                  buttons = list(
-                    list(extend = 'colvis', text = 'Filter Columns'),
-                    list(extend = 'collection', buttons = c('csv','excel','pdf'), text = 'Download', filename = 'Demographic Table')
+                 buttons = list(
+                      list(extend = 'colvis', text = 'Filter Columns'),
+                      list(extend = 'csv', text = 'Download CSV', filename = 'Definition Overlap Table'),
+                      list(extend = 'excel', text = 'Download Excel', filename = 'Definition Overlap Table')
+                      )
+                    )
                   )
-                )
-              )
 }
 ```
 
@@ -283,31 +285,32 @@ df_demo <- df_demo %>%
 demo_table <- df_demo %>%
   tbl_summary(include = all_of(params$report$demographics), by = Syndrome) %>%
   add_p() %>%
-  modify_header(label = "Identity") %>%
+  modify_header(label = "Demographic") %>%
   bold_labels() %>%
   as_tibble(.) %>% # Convert gtsummary to tibble Source:https://www.danieldsjoberg.com/gtsummary/reference/as_tibble.gtsummary.html
-  mutate(Identity = str_remove_all(Identity, pattern = "\\_"))
+  mutate(Demographic = str_remove_all(Demographic, pattern = "\\_"))
 
 ## 3) Clean Variable Names
 names(demo_table) <- str_remove_all(string = names(demo_table), pattern = "\\*")
 
 ## 4) Adjust gtsummary structure to have both Demographic (Demographic Category) and Identity (Patient Demographics) vars.
 demo_table <- demo_table %>%
-  mutate(Demographic = lag(Identity),
+  mutate(Demographic_Category = lag(Demographic),
          `P-Value` = lag(`p-value`)) %>%
     filter(rowSums(is.na(.)) <= 2) %>%
-  mutate(Demographic = ifelse(!Demographic %in%  params$report$demographics, NA, Demographic),
-         Demographic = zoo::na.locf(Demographic)) %>% # Source: https://stackoverflow.com/questions/40334837/how-to-group-data-when-data-are-interspersed-with-group-headers-in-the-same-colu
-  select(Demographic, Identity, everything(), `P-Value`, -`p-value`)
+  mutate(Demographic_Category = ifelse(!Demographic_Category %in%  params$report$demographics, NA, Demographic),
+         Demographic_Category = zoo::na.locf(Demographic_Category)) %>% # Source: https://stackoverflow.com/questions/40334837/how-to-group-data-when-data-are-interspersed-with-group-headers-in-the-same-colu
+  select(Demographic_Category, Demographic, everything(), `P-Value`, -`p-value`)
 
 ```
 
 ```{r demographics_table, echo=FALSE, message=FALSE, warning=FALSE}
 
 ## Render DT table
-
 demo_table %>% 
   DT::datatable(., class='hover cell-border stripe',
+                caption = paste0("Demographic Comparison of Patients Identified by ",
+                                 params$report$query_title," Syndrome(s)"),
                 rownames=FALSE, escape = FALSE, 
                 filter = "top", 
                 width = "100%", height = "100%",
@@ -320,13 +323,14 @@ demo_table %>%
                              "Select"), # https://rstudio.github.io/DT/extensions.html
                 options = list(
                   pageLength = nrow(table), # Set Page Length to Show all Demographic Categories
-                  dom='Bfrt', # Source: https://datatables.net/reference/option/dom
+                  dom='Blfrt', # Source: https://datatables.net/reference/option/dom
                   autowidth = TRUE,
                   colReorder = TRUE,
                   scrollX = TRUE,
                   fixedColumn = TRUE,
                   fixedHeader = TRUE,
                   keys = TRUE,
+                  pageLength = nrow(demo_table),
                   rowGroup = list(dataSrc = 0), # Set Row Group to 1st Var in Data Set (Demographic)
                   columnDefs = list(list(targets = c(0),visible = FALSE)), # # Hide Demographic in table (except for Row Group Headers) # Source: https://stackoverflow.com/questions/75952195/remove-grouping-variable-when-using-rowgroup-extension-in-dt-r-package
                   buttons = list(
@@ -381,14 +385,16 @@ rm(i)
 
 ## Bind All Text Mining (of Individual Definition(s)) Together
 unigrams <- bind_rows(unigram_list, .id = "def") %>%
-  mutate(def = factor(def, levels = params$queries_abbrev)) %>% # To preserve ordering of defs (avoid alphabetic ordering)
+  mutate(def = factor(def, levels = params$queries_abbrev),
+         unit = "Unigram") %>% # To preserve ordering of defs (avoid alphabetic ordering)
   group_by(def, Field) %>%
   mutate(order = row_number(),
          order = fct_rev(as.factor(order))) %>%
   select(def, field = Field, order, everything())
 
 bigrams <- bind_rows(bigram_list, .id = "def") %>%
-  mutate(def = factor(def, levels = params$queries_abbrev)) %>% # To preserve ordering of defs (avoid alphabetic ordering)
+  mutate(def = factor(def, levels = params$queries_abbrev),
+         unit = "Bigram") %>% # To preserve ordering of defs (avoid alphabetic ordering)
   group_by(def, Field) %>%
   mutate(order = row_number(),
          order = fct_rev(as.factor(order))) %>%
@@ -406,6 +412,41 @@ unigrams %>% plot_tm(df=.)
 ```{r top_bigrams, echo=FALSE, message = FALSE, warning = FALSE, fig.width=10, fig.height=8}
 bigrams %>% plot_tm(df=.)
 ```
+
+`r paste0('### Table')`
+```{r ngram_table, top_ngrams, echo=FALSE, message = FALSE, warning = FALSE}
+
+n_grams <- bind_rows(unigrams, bigrams) %>% 
+  mutate(unit = factor(unit, levels = c("Unigram","Bigram"))) %>%
+  arrange(def, unit, field, n) %>%
+  select(Syndrome = def, Unit = unit, Field = field, `Free-Text` = n_gram, `Number of Occurrences` = n)
+
+n_grams %>%
+   DT::datatable(., 
+                  class='hover cell-border stripe',
+                  caption = paste0("Top ",params$text_analysis_number_ngrams," Free-Text N-Grams (by Field)"),
+                  rownames=FALSE, escape = FALSE, 
+                  filter = "top", 
+                  extensions = c("Buttons", "KeyTable", "FixedHeader"), # https://rstudio.github.io/DT/extensions.html
+                  options = list(
+                    lengthMenu = list(c(10, 25, 50, -1), c('10', '25', '50', 'All')), # Source: https://stackoverflow.com/questions/67484426/how-can-i-show-all-the-entries-with-datatable-in-r-dt-package
+                    dom='Blfrtp', # Source: https://datatables.net/reference/option/dom
+                    fixedHeader = TRUE,
+                    keys = TRUE,
+                    buttons = list(
+                      list(extend = 'colvis', text = 'Filter Columns'),
+                      list(extend = 'csv', text = 'Download CSV', 
+                           filename = paste0("Top ",params$text_analysis_number_ngrams," Free-Text N-Grams (by Field)")),
+                      list(extend = 'excel', text = 'Download Excel', 
+                           filename = paste0("Top ",params$text_analysis_number_ngrams," Free-Text N-Grams (by Field)"))
+                    )
+                  )
+                )
+
+
+
+```
+
 
 ___
 

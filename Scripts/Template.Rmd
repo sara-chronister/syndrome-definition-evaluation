@@ -1,5 +1,9 @@
 ---
-output: html_document
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 3
 ---
 
 <!-- Setup -->
@@ -20,25 +24,25 @@ author: `r params$start_date` to `r params$end_date`
 
 
 ***  
-### Definition Information  {.tabset}
+## Definition Information  {.tabset}
   
 Inclusion terms and codes are displayed in the table below (exclusion terms are not shown in the table)  
 
 <!-- Definition #1 --> 
 
-#### `r syndrome_eval_list[[1]]$setup$info$Syndrome` (`r syndrome_eval_list[[1]]$setup$info$Abbreviation`)   
-  
-**Total Visits Identified:**  
-  
-`r syndrome_eval_list[[1]]$analysis$total_pretty`  
-  
-**Query description:**    
-  
-`r syndrome_eval_list[[1]]$setup$info$Description`  
-  
-**Full query:**  
-`r syndrome_eval_list[[1]]$setup$structure_print`  
-  
+`r if(params$n_queries_eval >= 1){paste0('### ',syndrome_eval_list[[1]]$setup$info$Syndrome,' (',syndrome_eval_list[[2]]$setup$info$Abbreviation,')')}`
+
+`r if(params$n_queries_eval >= 1){paste0('**Total Visits Identified:**')}`
+`r if(params$n_queries_eval >= 1){syndrome_eval_list[[1]]$analysis$total_pretty}`
+
+`r if(params$n_queries_eval >= 1){paste0('**Query description:**')}`
+`r if(params$n_queries_eval >= 1){syndrome_eval_list[[1]]$setup$info$Description}`
+
+`r if(params$n_queries_eval >= 1){paste0('**Full query:**')}`
+`r if(params$n_queries_eval >= 1){syndrome_eval_list[[1]]$setup$structure_print}` 
+
+<br>
+
 ```{r def1_table, echo=FALSE, message=FALSE, warning=FALSE}
 
 syndrome_eval_list[[1]]$analysis$elements_detected_table %>%
@@ -49,16 +53,18 @@ syndrome_eval_list[[1]]$analysis$elements_detected_table %>%
 
 <!-- Definition #2 --> 
 
-`r if(params$n_queries_eval >= 2){paste0('#### ',syndrome_eval_list[[2]]$setup$info$Syndrome,' (',syndrome_eval_list[[2]]$setup$info$Abbreviation,')'}`
+`r if(params$n_queries_eval >= 2){paste0('### ',syndrome_eval_list[[2]]$setup$info$Syndrome,' (',syndrome_eval_list[[2]]$setup$info$Abbreviation,')')}`
 
-`r if(params$n_queries_eval >= 2){**Total Visits Identified:**}`
+`r if(params$n_queries_eval >= 2){paste0('**Total Visits Identified:**')}`
 `r if(params$n_queries_eval >= 2){syndrome_eval_list[[2]]$analysis$total_pretty}`
 
-`r if(params$n_queries_eval >= 2){**Query description:**}`
+`r if(params$n_queries_eval >= 2){paste0('**Query description:**')}`
 `r if(params$n_queries_eval >= 2){syndrome_eval_list[[2]]$setup$info$Description}`
 
-`r if(params$n_queries_eval >= 2){**Full query:**}`
+`r if(params$n_queries_eval >= 2){paste0('**Full query:**')}`
 `r if(params$n_queries_eval >= 2){syndrome_eval_list[[2]]$setup$structure_print}`
+
+<br>
 
 ```{r def2_table, echo=FALSE, message=FALSE, warning=FALSE}
 if(params$n_queries_eval >= 2){
@@ -71,16 +77,18 @@ syndrome_eval_list[[2]]$analysis$elements_detected_table %>%
 
 <!-- Definition #3 --> 
 
-`r if(params$n_queries_eval >= 3){paste0('#### ',syndrome_eval_list[[3]]$setup$info$Syndrome,' (',syndrome_eval_list[[3]]$setup$info$Abbreviation,')'}`
+`r if(params$n_queries_eval >= 3){paste0('### ',syndrome_eval_list[[3]]$setup$info$Syndrome,' (',syndrome_eval_list[[3]]$setup$info$Abbreviation,')')}`
 
-`r if(params$n_queries_eval >= 3){**Total Visits Identified:**}`
+`r if(params$n_queries_eval >= 3){paste0('**Total Visits Identified:**')}`
 `r if(params$n_queries_eval >= 3){syndrome_eval_list[[3]]$analysis$total_pretty}`
 
-`r if(params$n_queries_eval >= 3){**Query description:**}`
+`r if(params$n_queries_eval >= 3){paste0('**Query description:**')}`
 `r if(params$n_queries_eval >= 3){syndrome_eval_list[[3]]$setup$info$Description}`
 
-`r if(params$n_queries_eval >= 3){**Full query:**}`
+`r if(params$n_queries_eval >= 3){paste0('**Full query:**')}`
 `r if(params$n_queries_eval >= 3){syndrome_eval_list[[3]]$setup$structure_print}`
+
+<br>
 
 ```{r def3_table, echo=FALSE, message=FALSE, warning=FALSE}
 if(params$n_queries_eval >= 3){
@@ -90,163 +98,20 @@ syndrome_eval_list[[3]]$analysis$elements_detected_table %>%
 }
 ```
 
-***  
-`r if(params$n_queries_eval >= 2){paste0('### Defintion Comparison')}`
 
-<!-- Timeseries Comparison --> 
+<!-- Definition Comparisons --> 
 
-`r if(params$n_queries_eval == 1){paste0('#### Visits over time')}`
-`r if(params$n_queries_eval >= 2){paste0('#### Visits by syndrome over time {.tabset}')}`
+<br><br>
 
-Use the slider at the bottom of the figures to adjust the start and end dates visible in the graph.   
-  
-`r if(params$n_queries_eval >= 2){paste0('#### Same Scale')}`
-
-```{r ts_same_scale, echo=FALSE, message=FALSE, warning=FALSE}
-
-## Initiate Plotly Plot
-ts_plot_same <- plot_ly()
-
-## Add lines for each definition
-for(i in 1:params$n_queries_eval){
-  
-  ts_plot_same <- ts_plot_same %>%
-    add_lines(data = syndrome_eval_list[[i]]$results$timeseries,
-            x = ~Date, y = ~Visits, name = ~Syndrome,
-            line = list(color = params$report$ts_linecolors[i]))
-}
-rm(i)
-
-## Adding Layout
-ts_plot_same %>%
-  layout(
-    hovermode = "compare",
-    xaxis = list(
-      range = c(params$start_date,params$end_date),
-      rangeslider = list(type = "date", thickness = 0.1)))
-```
-
-`r if(params$n_queries_eval >= 2){paste0('#### Independent Scales')}`
- 
-```{r ts_separate_scale, echo=FALSE, message=FALSE, warning=FALSE}
-
-## Define Storage List
-list_ts_plot <- list()
-
-for(i in 1:params$n_queries_eval){
-  
-  list_ts_plot[[i]] <- plot_ly() %>%
-    add_lines(data = syndrome_eval_list[[i]]$results$timeseries,
-            x = ~Date, y = ~Visits, name = ~Syndrome,
-            line = list(color = params$report$ts_linecolors[i])) %>%
-    layout(
-    hovermode = "compare",
-    xaxis = list(
-      range = c(min(params$all_dates$Date),max(params$all_dates$Date)),
-      rangeslider = list(type = "date", thickness = 0.1)))
-}
-
-switch(params$n_queries_eval,
-       subplot(list_ts_plot[[1]]),
-       subplot(list_ts_plot[[1]], list_ts_plot[[2]],
-               nrows = 2, shareX = TRUE, margin = 0.05),
-       subplot(list_ts_plot[[1]], list_ts_plot[[2]], list_ts_plot[[3]], 
-               nrows = 3, shareX = TRUE, margin = 0.05))
-
-```
-
-<!-- Demographics Comparison --> 
-
-`r if(params$n_queries_eval >= 2){paste0('#### Demographics Comparison)}`
-
-```{r prep_demographics_table, echo=FALSE, message=FALSE, warning=FALSE}
-demographics <- c("Race", "Ethnicity", "AgeGroup", "Sex")
-
-## Bind Demographic Data Together
-df_demo <- switch(params$n_queries_eval,
-                  bind_rows(syndrome_eval_list[[1]]$results$clean, .id = "id"),
-                  bind_rows(syndrome_eval_list[[1]]$results$clean, syndrome_eval_list[[2]]$results$clean, .id = "id"),
-                  bind_rows(syndrome_eval_list[[1]]$results$clean, syndrome_eval_list[[2]]$results$clean, 
-                            syndrome_eval_list[[3]]$results$clean, .id = "id"))
-
-df_demo <- df_demo %>%
-  pivot_longer(.,
-               cols = starts_with("def", ignore.case = FALSE),
-               names_to = "Syndrome",
-               values_to = "Present") %>%
-  filter(!is.na(Present)) %>%
-  mutate(Syndrome = case_when(
-    Syndrome == 'def1' ~ params$queries[1],
-    Syndrome == 'def2' ~ params$queries[2],
-    Syndrome == 'def3' ~ params$queries[3],
-    TRUE ~ NA))
-
-```
-
-```{r demographics_table, echo=FALSE, message=FALSE, warning=FALSE}
-
-## Generate gtsummary table & convert to tibble for DT import
-demo_table <- df_demo %>%
-  tbl_summary(include = all_of(demographics), by = Syndrome) %>%
-  add_p() %>%
-  modify_header(label = "Identity") %>%
-  bold_labels() %>%
-  as_tibble(.) %>% # Convert gtsummary to tibble Source:https://www.danieldsjoberg.com/gtsummary/reference/as_tibble.gtsummary.html
-  mutate(Identity = str_remove_all(Identity, pattern = "\\_"))
-  
-## Clean Names
-names(demo_table) <- str_remove_all(string = names(demo_table), pattern = "\\*")
-
-## Adjust gtsummary structure to have Demographics (Demographic Category) and Identity (Patient Demographics)
-demo_table <- demo_table %>%
-  mutate(Demographic = lag(Identity),
-         `P-Value` = lag(`p-value`)) %>%
-    filter(rowSums(is.na(.)) <= 2) %>%
-  mutate(Demographic = ifelse(!Demographic %in%  demographics, NA, Demographic),
-         Demographic = zoo::na.locf(Demographic)) %>%
-  select(Demographic, Identity, everything(), `P-Value`, -`p-value`)
+`r if(params$n_queries_eval >= 2){paste0('## Definition Comparisons {.tabset}')}`
 
 
-## Render DT table
-
-demo_table %>% 
-  DT::datatable(., class='hover cell-border stripe',
-                rownames=FALSE, escape = FALSE, 
-                filter = "top", 
-                extensions = c("RowGroup",
-                             "Buttons",
-                             "ColReorder",
-                             "FixedColumns",
-                             "FixedHeader",
-                             "KeyTable",
-                             "Select"), # https://rstudio.github.io/DT/extensions.html
-                options = list(
-                  pageLength = nrow(table), # Set Page Length to Show all Demographic Categories
-                  dom='Bfrt', # Source: https://datatables.net/reference/option/dom
-                  autowidth = TRUE,
-                  colReorder = TRUE,
-                  scrollX = TRUE,
-                  fixedColumn = TRUE,
-                  fixedHeader = TRUE,
-                  keys = TRUE,
-                  rowGroup = list(dataSrc = 0), # Set Row Group to 1st Var in Data Set (Demographic)
-                  columnDefs = list(list(targets = c(0),visible = FALSE)), # # Hide Demographic in table (except for Row Group Headers) # Source: https://stackoverflow.com/questions/75952195/remove-grouping-variable-when-using-rowgroup-extension-in-dt-r-package
-                  buttons = list(
-                    list(extend = 'colvis', text = 'Filter Columns'),
-                    list(extend = 'csv', text = 'Download CSV', filename = 'Demographic Table'),
-                    list(extend = 'excel', text = 'Download Excel', filename = 'Demographic Table'),
-                  )
-                )
-              )
-
-```
-
-<!-- Count Comparison --> 
+<!-- Visit Counts --> 
+`r if(params$n_queries_eval >= 2){paste0('### Visit Counts')}`
 
 `r if(params$n_queries_eval >= 2){paste0('#### The total number of visits identified by all definitions combined was **',syndrome_eval_list$defs_total_pretty,'**')}`
   
 `r if(params$n_queries_eval >= 2){paste0('#### Number and percent of all identified visits captured by each definition:')}`
-
 ```{r def_summary, echo=FALSE, message=FALSE, warning=FALSE, fig.height=3}
 if(params$n_queries_eval >= 2){
 
@@ -275,9 +140,12 @@ all_def_summary %>%
 }
 ```
 
-`r if(params$n_queries_eval >= 2){paste0('#### Number and percent of all identified visits captured by each observed combination of definitions: {.tabset}')}`
 
-```{r def_comparison, echo=FALSE, message=FALSE, warning=FALSE}
+<!-- Definition Overlap --> 
+`r if(params$n_queries_eval >= 2){paste0('### Definition Overlap {.tabset}')}`
+
+`r if(params$n_queries_eval >= 2){paste0('#### Table')}`
+```{r def_comp_table, echo=FALSE, message=FALSE, warning=FALSE}
 if(params$n_queries_eval >= 2){
   
   ## Generate Def Comparison Metrics
@@ -308,32 +176,176 @@ if(params$n_queries_eval >= 2){
 }
 ```
 
-<!-- Overlap Diagrams --> 
-
-`r if(params$n_queries_eval >= 2){paste0('##### Overlap plot, not to scale')}`
-
-```{r venn, echo=FALSE, message=FALSE, warning=FALSE}
+`r if(params$n_queries_eval >= 2){paste0('#### Venn Diagram (Overlap - Not to Scale)')}`
+```{r def_comp_venn, echo=FALSE, message=FALSE, warning=FALSE}
 if(params$n_queries_eval >= 2){
  plot(eulerr::venn(syndrome_eval_list[[params$overlap_name]] %>% select(all_of(params$queries_abbrev))), 
       labels = TRUE, legend = list(side = "right"), quantities = TRUE)
 }
 ```
 
-`r if(params$n_queries_eval >= 2){paste0('##### Overlap plot, to scale')}`
-
-```{r euler, echo=FALSE, message=FALSE, warning=FALSE}
+`r if(params$n_queries_eval >= 2){paste0('#### Eulerr Plot (Overlap - to Scale)')}`
+```{r def_comp_euler, echo=FALSE, message=FALSE, warning=FALSE}
 if(params$n_queries_eval >= 2){
  plot(eulerr::euler(syndrome_eval_list[[params$overlap_name]] %>% select(all_of(params$queries_abbrev))), 
       labels = TRUE, legend = list(side = "right"), quantities = TRUE)
 }
 ```
+
+
+<!-- Timeseries --> 
+`r if(params$n_queries_eval == 1){paste0('## Visits Over Time')}`
+`r if(params$n_queries_eval >= 2){paste0('### Timeseries {.tabset}')}`
+Use the slider at the bottom of the figures to adjust the start and end dates visible in the graph.   
   
-***
+`r if(params$n_queries_eval >= 2){paste0('#### Same Scale')}`
+```{r ts_same_scale, echo=FALSE, message=FALSE, warning=FALSE}
+
+## Initiate Plotly Plot
+ts_plot_same <- plot_ly()
+
+## Add lines for each definition
+for(i in 1:params$n_queries_eval){
+  
+  ts_plot_same <- ts_plot_same %>%
+    add_lines(data = syndrome_eval_list[[i]]$results$timeseries,
+            x = ~Date, y = ~Visits, name = ~Syndrome,
+            line = list(color = params$report$ts_linecolors[i]))
+}
+rm(i)
+
+## Adding Layout
+ts_plot_same %>%
+  layout(
+    hovermode = "compare",
+    xaxis = list(
+      range = c(params$start_date,params$end_date),
+      rangeslider = list(type = "date", thickness = 0.1)))
+```
+
+`r if(params$n_queries_eval >= 2){paste0('#### Independent Scales')}`
+```{r ts_separate_scale, echo=FALSE, message=FALSE, warning=FALSE}
+if(params$n_queries_eval >= 2){
+
+  ## Define Storage List
+list_ts_plot <- list()
+
+for(i in 1:params$n_queries_eval){
+  
+  list_ts_plot[[i]] <- plot_ly() %>%
+    add_lines(data = syndrome_eval_list[[i]]$results$timeseries,
+            x = ~Date, y = ~Visits, name = ~Syndrome,
+            line = list(color = params$report$ts_linecolors[i])) %>%
+    layout(
+    hovermode = "compare",
+    xaxis = list(
+      range = c(min(params$all_dates$Date),max(params$all_dates$Date)),
+      rangeslider = list(type = "date", thickness = 0.1)))
+}
+
+switch(params$n_queries_eval,
+       subplot(list_ts_plot[[1]]),
+       subplot(list_ts_plot[[1]], list_ts_plot[[2]],
+               nrows = 2, shareX = TRUE, margin = 0.05),
+       subplot(list_ts_plot[[1]], list_ts_plot[[2]], list_ts_plot[[3]], 
+               nrows = 3, shareX = TRUE, margin = 0.05))
+}
+```
+
+
+<!-- Demographics --> 
+`r if(params$n_queries_eval == 1){paste0('## Demographics')}`
+`r if(params$n_queries_eval >= 2){paste0('### Demographics')}`
+
+```{r prep_demographics_table_data, echo=FALSE, message=FALSE, warning=FALSE}
+
+## 1) Bind Demographic Data Together
+df_demo <- switch(params$n_queries_eval,
+                  bind_rows(syndrome_eval_list[[1]]$results$clean, .id = "id"),
+                  bind_rows(syndrome_eval_list[[1]]$results$clean, syndrome_eval_list[[2]]$results$clean, .id = "id"),
+                  bind_rows(syndrome_eval_list[[1]]$results$clean, syndrome_eval_list[[2]]$results$clean, 
+                            syndrome_eval_list[[3]]$results$clean, .id = "id"))
+
+df_demo <- df_demo %>%
+  pivot_longer(.,
+               cols = starts_with("def", ignore.case = FALSE),
+               names_to = "Syndrome",
+               values_to = "Present") %>%
+  filter(!is.na(Present)) %>%
+  mutate(Syndrome = case_when(
+    Syndrome == 'def1' ~ params$queries[1],
+    Syndrome == 'def2' ~ params$queries[2],
+    Syndrome == 'def3' ~ params$queries[3],
+    TRUE ~ NA))
+
+
+## 2) Generate gtsummary table & convert to tibble for DT import
+demo_table <- df_demo %>%
+  tbl_summary(include = all_of(params$report$demographics), by = Syndrome) %>%
+  add_p() %>%
+  modify_header(label = "Identity") %>%
+  bold_labels() %>%
+  as_tibble(.) %>% # Convert gtsummary to tibble Source:https://www.danieldsjoberg.com/gtsummary/reference/as_tibble.gtsummary.html
+  mutate(Identity = str_remove_all(Identity, pattern = "\\_"))
+
+## 3) Clean Variable Names
+names(demo_table) <- str_remove_all(string = names(demo_table), pattern = "\\*")
+
+## 4) Adjust gtsummary structure to have both Demographic (Demographic Category) and Identity (Patient Demographics) vars.
+demo_table <- demo_table %>%
+  mutate(Demographic = lag(Identity),
+         `P-Value` = lag(`p-value`)) %>%
+    filter(rowSums(is.na(.)) <= 2) %>%
+  mutate(Demographic = ifelse(!Demographic %in%  params$report$demographics, NA, Demographic),
+         Demographic = zoo::na.locf(Demographic)) %>% # Source: https://stackoverflow.com/questions/40334837/how-to-group-data-when-data-are-interspersed-with-group-headers-in-the-same-colu
+  select(Demographic, Identity, everything(), `P-Value`, -`p-value`)
+
+```
+
+```{r demographics_table, echo=FALSE, message=FALSE, warning=FALSE}
+
+## Render DT table
+
+demo_table %>% 
+  DT::datatable(., class='hover cell-border stripe',
+                rownames=FALSE, escape = FALSE, 
+                filter = "top", 
+                width = "100%", height = "100%",
+                extensions = c("RowGroup",
+                             "Buttons",
+                             "ColReorder",
+                             "FixedColumns",
+                             "FixedHeader",
+                             "KeyTable",
+                             "Select"), # https://rstudio.github.io/DT/extensions.html
+                options = list(
+                  pageLength = nrow(table), # Set Page Length to Show all Demographic Categories
+                  dom='Bfrt', # Source: https://datatables.net/reference/option/dom
+                  autowidth = TRUE,
+                  colReorder = TRUE,
+                  scrollX = TRUE,
+                  fixedColumn = TRUE,
+                  fixedHeader = TRUE,
+                  keys = TRUE,
+                  rowGroup = list(dataSrc = 0), # Set Row Group to 1st Var in Data Set (Demographic)
+                  columnDefs = list(list(targets = c(0),visible = FALSE)), # # Hide Demographic in table (except for Row Group Headers) # Source: https://stackoverflow.com/questions/75952195/remove-grouping-variable-when-using-rowgroup-extension-in-dt-r-package
+                  buttons = list(
+                    list(extend = 'colvis', text = 'Filter Columns'),
+                    list(extend = 'csv', text = 'Download CSV', filename = 'Demographic Table'),
+                    list(extend = 'excel', text = 'Download Excel', filename = 'Demographic Table')
+                  )
+                )
+              )
+```
+
 
 <!-- Text Mining --> 
 
-### Text Mining
-`r paste0('#### Top ', params$text_analysis_number_ngrams,' words (unigrams) and phrases (bigrams) for each definition and text analysis field:{.tabset}')`
+<br><br>
+
+## Text Mining {.tabset}
+
+`r paste0('Top ', params$text_analysis_number_ngrams,' words (unigrams) and phrases (bigrams) for each definition and text analysis field.')`
 
 ```{r text_mining, echo=FALSE, message = FALSE, warning = FALSE, fig.width=10, fig.height=8}
 
@@ -385,14 +397,16 @@ bigrams <- bind_rows(bigram_list, .id = "def") %>%
 rm(unigram_list, bigram_list)
 ```
 
-`r paste0('##### Unigrams')`
+`r paste0('### Unigrams')`
 ```{r top_unigrams, echo=FALSE, message = FALSE, warning = FALSE, fig.width=10, fig.height=8}
-bigrams %>% plot_tm(df=.)
+unigrams %>% plot_tm(df=.)
 ```
 
-`r paste0('##### Bigrams')`
+`r paste0('### Bigrams')`
 ```{r top_bigrams, echo=FALSE, message = FALSE, warning = FALSE, fig.width=10, fig.height=8}
 bigrams %>% plot_tm(df=.)
 ```
+
 ___
+
 *The template for this report was created by Sara Chronister & Tyler Bonnell. For questions, ideas for improvement/collaboration, or attribution, please reach out to <sara.chronister@doh.wa.gov>.*

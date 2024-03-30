@@ -1,36 +1,20 @@
 #### Install and load packages --------------------------------------
 
 #### Setup for install and loading via pacman -------------------
-pacman_installed <- "pacman" %in% rownames(installed.packages())
-if (pacman_installed == FALSE) {
-  install.packages("pacman")
-}
-library(pacman)
+if ("renv" %in% rownames(installed.packages()) == FALSE) {install.packages("renv")}
+if ("pacman" %in% rownames(installed.packages()) == FALSE) {install.packages("pacman")}
 
 #### CRAN packages -----------------
 pacman::p_load(
-  plyr, 
-  devtools, 
   dplyr, 
   DT, 
   eulerr, 
-  flexdashboard, 
   fs, 
-  ggraph,
   gtsummary,
-  httr, 
-  igraph, 
-  irr, 
   janitor, 
-  jpeg, 
-  jsonlite, 
-  leaflet, 
   lubridate, 
   magrittr, 
-  MMWRweek, 
   plotly, 
-  RCurl, 
-  reactable, 
   readr, 
   readxl, 
   rmarkdown, 
@@ -39,24 +23,7 @@ pacman::p_load(
   tictoc,
   tidyr, 
   tidytext, 
-  treemap, 
-  widyr, 
   writexl, 
   xtable,
   zoo,
   update = FALSE)
-
-#### Packages not on CRAN -------------------
-if ("Rnssp" %in% rownames(installed.packages()) == FALSE) {
-  devtools::install_github("cdcgov/Rnssp")
-  library(Rnssp)
-} else {
-  library(Rnssp)
-}
-
-if ("d3treeR" %in% rownames(installed.packages()) == FALSE) {
-  devtools::install_github("timelyportfolio/d3treeR")
-  library(d3treeR)
-} else {
-  library(d3treeR)
-}

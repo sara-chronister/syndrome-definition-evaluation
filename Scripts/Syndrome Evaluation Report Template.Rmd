@@ -1,21 +1,16 @@
 ---
-output: 
+title: "Definition Evaluation: `r params$report$query_title`"
+output:
   html_document:
     toc: true
     toc_float: true
-    toc_depth: 3
+    toc_depth: 4
 ---
 
 <!-- Setup -->
-
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
-
----
-title: "Definition Evaluation: `r params$report$query_title`"
-author: `r params$start_date` to `r params$end_date`
----  
   
 **Jurisdiction**: `r params$jurisdiction`  
 **Report Created**: `r Sys.Date()`    
@@ -99,12 +94,11 @@ syndrome_eval_list[[3]]$analysis$elements_detected_table %>%
 ```
 
 
-<!-- Definition Comparisons --> 
+<!-- Definition Evaluation --> 
 
 <br><br>
 
-`r if(params$n_queries_eval >= 2){paste0('## Definition Comparisons {.tabset}')}`
-
+## Definition Evaluation
 
 <!-- Visit Counts --> 
 `r if(params$n_queries_eval >= 2){paste0('### Visit Counts')}`
@@ -142,7 +136,7 @@ all_def_summary %>%
 
 
 <!-- Definition Overlap --> 
-`r if(params$n_queries_eval >= 2){paste0('### Definition Overlap {.tabset}')}`
+`r if(params$n_queries_eval >= 2){paste0('### Definition Overlap')}`
 
 `r if(params$n_queries_eval >= 2){paste0('#### Table')}`
 ```{r def_comp_table, echo=FALSE, message=FALSE, warning=FALSE}
@@ -195,10 +189,10 @@ if(params$n_queries_eval >= 2){
 ```
 
 
-<!-- Timeseries --> 
-`r if(params$n_queries_eval == 1){paste0('## Visits Over Time')}`
-`r if(params$n_queries_eval >= 2){paste0('### Timeseries {.tabset}')}`
-Use the slider at the bottom of the figures to adjust the start and end dates visible in the graph.   
+<!-- Time Series --> 
+`r if(params$n_queries_eval == 1){paste0('### Visits Over Time')}`
+`r if(params$n_queries_eval >= 2){paste0('### Visits Over Time {.tabset}')}`
+Use the slider at the bottom of the figures to adjust the start and end dates visible in the graph(s).   
   
 `r if(params$n_queries_eval >= 2){paste0('#### Same Scale')}`
 ```{r ts_same_scale, echo=FALSE, message=FALSE, warning=FALSE}
@@ -256,16 +250,16 @@ switch(params$n_queries_eval,
 
 
 <!-- Demographics --> 
-`r if(params$n_queries_eval == 1){paste0('## Demographics')}`
-`r if(params$n_queries_eval >= 2){paste0('### Demographics')}`
-
+`r if(params$n_queries_eval == 1){paste0('### Demographics')}`
 ```{r prep_demographics_table_data, echo=FALSE, message=FALSE, warning=FALSE}
 
 ## 1) Bind Demographic Data Together
 df_demo <- switch(params$n_queries_eval,
                   bind_rows(syndrome_eval_list[[1]]$results$clean, .id = "id"),
-                  bind_rows(syndrome_eval_list[[1]]$results$clean, syndrome_eval_list[[2]]$results$clean, .id = "id"),
-                  bind_rows(syndrome_eval_list[[1]]$results$clean, syndrome_eval_list[[2]]$results$clean, 
+                  bind_rows(syndrome_eval_list[[1]]$results$clean,
+                            syndrome_eval_list[[2]]$results$clean, .id = "id"),
+                  bind_rows(syndrome_eval_list[[1]]$results$clean,
+                            syndrome_eval_list[[2]]$results$clean, 
                             syndrome_eval_list[[3]]$results$clean, .id = "id"))
 
 df_demo <- df_demo %>%
@@ -284,7 +278,6 @@ df_demo <- df_demo %>%
 ## 2) Generate gtsummary table & convert to tibble for DT import
 demo_table <- df_demo %>%
   tbl_summary(include = all_of(params$report$demographics), by = Syndrome) %>%
-  add_p() %>%
   modify_header(label = "Demographic") %>%
   bold_labels() %>%
   as_tibble(.) %>% # Convert gtsummary to tibble Source:https://www.danieldsjoberg.com/gtsummary/reference/as_tibble.gtsummary.html
@@ -295,12 +288,11 @@ names(demo_table) <- str_remove_all(string = names(demo_table), pattern = "\\*")
 
 ## 4) Adjust gtsummary structure to have both Demographic (Demographic Category) and Identity (Patient Demographics) vars.
 demo_table <- demo_table %>%
-  mutate(Demographic_Category = lag(Demographic),
-         `P-Value` = lag(`p-value`)) %>%
+  mutate(Demographic_Category = lag(Demographic)) %>%
     filter(rowSums(is.na(.)) <= 2) %>%
   mutate(Demographic_Category = ifelse(!Demographic_Category %in%  params$report$demographics, NA, Demographic),
          Demographic_Category = zoo::na.locf(Demographic_Category)) %>% # Source: https://stackoverflow.com/questions/40334837/how-to-group-data-when-data-are-interspersed-with-group-headers-in-the-same-colu
-  select(Demographic_Category, Demographic, everything(), `P-Value`, -`p-value`)
+  select(Demographic_Category, Demographic, everything())
 
 ```
 
@@ -343,15 +335,15 @@ demo_table %>%
 ```
 
 
-<!-- Text Mining --> 
+<!-- Text Analysis --> 
 
 <br><br>
 
-## Text Mining {.tabset}
+## Text Analysis {.tabset}
 
 `r paste0('Top ', params$text_analysis_number_ngrams,' words (unigrams) and phrases (bigrams) for each definition and text analysis field.')`
 
-```{r text_mining, echo=FALSE, message = FALSE, warning = FALSE, fig.width=10, fig.height=8}
+```{r text_analysis, echo=FALSE, message = FALSE, warning = FALSE, fig.width=10, fig.height=8}
 
 ## Create TM Lists
 unigram_list <- list()
@@ -384,21 +376,9 @@ rm(i)
 
 
 ## Bind All Text Mining (of Individual Definition(s)) Together
-unigrams <- bind_rows(unigram_list, .id = "def") %>%
-  mutate(def = factor(def, levels = params$queries_abbrev),
-         unit = "Unigram") %>% # To preserve ordering of defs (avoid alphabetic ordering)
-  group_by(def, Field) %>%
-  mutate(order = row_number(),
-         order = fct_rev(as.factor(order))) %>%
-  select(def, field = Field, order, everything())
+unigrams <- bind_results_tm(listDF = unigram_list, ngram = "Unigram")
 
-bigrams <- bind_rows(bigram_list, .id = "def") %>%
-  mutate(def = factor(def, levels = params$queries_abbrev),
-         unit = "Bigram") %>% # To preserve ordering of defs (avoid alphabetic ordering)
-  group_by(def, Field) %>%
-  mutate(order = row_number(),
-         order = fct_rev(as.factor(order))) %>%
-  select(def, field = Field, order, everything())
+bigrams <- bind_results_tm(listDF = bigram_list, ngram = "Bigram")
 
 rm(unigram_list, bigram_list)
 ```
@@ -418,8 +398,8 @@ bigrams %>% plot_tm(df=.)
 
 n_grams <- bind_rows(unigrams, bigrams) %>% 
   mutate(unit = factor(unit, levels = c("Unigram","Bigram"))) %>%
-  arrange(def, unit, field, n) %>%
-  select(Syndrome = def, Unit = unit, Field = field, `Free-Text` = n_gram, `Number of Occurrences` = n)
+  arrange(desc(n)) %>%
+  select(Syndrome = def, `Unigram or Bigram` = unit, Field = field, `Free-Text` = n_gram, `Number of Occurrences` = n)
 
 n_grams %>%
    DT::datatable(., 
@@ -442,12 +422,7 @@ n_grams %>%
                     )
                   )
                 )
-
-
-
 ```
-
-
 ___
 
-*The template for this report was created by Sara Chronister & Tyler Bonnell. For questions, ideas for improvement/collaboration, or attribution, please reach out to <sara.chronister@doh.wa.gov>.*
+*The template for this report was created by Sara Chronister & Tyler Bonnell. For questions or ideas for improvement/collaboration, please [create a new GitHub Issue at our repository](https://github.com/sara-chronister/syndrome-definition-evaluation/issues).*

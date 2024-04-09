@@ -1,4 +1,4 @@
-# Text Mining
+# Text Analysis
 
 ## Text Mine
 textmine <- function(df, variables, n_grams, 
@@ -139,6 +139,21 @@ textmine <- function(df, variables, n_grams,
     
   })
 }
+
+## Bind Text Mining Results Together Into 1 Summary Data Frame
+bind_results_tm <- function(listDF, ngram){
+  
+  results <- bind_rows(listDF, .id = "def") %>%
+    mutate(def = factor(def, levels = params$queries_abbrev),
+           unit = ngram) %>% # To preserve ordering of defs (avoid alphabetic ordering)
+    group_by(def, Field) %>%
+    mutate(order = row_number(),
+           order = forcats::fct_rev(as.factor(order))) %>%
+    select(def, field = Field, order, everything())
+  
+  return(results)
+}
+
 
 
 ## Plot Text Mining Outputs

@@ -1,5 +1,25 @@
 ## Functions to clean different variables
 
+## Loading Data -----
+
+## Read and append multiple excel sheets together 
+## Source: https://www.geeksforgeeks.org/how-to-read-a-xlsx-file-with-multiple-sheets-in-r/
+
+multiplesheets <- function(fname) {
+  
+  # getting info about all excel sheets
+  sheets <- readxl::excel_sheets(fname)
+  tibble <- lapply(sheets, function(x) readxl::read_excel(fname, sheet = x, skip = 1))
+  data_frame <- lapply(tibble, as.data.frame)
+  
+  # assigning names to data frames
+  names(data_frame) <- sheets
+  
+  # print data frame
+  print(data_frame)
+}
+
+
 ## Demographics -----
 clean_demographics <- function(df){
   

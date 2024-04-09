@@ -56,7 +56,7 @@ for(i in 1:params$n_queries_eval){
   ## Results -----
   
   ### Pull API Data (DataDetails)
-  defX_list$results$raw <- get_essence_data(url = defX_list$setup$url, 
+  defX_list$results$raw <- Rnssp::get_essence_data(url = defX_list$setup$url, 
                                             start_date = params$start_date, end_date = params$end_date)
   ### Clean API Data (DataDetails) 
   defX_list$results$clean <- defX_list$results$raw %>%

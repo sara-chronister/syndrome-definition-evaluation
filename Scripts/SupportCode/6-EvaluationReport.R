@@ -10,15 +10,15 @@ create_def_component_tables <- function(df, def_num){
     rename(`Matched Visits` = Matches) %>%
     DT::datatable(., 
                   class='hover cell-border stripe',
-                  caption = paste0(params$queries[def_num],' Definition Elements (by Frequency of Occurrence)'),
+                  caption = paste0(params$queries[def_num],' Definition Elements (by Number of Matched Records)'),
                   rownames=FALSE, escape = FALSE, 
                   filter = "top", 
-                  extensions = c("Buttons", "KeyTable", "FixedHeader"), # https://rstudio.github.io/DT/extensions.html
+                  extensions = c("Buttons", "KeyTable"), # https://rstudio.github.io/DT/extensions.html
                   options = list(
-                    pageLength = nrow_1_match,
+                    pageLength = -1, # show all elements (even those with 0 matched records)
+                    # pageLength = nrow_1_match, # Show only elements with at least one matched record!
                     lengthMenu = list(c(10, 25, 50, -1), c('10', '25', '50', 'All')), # Source: https://stackoverflow.com/questions/67484426/how-can-i-show-all-the-entries-with-datatable-in-r-dt-package
                     dom='Blfrt', # Source: https://datatables.net/reference/option/dom
-                    fixedHeader = TRUE,
                     keys = TRUE,
                     buttons = list(
                       list(extend = 'colvis', text = 'Filter Columns'),

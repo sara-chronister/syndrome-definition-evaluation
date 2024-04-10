@@ -5,7 +5,7 @@ if ("renv" %in% rownames(installed.packages()) == FALSE) {install.packages("renv
 if ("pacman" %in% rownames(installed.packages()) == FALSE) {install.packages("pacman")}
 
 #### Load renv packages --------------------------------------
-# renv::restore()
+renv::restore()
 
 #### Load packages -----------------
 pacman::p_load(

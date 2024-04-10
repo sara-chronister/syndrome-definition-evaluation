@@ -34,4 +34,4 @@ pacman::p_load(
   update = FALSE)
 
 #### Update renv (if new packages utilizes) -----------------
-# renv::snapshot()
+# renv::snapshot() # UNCOMMENT THIS CODE & RUN IF THE WORKFLOW USES NEW PACKAGES!

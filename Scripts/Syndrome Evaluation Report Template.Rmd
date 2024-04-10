@@ -4,7 +4,8 @@ output:
   html_document:
     toc: true
     toc_float: true
-    toc_depth: 4
+    toc_depth: 3
+    self_contained: true
 ---
 
 <!-- Setup -->

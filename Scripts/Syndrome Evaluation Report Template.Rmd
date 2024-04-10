@@ -2,17 +2,18 @@
 title: "Definition Evaluation: `r params$report$query_title`"
 output:
   html_document:
-    toc: true
-    toc_float: true
-    toc_depth: 3
     self_contained: true
+    toc: true
+    toc_depth: 3
+    toc_float:
+      collapsed: no
+      smooth_scroll: yes
 ---
-
 <!-- Setup -->
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
-  
+ 
 **Jurisdiction**: `r params$jurisdiction`  
 **Report Created**: `r Sys.Date()`    
 **Point of Contact**: `r DefinitionInformation[["Setup"]]$PointOfContact` (`r DefinitionInformation[["Setup"]]$POCEmail`)    
@@ -45,7 +46,8 @@ syndrome_eval_list[[1]]$analysis$elements_detected_table %>%
   create_def_component_tables(df=., def_num = 1)
 
 ```
-  
+<br><br>
+
 
 <!-- Definition #2 --> 
 
@@ -69,6 +71,7 @@ syndrome_eval_list[[2]]$analysis$elements_detected_table %>%
     create_def_component_tables(df=., def_num = 2)
 }
 ```
+<br><br>
 
 
 <!-- Definition #3 --> 
@@ -93,11 +96,9 @@ syndrome_eval_list[[3]]$analysis$elements_detected_table %>%
     create_def_component_tables(df=., def_num = 3)
 }
 ```
-
+<br><br>
 
 <!-- Definition Evaluation --> 
-
-<br><br>
 
 ## Definition Evaluation
 
@@ -131,15 +132,14 @@ all_def_summary %>%
   theme(panel.grid = element_blank(),
         axis.title.x = element_blank(),
         axis.title.y = element_blank(),
-        legend.position = "none")  
+        legend.position = "none")
+
 }
 ```
 
 
 <!-- Definition Overlap --> 
-`r if(params$n_queries_eval >= 2){paste0('### Definition Overlap')}`
-
-`r if(params$n_queries_eval >= 2){paste0('#### Table')}`
+`r if(params$n_queries_eval >= 2){paste0('### Definition Overlap {.tabset}')}`
 ```{r def_comp_table, echo=FALSE, message=FALSE, warning=FALSE}
 if(params$n_queries_eval >= 2){
   
@@ -170,7 +170,7 @@ if(params$n_queries_eval >= 2){
                       )
                     )
                   )
-}
+  }
 ```
 
 `r if(params$n_queries_eval >= 2){paste0('#### Venn Diagram (Overlap - Not to Scale)')}`
@@ -195,7 +195,7 @@ if(params$n_queries_eval >= 2){
 `r if(params$n_queries_eval >= 2){paste0('### Visits Over Time {.tabset}')}`
 Use the slider at the bottom of the figures to adjust the start and end dates visible in the graph(s).   
   
-`r if(params$n_queries_eval >= 2){paste0('#### Same Scale')}`
+`r if(params$n_queries_eval >= 1){paste0('#### Same Scale')}`
 ```{r ts_same_scale, echo=FALSE, message=FALSE, warning=FALSE}
 
 ## Initiate Plotly Plot
@@ -218,6 +218,7 @@ ts_plot_same %>%
     xaxis = list(
       range = c(params$start_date,params$end_date),
       rangeslider = list(type = "date", thickness = 0.1)))
+
 ```
 
 `r if(params$n_queries_eval >= 2){paste0('#### Independent Scales')}`
@@ -246,12 +247,15 @@ switch(params$n_queries_eval,
                nrows = 2, shareX = TRUE, margin = 0.05),
        subplot(list_ts_plot[[1]], list_ts_plot[[2]], list_ts_plot[[3]], 
                nrows = 3, shareX = TRUE, margin = 0.05))
+
 }
 ```
 
 
 <!-- Demographics --> 
-`r if(params$n_queries_eval == 1){paste0('### Demographics')}`
+
+### Demographics
+
 ```{r prep_demographics_table_data, echo=FALSE, message=FALSE, warning=FALSE}
 
 ## 1) Bind Demographic Data Together
@@ -290,8 +294,8 @@ names(demo_table) <- str_remove_all(string = names(demo_table), pattern = "\\*")
 ## 4) Adjust gtsummary structure to have both Demographic (Demographic Category) and Identity (Patient Demographics) vars.
 demo_table <- demo_table %>%
   mutate(Demographic_Category = lag(Demographic)) %>%
-    filter(rowSums(is.na(.)) <= 2) %>%
-  mutate(Demographic_Category = ifelse(!Demographic_Category %in%  params$report$demographics, NA, Demographic),
+  filter(!Demographic %in% params$report$demographics) %>%
+  mutate(Demographic_Category = ifelse(Demographic_Category %in% params$report$demographics, Demographic_Category, NA),
          Demographic_Category = zoo::na.locf(Demographic_Category)) %>% # Source: https://stackoverflow.com/questions/40334837/how-to-group-data-when-data-are-interspersed-with-group-headers-in-the-same-colu
   select(Demographic_Category, Demographic, everything())
 
@@ -306,23 +310,24 @@ demo_table %>%
                                  params$report$query_title," Syndrome(s)"),
                 rownames=FALSE, escape = FALSE, 
                 filter = "top", 
-                width = "100%", height = "100%",
+                height = '100%', width = '100%',
+                fillContainer = TRUE,
                 extensions = c("RowGroup",
                              "Buttons",
                              "ColReorder",
                              "FixedColumns",
-                             "FixedHeader",
                              "KeyTable",
+                             "Scroller", # Helps ensure the entire table is shown
                              "Select"), # https://rstudio.github.io/DT/extensions.html
                 options = list(
                   pageLength = nrow(table), # Set Page Length to Show all Demographic Categories
                   dom='Blfrt', # Source: https://datatables.net/reference/option/dom
                   autowidth = TRUE,
                   colReorder = TRUE,
-                  scrollX = TRUE,
+                  deferRender = TRUE,
+                  scroller = TRUE, 
+                  scrollY = 850, # px (Show the entire table with scrolling)
                   fixedColumn = TRUE,
-                  fixedHeader = TRUE,
-                  keys = TRUE,
                   pageLength = nrow(demo_table),
                   rowGroup = list(dataSrc = 0), # Set Row Group to 1st Var in Data Set (Demographic)
                   columnDefs = list(list(targets = c(0),visible = FALSE)), # # Hide Demographic in table (except for Row Group Headers) # Source: https://stackoverflow.com/questions/75952195/remove-grouping-variable-when-using-rowgroup-extension-in-dt-r-package
@@ -333,6 +338,7 @@ demo_table %>%
                   )
                 )
               )
+
 ```
 
 
@@ -384,28 +390,40 @@ bigrams <- bind_results_tm(listDF = bigram_list, ngram = "Bigram")
 rm(unigram_list, bigram_list)
 ```
 
-`r paste0('### Unigrams')`
+### Unigrams
 ```{r top_unigrams, echo=FALSE, message = FALSE, warning = FALSE, fig.width=10, fig.height=8}
 unigrams %>% plot_tm(df=.)
 ```
 
-`r paste0('### Bigrams')`
+### Bigrams
 ```{r top_bigrams, echo=FALSE, message = FALSE, warning = FALSE, fig.width=10, fig.height=8}
 bigrams %>% plot_tm(df=.)
 ```
 
-`r paste0('### Table')`
+### Table
+
+#### Instructions
+The table below provides an extract of the text analysis results which examined the top `r params$text_analysis_number_ngrams` words (unigrams) and phrases (bigrams) present in the following free-text clinical fields: `r params$fields_text_analysis`
+
+Results are presented in descending order with the most frequently occurring words and phrases being presented first. [A few quick tips:]{.underline}
+
+- Use the filter boxes at the top of the table, to filter to syndromes, fields of interest, and terms of interest (or a combination of all three). 
+- Use the arrow icons (to the right of table headers) to apply custom sorting by syndromes, fields of interest, and terms of interest (or a combination of all three).
+- Use the Download buttons to export the text analysis results.
+
+<br>
+
 ```{r ngram_table, top_ngrams, echo=FALSE, message = FALSE, warning = FALSE}
 
 n_grams <- bind_rows(unigrams, bigrams) %>% 
   mutate(unit = factor(unit, levels = c("Unigram","Bigram"))) %>%
   arrange(desc(n)) %>%
-  select(Syndrome = def, `Unigram or Bigram` = unit, Field = field, `Free-Text` = n_gram, `Number of Occurrences` = n)
+  select(Syndrome = def, `Unigram or Bigram` = unit, Field = field, `Word or Phrase` = n_gram, `Number of Occurrences` = n)
 
 n_grams %>%
    DT::datatable(., 
                   class='hover cell-border stripe',
-                  caption = paste0("Top ",params$text_analysis_number_ngrams," Free-Text N-Grams (by Field)"),
+                  caption = paste0("Top ",params$text_analysis_number_ngrams," Words & Phrases (by Field)"),
                   rownames=FALSE, escape = FALSE, 
                   filter = "top", 
                   extensions = c("Buttons", "KeyTable", "FixedHeader"), # https://rstudio.github.io/DT/extensions.html

@@ -156,14 +156,14 @@ if(params$n_queries_eval >= 2){
     DT::datatable(., class='hover cell-border stripe',
                   caption = "Visits Identified by Unique Combinations of Syndromes",
                   rownames=FALSE, escape = FALSE,
-                  filter = "top",
+                  filter = "none",
                   extensions = c("Buttons", "KeyTable"),
                   options = list(
                   pageLength = nrow(table), # Set Page Length to Show all Demographic Categories
-                  dom='Bfrt', # Source: https://datatables.net/reference/option/dom
+                  dom='t', # Source: https://datatables.net/reference/option/dom
                   autowidth = TRUE,
                   keys = TRUE,
-                 buttons = list(
+                  buttons = list(
                       list(extend = 'colvis', text = 'Filter Columns'),
                       list(extend = 'csv', text = 'Download CSV', filename = 'Definition Overlap Table'),
                       list(extend = 'excel', text = 'Download Excel', filename = 'Definition Overlap Table')
@@ -297,7 +297,7 @@ demo_table <- demo_table %>%
   filter(!Demographic %in% params$report$demographics) %>%
   mutate(Demographic_Category = ifelse(Demographic_Category %in% params$report$demographics, Demographic_Category, NA),
          Demographic_Category = zoo::na.locf(Demographic_Category)) %>% # Source: https://stackoverflow.com/questions/40334837/how-to-group-data-when-data-are-interspersed-with-group-headers-in-the-same-colu
-  select(Demographic_Category, Demographic, everything())
+  select(`Demographic Category` = Demographic_Category, Demographic, everything())
 
 ```
 
@@ -321,7 +321,7 @@ demo_table %>%
                              "Select"), # https://rstudio.github.io/DT/extensions.html
                 options = list(
                   pageLength = nrow(table), # Set Page Length to Show all Demographic Categories
-                  dom='Blfrt', # Source: https://datatables.net/reference/option/dom
+                  dom='Bt', # Source: https://datatables.net/reference/option/dom
                   autowidth = TRUE,
                   colReorder = TRUE,
                   deferRender = TRUE,
@@ -330,7 +330,8 @@ demo_table %>%
                   fixedColumn = TRUE,
                   pageLength = nrow(demo_table),
                   rowGroup = list(dataSrc = 0), # Set Row Group to 1st Var in Data Set (Demographic)
-                  columnDefs = list(list(targets = c(0),visible = FALSE)), # # Hide Demographic in table (except for Row Group Headers) # Source: https://stackoverflow.com/questions/75952195/remove-grouping-variable-when-using-rowgroup-extension-in-dt-r-package
+                  columnDefs = list(
+                    list(targets = c(0),visible = FALSE)), # # Hide Demographic in table (except for Row Group Headers) # Source: https://stackoverflow.com/questions/75952195/remove-grouping-variable-when-using-rowgroup-extension-in-dt-r-package
                   buttons = list(
                     list(extend = 'colvis', text = 'Filter Columns'),
                     list(extend = 'csv', text = 'Download CSV', filename = 'Demographic Table'),
@@ -438,7 +439,10 @@ n_grams %>%
                            filename = paste0("Top ",params$text_analysis_number_ngrams," Free-Text N-Grams (by Field)")),
                       list(extend = 'excel', text = 'Download Excel', 
                            filename = paste0("Top ",params$text_analysis_number_ngrams," Free-Text N-Grams (by Field)"))
-                    )
+                    ),
+                    columnDefs = list(
+                      list(targets = 4, searchable = FALSE)
+                      )
                   )
                 )
 ```

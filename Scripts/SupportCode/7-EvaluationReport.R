@@ -4,10 +4,8 @@
 
 create_def_component_tables <- function(df, def_num){
   
-  nrow_1_match <- df %>% filter(Matches >= 1) %>% nrow()
-  
   component_table <- df %>%
-    rename(`Matched Visits` = Matches) %>%
+    select(`Syndrome Element`, `Element Type`, Field, `Matched Visits` = Matches) %>%
     DT::datatable(., 
                   class='hover cell-border stripe',
                   caption = paste0(params$queries[def_num],' Definition Elements (by Number of Matched Records)'),

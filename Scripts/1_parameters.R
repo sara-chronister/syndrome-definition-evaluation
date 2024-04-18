@@ -137,7 +137,6 @@ if(params$validation_review$enable_validation_review == TRUE){
     }
   }
 }
-rm(i, j)
 
 
 # Report Parameters  -----

@@ -99,14 +99,14 @@ for(i in 1:params$n_queries_eval){
   }
   
   #### Combine all field-specific detect elements into one data frame
-  defX_list$analysis$elements_detected <- bind_cols(list_detect_elements) %>%
+  defX_list$analysis$elements_detected <- reduce(.x = list_detect_elements, 
+           .f = left_join, by = "C_BioSense_ID") %>%
     mutate(TruePositive = NA) %>%
-    rename(C_BioSense_ID = C_BioSense_ID...1) %>%
     mutate(across(
       .cols = where(is.numeric),
       .fns = ~ ifelse(is.na(.), 0, .))) %>%
-    select(C_BioSense_ID, TruePositive, all_of(defX_list$setup$detect_elements_fields),
-           everything(), -matches(".*\\..*")) # Remove duplicate variables
+    select(C_BioSense_ID, TruePositive, all_of("ChiefComplaintUpdates"),
+           everything())
   
   #### Elements Detected Table
   defX_list$analysis$elements_detected_table <- defX_list$analysis$elements_detected %>%

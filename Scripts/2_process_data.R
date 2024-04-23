@@ -105,7 +105,7 @@ for(i in 1:params$n_queries_eval){
     mutate(across(
       .cols = where(is.numeric),
       .fns = ~ ifelse(is.na(.), 0, .))) %>%
-    select(C_BioSense_ID, TruePositive, all_of("ChiefComplaintUpdates"),
+    select(C_BioSense_ID, TruePositive, all_of(defX_list$setup$detect_elements_fields),
            everything())
   
   #### Elements Detected Table

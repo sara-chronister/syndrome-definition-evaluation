@@ -27,7 +27,7 @@ Inclusion terms and codes are displayed in the table below (exclusion terms are 
 
 <!-- Definition #1 --> 
 
-`r if(params$n_queries_eval >= 1){paste0('### ',syndrome_eval_list[[1]]$setup$info$Syndrome,' (',syndrome_eval_list[[2]]$setup$info$Abbreviation,')')}`
+`r if(params$n_queries_eval >= 1){paste0('### ',syndrome_eval_list[[1]]$setup$info$Syndrome,' (',syndrome_eval_list[[1]]$setup$info$Abbreviation,')')}`
 
 `r if(params$n_queries_eval >= 1){paste0('**Total Visits Identified:**')}`
 `r if(params$n_queries_eval >= 1){syndrome_eval_list[[1]]$analysis$total_pretty}`
@@ -44,10 +44,8 @@ Inclusion terms and codes are displayed in the table below (exclusion terms are 
 
 syndrome_eval_list[[1]]$analysis$elements_detected_table %>%
   create_def_component_tables(df=., def_num = 1)
-
 ```
-<br><br>
-
+<br>
 
 <!-- Definition #2 --> 
 
@@ -62,7 +60,7 @@ syndrome_eval_list[[1]]$analysis$elements_detected_table %>%
 `r if(params$n_queries_eval >= 2){paste0('**Full query:**')}`
 `r if(params$n_queries_eval >= 2){syndrome_eval_list[[2]]$setup$structure_print}`
 
-<br>
+`r if(params$n_queries_eval >= 2){cat("<br>")}`
 
 ```{r def2_table, echo=FALSE, message=FALSE, warning=FALSE}
 if(params$n_queries_eval >= 2){
@@ -71,8 +69,7 @@ syndrome_eval_list[[2]]$analysis$elements_detected_table %>%
     create_def_component_tables(df=., def_num = 2)
 }
 ```
-<br><br>
-
+`r if(params$n_queries_eval >= 2){cat("<br>")}`
 
 <!-- Definition #3 --> 
 
@@ -87,7 +84,7 @@ syndrome_eval_list[[2]]$analysis$elements_detected_table %>%
 `r if(params$n_queries_eval >= 3){paste0('**Full query:**')}`
 `r if(params$n_queries_eval >= 3){syndrome_eval_list[[3]]$setup$structure_print}`
 
-<br>
+`r if(params$n_queries_eval >= 3){cat("<br>")}`
 
 ```{r def3_table, echo=FALSE, message=FALSE, warning=FALSE}
 if(params$n_queries_eval >= 3){
@@ -96,7 +93,8 @@ syndrome_eval_list[[3]]$analysis$elements_detected_table %>%
     create_def_component_tables(df=., def_num = 3)
 }
 ```
-<br><br>
+`r if(params$n_queries_eval >= 3){cat("<br>")}`
+
 
 <!-- Definition Evaluation --> 
 

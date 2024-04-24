@@ -102,7 +102,9 @@ params$filepaths$output <- case_when(
   params$n_queries_eval == 3 ~ "Output/ThreeDefs/")
 
 #### Definition_Overlap
-params$filepaths$definition_overlap <- paste0(params$filepaths$output,"Definition_Overlap/")
+if(params$n_queries_eval > 1){
+  params$filepaths$definition_overlap <- paste0(params$filepaths$output,"Definition_Overlap/") 
+}
 
 #### Matched_Elements
 params$filepaths$matched_elements <- paste0(params$filepaths$output,"Matched_Elements/")

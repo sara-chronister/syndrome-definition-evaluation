@@ -125,8 +125,6 @@ for(i in 1:params$n_queries_eval){
   # rename the list to match the number of the definition
   assign(paste0("def",i,"_list"), defX_list) ## Consider using params$queries_
 }
-rm(i,j)
-
 
 # Assess Definition Overlap -----
 
@@ -142,12 +140,15 @@ if(params$n_queries_eval == 2){
 }
 
 ## Convert NAs to 0's and Sum DefX Categories
-Overlap <- Overlap %>%
-  mutate(across(
-    .cols = starts_with("def", ignore.case = FALSE),
-    .fns = ~ifelse(is.na(.), 0, .))) %>%
-  mutate(Total_Defs = rowSums(select(., starts_with("def", ignore.case = FALSE)))) %>% # add all defX columns together 
-  select(-starts_with("def"), starts_with("def"), Total_Defs) # Ensure def# and Total_Def columns are last.
+if(params$n_queries_eval > 1){
+ 
+  Overlap <- Overlap %>%
+    mutate(across(
+      .cols = starts_with("def", ignore.case = FALSE),
+      .fns = ~ifelse(is.na(.), 0, .))) %>%
+    mutate(Total_Defs = rowSums(select(., starts_with("def", ignore.case = FALSE)))) %>% # add all defX columns together 
+    select(-starts_with("def"), starts_with("def"), Total_Defs) # Ensure def# and Total_Def columns are last. 
+}
 
 ## Rename Def# Variables to Query Abbreviations
 if(params$n_queries_eval == 2){
@@ -165,8 +166,11 @@ if(params$n_queries_eval == 2){
 }
   
 ## Create Combinations Variable to Categorize Overlap
-Overlap$Definitions <- apply(Overlap[,params$queries_abbrev], 
-                              MARGIN = 1, function(data) paste(names(which(data == 1)), collapse = ", "))
+if(params$n_queries_eval > 1){
+ 
+  Overlap$Definitions <- apply(Overlap[,params$queries_abbrev], 
+                               MARGIN = 1, function(data) paste(names(which(data == 1)), collapse = ", ")) 
+}
          
 
 # Store Data -----
@@ -188,9 +192,13 @@ if(params$n_queries_eval > 1){
 }
 
 ## Add Row Totals (via Overlap DF)
-syndrome_eval_list$defs_total <- nrow(syndrome_eval_list[[params$overlap_name]])
-syndrome_eval_list$defs_total_pretty <- format(syndrome_eval_list$defs_total, big.mark = ",", scientific = FALSE)
+if(params$n_queries_eval == 1){
+  
+  syndrome_eval_list$defs_total <- nrow(syndrome_eval_list[[1]]$results$clean)
+    
+}else if(params$n_queries_eval > 1){syndrome_eval_list$defs_total <- nrow(syndrome_eval_list[[params$overlap_name]])}
 
+syndrome_eval_list$defs_total_pretty <- format(syndrome_eval_list$defs_total, big.mark = ",", scientific = FALSE)
 
 
 # Save Data -----
@@ -204,32 +212,34 @@ for(i in 1:params$n_queries_eval){
   syndrome_eval_list[[i]]$analysis$elements_detected %>%
     write.csv(file = paste0(params$filepaths$matched_elements, params$queries_abbrev[i]," Matched Elements.csv"))
 }
-rm(i)
 
 
 ## Definition Overlap (.csv)
+if(params$n_queries_eval > 1){
+  
+  ### Pull out all unique combinations into individual data frames
+  definition_overlap_list <- split(syndrome_eval_list[[params$overlap_name]], syndrome_eval_list[[params$overlap_name]]$Definitions)
+  
+  ### Add name prefixes indicating the number of definitions in a combination
+  names(definition_overlap_list) <- case_when(
+    str_count(names(definition_overlap_list), pattern = "\\,") == 0 ~ paste0("1_",names(definition_overlap_list)),
+    str_count(names(definition_overlap_list), pattern = "\\,") == 1 ~ paste0("2_",names(definition_overlap_list)),
+    str_count(names(definition_overlap_list), pattern = "\\,") == 2 ~ paste0("3_",names(definition_overlap_list)))
+  
+  ### Clean data frame names
+  names(definition_overlap_list) <- names(definition_overlap_list) %>%
+    str_remove_all(., pattern = " ") %>%
+    str_replace_all(., pattern = "\\,", replacement = "\\_")
+  
+  ### Save all data frames in list
+  lapply(names(definition_overlap_list), function(name) { write_csv(definition_overlap_list[[name]], 
+                                                                    file = paste0(params$filepaths$definition_overlap,name,".csv"))})
+  
+  ## All Visits (Regardless of Matching/Overlap)
+  syndrome_eval_list[[params$overlap_name]] %>%
+    write.csv(file = paste0(params$filepaths$definition_overlap, "All Visits.csv"))
+}
 
-### Pull out all unique combinations into individual data frames
-definition_overlap_list <- split(syndrome_eval_list[[params$overlap_name]], syndrome_eval_list[[params$overlap_name]]$Definitions)
-
-### Add name prefixes indicating the number of definitions in a combination
-names(definition_overlap_list) <- case_when(
-  str_count(names(definition_overlap_list), pattern = "\\,") == 0 ~ paste0("1_",names(definition_overlap_list)),
-  str_count(names(definition_overlap_list), pattern = "\\,") == 1 ~ paste0("2_",names(definition_overlap_list)),
-  str_count(names(definition_overlap_list), pattern = "\\,") == 2 ~ paste0("3_",names(definition_overlap_list)))
-
-### Clean data frame names
-names(definition_overlap_list) <- names(definition_overlap_list) %>%
-  str_remove_all(., pattern = " ") %>%
-  str_replace_all(., pattern = "\\,", replacement = "\\_")
-
-### Save all data frames in list
-lapply(names(definition_overlap_list), function(name) { write_csv(definition_overlap_list[[name]], 
-                                                                  file = paste0(params$filepaths$definition_overlap,name,".csv"))})
-
-## All Visits (Regardless of Matching/Overlap)
-syndrome_eval_list[[params$overlap_name]] %>%
-  write.csv(file = paste0(params$filepaths$definition_overlap, "All Visits.csv"))
 
 
 ## Format & Save Validation Review Data
@@ -293,8 +303,6 @@ if(params$validation_review$enable_validation_review == TRUE){
     }
   }
 }
-rm(i, j)
-
 
 # Clean Up -----
 rm(list = ls(pattern = "filename|Overlap|list_detect_elements|definition_overlap_list|defX_list"))

@@ -18,7 +18,7 @@ params$n_queries_eval <- n_queries_eval
 ### Vector of Query Abbreviations to Evaluate
 params$queries <- DefinitionInformation[["DefinitionInformation"]]$Syndrome[1:params$n_queries_eval]
 params$queries_abbrev <- DefinitionInformation[["DefinitionInformation"]]$Abbreviation[1:params$n_queries_eval]
-params$overlap_name <- paste0(paste(params$queries_abbrev, collapse="_"), "_Overlap")
+params$overlap_name <- paste0(paste(params$queries_abbrev, collapse="_"), "_All_Visits")
 
 
 ### Dates & Geographies
@@ -45,7 +45,7 @@ params$fields_text_analysis <- params$fields %>%
   filter(IncludeForTextAnalysis =="Yes" & (is.na(Notes)| str_detect(Notes, "Not eligible", negate=TRUE))) %>% # Some fields are not eligible for text mining (see Notes)
   pull(ESSENCEfields)
 
-params$text_analysis_number_ngrams <- 5
+params$text_analysis_number_ngrams <- 5 # Top 5 ngrams shown per free-text field
 
 
 #### Validation Review (Line-Level Records)
@@ -145,9 +145,9 @@ if(params$validation_review$enable_validation_review == TRUE){
 
 ## Report Query Title
 params$report$query_title <- switch(params$n_queries_eval,
-                                    params$queries,
-                                    paste0(params$queries[1]," and ", params$queries[2]),
-                                    paste0(params$queries[1],", ",params$queries[2],", and ",params$queries[3]))
+                                    params$queries, # One Definition Evaluated
+                                    paste0(params$queries[1]," and ", params$queries[2]), # Two Definitions Evaluated
+                                    paste0(params$queries[1],", ",params$queries[2],", and ",params$queries[3])) # Three Definitions Evaluated
 
 ## Timeseries Linecolors
 params$report$ts_linecolors <- c("#E24E42", "#008F95", "#E9B000")

@@ -14,6 +14,7 @@ for(i in 1:params$n_queries_eval){
   
   ### Create Definition-Specific Storage List
   defX_list <- list()
+  defX_list_simple <- list()
   
   ## Set Up -----
   
@@ -56,10 +57,10 @@ for(i in 1:params$n_queries_eval){
   ## Results -----
   
   ### Pull API Data (DataDetails)
-  defX_list$results$raw <- get_essence_data(url = defX_list$setup$url, start_date = params$start_date, end_date = params$end_date)
+  defX_list$results$raw_datadetails <- get_essence_data(url = defX_list$setup$url, start_date = params$start_date, end_date = params$end_date)
   
   ### Clean API Data (DataDetails) 
-  defX_list$results$clean <- defX_list$results$raw %>%
+  defX_list$results$clean_datadetails <- defX_list$results$raw_datadetails %>%
     distinct(C_BioSense_ID, .keep_all = TRUE) %>% # Remove duplicate records (if applicable)
     mutate(!!paste0("def",i) := 1, # Flag to indicate these results matched this definition
            Date = as.Date(Date, format='%m/%d/%Y')) %>% # Convert Date to Date type variable.
@@ -72,10 +73,10 @@ for(i in 1:params$n_queries_eval){
     select(Date, C_BioSense_ID, everything()) # Reorder variables
   
   #### Deduplicate DDx Codes
-  if(params$deduplicate_ddx == TRUE){defX_list$results$clean <- defX_list$results$clean %>% dedup_dx(df=., keep_raw=FALSE)}
+  if(params$deduplicate_ddx == TRUE){defX_list$results$clean_datadetails <- defX_list$results$clean_datadetails %>% dedup_dx(df=., keep_raw=FALSE)}
   
   ### Create Timeseries Summary
-  defX_list$results$timeseries <- defX_list$results$clean %>%
+  defX_list$results$timeseries <- defX_list$results$clean_datadetails %>%
     count(Date, name = "Visits") %>%
     filter(between(Date, params$start_date, params$end_date)) %>%
     full_join(params$all_dates) %>%
@@ -85,7 +86,7 @@ for(i in 1:params$n_queries_eval){
   ## Analysis -----
   
   ### Total Number of Results
-  defX_list$analysis$total <- nrow(defX_list$results$clean)
+  defX_list$analysis$total <- nrow(defX_list$results$clean_datadetails)
   defX_list$analysis$total_pretty <- format(defX_list$analysis$total, big.mark = ",", scientific = FALSE) ## Pretty Version
   
   ### Definition Elements detected in free-text field(s) of interest
@@ -93,7 +94,7 @@ for(i in 1:params$n_queries_eval){
   
   #### For each field (stored as a separate list element), the definition is applied to, search for the presence (0/1) of each query syntax component
   for(j in seq_along(defX_list$setup$detect_elements_fields)){
-    list_detect_elements[[j]] <- detect_elements(data = defX_list$results$clean, 
+    list_detect_elements[[j]] <- detect_elements(data = defX_list$results$clean_datadetails, 
                                                  terms = defX_list$setup$elements,
                                                  text_field = defX_list$setup$detect_elements_fields[j])
   }
@@ -124,25 +125,32 @@ for(i in 1:params$n_queries_eval){
     
   # rename the list to match the number of the definition
   assign(paste0("def",i,"_list"), defX_list) ## Consider using params$queries_
+  
+  # create a simple, easy to access list
+  defX_list_simple$clean_datadetails <- defX_list$results$clean_datadetails
+  defX_list_simple$elements_detected <- defX_list$analysis$elements_detected
+  
+  # rename the simple list to match the name of the definition
+  assign(params$queries_abbrev[i],defX_list_simple)
 }
 
-# Assess Definition Overlap -----
+# Assess Definition Overlap (Across All Visits) -----
 
 ## Full Join Data
 if(params$n_queries_eval == 2){
   
-  Overlap <- full_join(def1_list$results$clean, def2_list$results$clean) 
+  All_Visits <- full_join(def1_list$results$clean_datadetails, def2_list$results$clean_datadetails) 
   
 }else if(params$n_queries_eval == 3){
   
-  Overlap <- full_join(def1_list$results$clean, def2_list$results$clean) %>%
-    full_join(., def3_list$results$clean)
+  All_Visits <- full_join(def1_list$results$clean_datadetails, def2_list$results$clean_datadetails) %>%
+    full_join(., def3_list$results$clean_datadetails)
 }
 
 ## Convert NAs to 0's and Sum DefX Categories
 if(params$n_queries_eval > 1){
  
-  Overlap <- Overlap %>%
+  All_Visits <- All_Visits %>%
     mutate(across(
       .cols = starts_with("def", ignore.case = FALSE),
       .fns = ~ifelse(is.na(.), 0, .))) %>%
@@ -153,13 +161,13 @@ if(params$n_queries_eval > 1){
 ## Rename Def# Variables to Query Abbreviations
 if(params$n_queries_eval == 2){
   
-  Overlap <- Overlap %>%
+  All_Visits <- All_Visits %>%
     rename(!!params$queries_abbrev[1] := def1,
            !!params$queries_abbrev[2] := def2)
   
 }else if(params$n_queries_eval == 3){
   
-  Overlap <- Overlap %>%
+  All_Visits <- All_Visits %>%
     rename(!!params$queries_abbrev[1] := def1,
            !!params$queries_abbrev[2] := def2,
            !!params$queries_abbrev[3] := def3)
@@ -168,10 +176,10 @@ if(params$n_queries_eval == 2){
 ## Create Combinations Variable to Categorize Overlap
 if(params$n_queries_eval > 1){
  
-  Overlap$Definitions <- apply(Overlap[,params$queries_abbrev], 
+  All_Visits$Definitions <- apply(All_Visits[,params$queries_abbrev], 
                                MARGIN = 1, function(data) paste(names(which(data == 1)), collapse = ", ")) 
 }
-         
+
 
 # Store Data -----
 syndrome_eval_list <- list()
@@ -184,27 +192,37 @@ for(i in 1:params$n_queries_eval){
 
 names(syndrome_eval_list) <- params$queries_abbrev
 
+paste0(params$queries_abbrev, "_All")
+
 ## Add Overlap DF
 if(params$n_queries_eval > 1){
   
-  syndrome_eval_list[[params$overlap_name]] <- Overlap %>%
+  syndrome_eval_list[[params$overlap_name]] <- All_Visits %>%
     select(Date, C_BioSense_ID, all_of(params$queries_abbrev), Total_Defs, Definitions, everything()) # Reorder columns
 }
 
 ## Add Row Totals (via Overlap DF)
 if(params$n_queries_eval == 1){
   
-  syndrome_eval_list$defs_total <- nrow(syndrome_eval_list[[1]]$results$clean)
+  syndrome_eval_list$defs_total <- nrow(syndrome_eval_list[[1]]$results$clean_datadetails)
     
 }else if(params$n_queries_eval > 1){syndrome_eval_list$defs_total <- nrow(syndrome_eval_list[[params$overlap_name]])}
 
 syndrome_eval_list$defs_total_pretty <- format(syndrome_eval_list$defs_total, big.mark = ",", scientific = FALSE)
 
 
+## Rename All Visits Object
+assign(params$overlap_name, All_Visits)
+
+
 # Save Data -----
 
-## All Data (.RData)
-save(params, syndrome_eval_list, file = paste0(params$filepaths$output,paste(params$queries_abbrev, collapse="_"),".RData"))
+## Only save the objects that exist in the global environment (if they don't exist, continue to save the ones that do). Source: https://stackoverflow.com/questions/69742005/saving-r-objects-conditional-on-whether-they-exist)
+save(list = intersect(ls(), c("params", "syndrome_eval_list", 
+                              params$queries_abbrev, # Our Easy Access Data ($clean_datadetails & $elements_detected) for all definitions
+                              params$overlap_name)), # All Visits data frame show how the definitions apply (and possibly overlap) within pulled records
+     file = paste0(params$filepaths$output,paste(params$queries_abbrev, collapse="_"),".RData"))
+
 
 ## Matched Elements
 for(i in 1:params$n_queries_eval){
@@ -252,7 +270,7 @@ if(params$validation_review$enable_validation_review == TRUE){
     
     # Step 1: Formatting Data for Reviewers
     
-    vr_list[[i]] <- syndrome_eval_list[[i]]$results$clean %>%
+    vr_list[[i]] <- syndrome_eval_list[[i]]$results$clean_datadetails %>%
       add_date_components(df=.) %>% # Generate Date Components (Date --> Weekday, Week, Month, Year)
       get_sample(df=.,
                  sample_metric = params$validation_review$SampleMetric,
@@ -305,4 +323,4 @@ if(params$validation_review$enable_validation_review == TRUE){
 }
 
 # Clean Up -----
-rm(list = ls(pattern = "filename|Overlap|list_detect_elements|definition_overlap_list|defX_list"))
+rm(list = ls(pattern="def\\d_list|defX_list|All_Visits|list_detect_elements|vr_list|definition_overlap_list")) # Remove unneeded objects

@@ -258,12 +258,12 @@ switch(params$n_queries_eval,
 
 ## 1) Bind Demographic Data Together
 df_demo <- switch(params$n_queries_eval,
-                  bind_rows(syndrome_eval_list[[1]]$results$clean, .id = "id"),
-                  bind_rows(syndrome_eval_list[[1]]$results$clean,
-                            syndrome_eval_list[[2]]$results$clean, .id = "id"),
-                  bind_rows(syndrome_eval_list[[1]]$results$clean,
-                            syndrome_eval_list[[2]]$results$clean, 
-                            syndrome_eval_list[[3]]$results$clean, .id = "id"))
+                  bind_rows(syndrome_eval_list[[1]]$results$clean_datadetails, .id = "id"),
+                  bind_rows(syndrome_eval_list[[1]]$results$clean_datadetails,
+                            syndrome_eval_list[[2]]$results$clean_datadetails, .id = "id"),
+                  bind_rows(syndrome_eval_list[[1]]$results$clean_datadetails,
+                            syndrome_eval_list[[2]]$results$clean_datadetails, 
+                            syndrome_eval_list[[3]]$results$clean_datadetails, .id = "id"))
 
 df_demo <- df_demo %>%
   pivot_longer(.,
@@ -360,7 +360,7 @@ bigram_list <- list()
 for(i in 1:params$n_queries_eval){
   
   ## Unigrams
-  unigram_list[[i]] <- syndrome_eval_list[[i]]$results$clean %>%
+  unigram_list[[i]] <- syndrome_eval_list[[i]]$results$clean_datadetails %>%
     textmine(df=., 
              variables = params$fields_text_analysis, 
              n_grams = 1, # Unigrams
@@ -368,7 +368,7 @@ for(i in 1:params$n_queries_eval){
              top_n = params$text_analysis_number_ngrams, top_n_by_variable = TRUE)
   
   ## Bigrams
-  bigram_list[[i]] <- syndrome_eval_list[[i]]$results$clean %>%
+  bigram_list[[i]] <- syndrome_eval_list[[i]]$results$clean_datadetails %>%
     textmine(df=., 
              variables = params$fields_text_analysis,
              n_grams = 2, # Bigrams

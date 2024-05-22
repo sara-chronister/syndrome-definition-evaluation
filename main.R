@@ -22,7 +22,7 @@ if(n_queries_eval > 3){stop("This tool can only analyze up to 3 syndromes simult
 
 ## Load ESSENCE Credentials
 tryCatch({load("~/myProfile.rds")}, # Load myProfile credentials
-  error = function(e) {Rnssp::create_user_profile_gui()}) # If myProfile credentials are not available, recreate them! 
+  error = function(e) {Rnssp::create_user_profile_gui()}) # If myProfile credentials are not available at the home directory, regenerate them! 
 
 ## Install/Load Packages & Custom Functions
 files.source <- list.files("Scripts\\SupportCode", pattern = "\\.R")

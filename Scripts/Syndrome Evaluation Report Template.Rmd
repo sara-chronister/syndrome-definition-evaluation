@@ -44,6 +44,7 @@ Inclusion terms and codes are displayed in the table below (exclusion terms are 
 
 syndrome_eval_list[[1]]$analysis$elements_detected_table %>%
   create_def_component_tables(df=., def_num = 1)
+
 ```
 <br>
 
@@ -109,7 +110,7 @@ syndrome_eval_list[[3]]$analysis$elements_detected_table %>%
 ```{r def_summary, echo=FALSE, message=FALSE, warning=FALSE, fig.height=3}
 if(params$n_queries_eval >= 2){
 
-  all_def_summary <- syndrome_eval_list[[params$overlap_name]] %>%
+  all_def_summary <- syndrome_eval_list[[params$allvisits_name]] %>%
   select(all_of(params$queries_abbrev)) %>%
   summarize(across(
     .cols = everything(),
@@ -136,13 +137,13 @@ all_def_summary %>%
 ```
 
 
-<!-- Definition Overlap --> 
+<!-- Definition Comparison --> 
 `r if(params$n_queries_eval >= 2){paste0('### Definition Overlap {.tabset}')}`
 ```{r def_comp_table, echo=FALSE, message=FALSE, warning=FALSE}
 if(params$n_queries_eval >= 2){
   
   ## Generate Def Comparison Metrics
-  all_def_summary <- syndrome_eval_list[[params$overlap_name]] %>%
+  all_def_summary <- syndrome_eval_list[[params$allvisits_name]] %>%
   count(Definitions, name = "Visits") %>%
   mutate(Total = syndrome_eval_list$defs_total,
          Percent = paste0(round(Visits/Total,3)*100,"%")) %>%
@@ -174,7 +175,7 @@ if(params$n_queries_eval >= 2){
 `r if(params$n_queries_eval >= 2){paste0('#### Venn Diagram (Overlap - Not to Scale)')}`
 ```{r def_comp_venn, echo=FALSE, message=FALSE, warning=FALSE}
 if(params$n_queries_eval >= 2){
- plot(eulerr::venn(syndrome_eval_list[[params$overlap_name]] %>% select(all_of(params$queries_abbrev))), 
+ plot(eulerr::venn(syndrome_eval_list[[params$allvisits_name]] %>% select(all_of(params$queries_abbrev))), 
       labels = TRUE, legend = list(side = "right"), quantities = TRUE)
 }
 ```
@@ -182,7 +183,7 @@ if(params$n_queries_eval >= 2){
 `r if(params$n_queries_eval >= 2){paste0('#### Eulerr Plot (Overlap - to Scale)')}`
 ```{r def_comp_euler, echo=FALSE, message=FALSE, warning=FALSE}
 if(params$n_queries_eval >= 2){
- plot(eulerr::euler(syndrome_eval_list[[params$overlap_name]] %>% select(all_of(params$queries_abbrev))), 
+ plot(eulerr::euler(syndrome_eval_list[[params$allvisits_name]] %>% select(all_of(params$queries_abbrev))), 
       labels = TRUE, legend = list(side = "right"), quantities = TRUE)
 }
 ```
@@ -422,7 +423,7 @@ n_grams <- bind_rows(unigrams, bigrams) %>%
 n_grams %>%
    DT::datatable(., 
                   class='hover cell-border stripe',
-                  caption = paste0("Top ",params$text_analysis_number_ngrams," Words & Phrases (by Field)"),
+                  caption = paste0("Top ",params$text_analysis_number_ngrams," Unigrams & Bigrams (by Field)"),
                   rownames=FALSE, escape = FALSE, 
                   filter = "top", 
                   extensions = c("Buttons", "KeyTable", "FixedHeader"), # https://rstudio.github.io/DT/extensions.html

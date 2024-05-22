@@ -16,15 +16,15 @@ params <- list()
 params$n_queries_eval <- n_queries_eval
 
 ### Vector of Query Abbreviations to Evaluate
-params$queries <- DefinitionInformation[["DefinitionInformation"]]$Syndrome[1:params$n_queries_eval]
-params$queries_abbrev <- DefinitionInformation[["DefinitionInformation"]]$Abbreviation[1:params$n_queries_eval]
-params$overlap_name <- paste0(paste(params$queries_abbrev, collapse="_"), "_All_Visits")
+params$queries <- DefinitionInformation[["DefinitionInformation"]]$Syndrome[1:params$n_queries_eval] # Query Names
+params$queries_abbrev <- DefinitionInformation[["DefinitionInformation"]]$Abbreviation[1:params$n_queries_eval] # Query Abbrev
+params$allvisits_name <- paste0(paste(params$queries_abbrev, collapse="_"), "_All_Visits") # Query Abbrev's pasted together
 
 
 ### Dates & Geographies
 params$start_date <- DefinitionInformation[["Setup"]]$StartDate %>% as.Date()
 params$end_date <- DefinitionInformation[["Setup"]]$EndDate %>% as.Date()
-params$all_dates <- data.frame(Date = seq.Date(from = as.Date(params$start_date), to = as.Date(params$end_date), by = "day")) # To fill in timeseries summaries with 0's (if no visits observed)
+params$all_dates <- data.frame(Date = seq.Date(from = as.Date(params$start_date), to = as.Date(params$end_date), by = "day")) # All dates between start and end --> to fill in timeseries summaries with 0's (if no visits observed)
 params$jurisdiction <- DefinitionInformation[["Setup"]]$Jurisdiction
 
 ### ESSENCE Fields to Pull & Analyze
@@ -32,33 +32,33 @@ params$jurisdiction <- DefinitionInformation[["Setup"]]$Jurisdiction
 #### All Fields to Pull in API
 params$fields <-  DefinitionInformation[["SelectFields"]] %>%
   mutate(includeAPI = ifelse(IncludeForValidationReview =="Yes"| IncludeForTextAnalysis =="Yes", "Yes", "No")) %>%
-  filter(includeAPI == "Yes")
+  filter(includeAPI == "Yes") # All Fields allowed in Data Pulls
 
 #### All Fields (as API URL)
 params$fields_api_url <- params$fields %>%
   pull(ESSENCEfields) %>%
   paste0(., collapse = "&field=") %>%
-  paste0("&field=",.)
+  paste0("&field=",.) # ESSENCE Field API URL
 
 #### Text Mining
 params$fields_text_analysis <- params$fields %>%
   filter(IncludeForTextAnalysis =="Yes" & (is.na(Notes)| str_detect(Notes, "Not eligible", negate=TRUE))) %>% # Some fields are not eligible for text mining (see Notes)
-  pull(ESSENCEfields)
+  pull(ESSENCEfields) # All Fields included for Text Mining
 
-params$text_analysis_number_ngrams <- 5 # Top 5 ngrams shown per free-text field
+params$text_analysis_number_ngrams <- 5 # Top # n grams shown per free-text field
 
 
 #### Validation Review (Line-Level Records)
 params$fields_validation_review <- params$fields %>%  
   filter(IncludeForValidationReview == "Yes") %>%
-  pull(ESSENCEfields)
+  pull(ESSENCEfields) # All Fields included for Validation Review
 
 ### Data Cleaning
-params$deduplicate_ddx <- DefinitionInformation[["ValidationReviewInformation"]] %>% pull_no_na(df=., variable = "DeduplicateDDx")
+params$deduplicate_ddx <- DefinitionInformation[["ValidationReviewInformation"]] %>% pull_no_na(df=., variable = "DeduplicateDDx") # Deduplicate DDx TRUE/FALSE
 
 
 ### Validation Review
-params$validation_review$enable_validation_review <- DefinitionInformation[["Setup"]]$ValidationReview
+params$validation_review$enable_validation_review <- DefinitionInformation[["Setup"]]$ValidationReview # Validation Review TRUE/FALSE
 
 if(params$validation_review$enable_validation_review == TRUE){
   
@@ -71,15 +71,15 @@ if(params$validation_review$enable_validation_review == TRUE){
     pull(defX)
   
   
-  ## Establish Sampling Parameters
+  ## Establish Sampling Parameters (for Validation Review)
   params$validation_review$SampleMetric <- DefinitionInformation[["ValidationReviewInformation"]] %>% 
-    pull_no_na(df=., variable = "SampleMetric")
+    pull_no_na(df=., variable = "SampleMetric") # number/proportion
   
   params$validation_review$SampleValue <- DefinitionInformation[["ValidationReviewInformation"]] %>% 
-    pull_no_na(df=., variable = "SampleValue")
+    pull_no_na(df=., variable = "SampleValue") # Integer/Proportion
   
   params$validation_review$StratifiedSample <- DefinitionInformation[["ValidationReviewInformation"]] %>% 
-    pull_no_na(df=., variable = "StratifiedSample")
+    pull_no_na(df=., variable = "StratifiedSample") # TRUE/FALSE
   
   params$validation_review$StratifiedVariables <- DefinitionInformation[["ValidationReviewInformation"]] %>% 
     pull_no_na(df=., variable = "StratifiedVariables") %>% # Pull StratifiedVariables (remove NAs)
@@ -87,11 +87,26 @@ if(params$validation_review$enable_validation_review == TRUE){
     unlist() %>%  # Unlist (strsplit() puts new vector into a list)
     str_trim(., side="both") # Remove all whitespace on every string in the string vector: c("A", " B") --> c("A","B")
   
-  # Establish Review Scale
+  # Establish Validation Review Scale
   params$validation_review$ReviewScaleLow <- DefinitionInformation[["ValidationReviewInformation"]]$ReviewScaleLow[1]
   params$validation_review$ReviewScaleHigh <- DefinitionInformation[["ValidationReviewInformation"]]$ReviewScaleHigh[1]
 }
 
+
+# Define Report Parameters  -----
+
+## Report Query Title
+params$report$query_title <- switch(params$n_queries_eval,
+                                    params$queries, # One Definition Evaluated
+                                    paste0(params$queries[1]," and ", params$queries[2]), # Two Definitions Evaluated
+                                    paste0(params$queries[1],", ",params$queries[2],", and ",params$queries[3])) # Three Definitions Evaluated
+
+## Timeseries Linecolors
+params$report$ts_linecolors <- c("#E24E42", "#008F95", "#E9B000")
+
+
+## Demographic Groups Analyzed
+params$report$demographics <- c("Race", "Ethnicity", "AgeGroup", "Sex")
 
 # Create Filepaths  -----
 
@@ -103,7 +118,7 @@ params$filepaths$output <- case_when(
 
 #### Definition_Overlap
 if(params$n_queries_eval > 1){
-  params$filepaths$definition_overlap <- paste0(params$filepaths$output,"Definition_Overlap/") 
+  params$filepaths$definition_comparison <- paste0(params$filepaths$output,"Definition_Comparison/") 
 }
 
 #### Matched_Elements
@@ -128,7 +143,7 @@ if(params$validation_review$enable_validation_review == TRUE){
     fs::dir_create(paste0(params$filepaths$validation_review, "/",params$queries_abbrev[i],"/Resources"))
     fs::dir_create(paste0(params$filepaths$validation_review, "/",params$queries_abbrev[i],"/1_Reviewed_Data"))
     
-    if(params$validation_review$n_reviewers > 1){ # Only create consensus data folders if > 1 reviewer.
+    if(params$validation_review$n_reviewers > 1){ # Only create consensus review data folders if > 1 reviewers.
       fs::dir_create(paste0(params$filepaths$validation_review, "/",params$queries_abbrev[i],"/2_Consensus_Data"))
     }
     
@@ -140,18 +155,3 @@ if(params$validation_review$enable_validation_review == TRUE){
   }
 }
 
-
-# Report Parameters  -----
-
-## Report Query Title
-params$report$query_title <- switch(params$n_queries_eval,
-                                    params$queries, # One Definition Evaluated
-                                    paste0(params$queries[1]," and ", params$queries[2]), # Two Definitions Evaluated
-                                    paste0(params$queries[1],", ",params$queries[2],", and ",params$queries[3])) # Three Definitions Evaluated
-
-## Timeseries Linecolors
-params$report$ts_linecolors <- c("#E24E42", "#008F95", "#E9B000")
-
-
-## Demographic Groups Analyzed
-params$report$demographics <- c("Race", "Ethnicity", "AgeGroup", "Sex")

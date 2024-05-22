@@ -13,8 +13,8 @@
 for(i in 1:params$n_queries_eval){
   
   ### Create Definition-Specific Storage List
-  defX_list <- list()
-  defX_list_simple <- list()
+  defX_list <- list() 
+  defX_list_simple <- list() # To store only cleaned DataDetails & Elements Detected (for easy access)
   
   ## Set Up -----
   
@@ -30,7 +30,7 @@ for(i in 1:params$n_queries_eval){
   defX_list$setup$structure <- clean_query_essence(defX_list$setup$info$Structure)
   defX_list$setup$structure_print <- defX_list$setup$info$Structure %>%
     str_replace_all(., pattern = "\\^", replacement = "\\\\^") %>%
-    str_replace_all(., pattern = "\\_", replacement = "\\\\_") # Prevents R Markdown from interpreting "_" as start/end of bold commands.
+    str_replace_all(., pattern = "\\_", replacement = "\\\\_") # Prevents R Markdown from interpreting "_" as start/end of bold commands
   defX_list$setup$elements <- defX_list$setup$structure$`Syndrome Element`  # Individual definition elements
   
   ### Definition ESSENCE API 
@@ -38,7 +38,7 @@ for(i in 1:params$n_queries_eval){
     Rnssp::change_dates(url=., start_date = params$start_date, end_date = params$end_date) %>% # Start and end dates from Setup tab.
     paste0(., params$fields_api_url) # ESSENCE fields from SelectFields tab. "Yes" in either IncludeForValidationReview (column B) or IncludeForTextAnalysis (column C).
   
-  ### Detect Elements Fields - Correct Labeling to Align with ESSENCE Variable Names
+  ### Fields Query Definitions Are Applied To
   defX_list$setup$detect_elements_fields <- str_split(defX_list$setup$info$Fields, pattern = "\\,") %>% 
     unlist() %>% 
     str_remove_all(., pattern = "\\bor\\b|\\band\\b") %>%
@@ -48,7 +48,7 @@ for(i in 1:params$n_queries_eval){
     ### Correct Labeling to Align with ESSENCE Variable Names ###
     mutate(Fields = case_when(Fields == "Discharge_Diagnosis" ~ "DischargeDiagnosis",
                               Fields == "Chief_Complaint_History" ~ "ChiefComplaintUpdates",
-                              TRUE ~ Fields)) %>%
+                              TRUE ~ Fields)) %>% # Correct Labeling to Align with ESSENCE Variable Names
     pull(Fields)
   
   defX_list$setup$detect_elements_fields_regex <- paste(defX_list$setup$detect_elements_fields, collapse="|")
@@ -66,14 +66,17 @@ for(i in 1:params$n_queries_eval){
            Date = as.Date(Date, format='%m/%d/%Y')) %>% # Convert Date to Date type variable.
     mutate(across(
       .cols = where(is.character),
-      .fns = ~ifelse(. == "none", NA, .))) %>%
+      .fns = ~ifelse(. == "none", NA, .))) %>% # Convert "none" to NA
     clean_demographics(df=.) %>%
     clean_clinical_information(df=.) %>%
-    clean_freetext(df=., keep_raw = FALSE, parse_abbrev = FALSE, text_case = "original") %>% # Prep's free-text for text mining
+    clean_freetext(df=., keep_raw = FALSE, parse_abbrev = FALSE, text_case = "original") %>% # Preps free-text fields for text mining
     select(Date, C_BioSense_ID, everything()) # Reorder variables
   
   #### Deduplicate DDx Codes
-  if(params$deduplicate_ddx == TRUE){defX_list$results$clean_datadetails <- defX_list$results$clean_datadetails %>% dedup_dx(df=., keep_raw=FALSE)}
+  if(params$deduplicate_ddx == TRUE){
+    defX_list$results$clean_datadetails <- defX_list$results$clean_datadetails %>% 
+      dedup_dx(df=., keep_raw=FALSE)
+    }
   
   ### Create Timeseries Summary
   defX_list$results$timeseries <- defX_list$results$clean_datadetails %>%
@@ -86,29 +89,31 @@ for(i in 1:params$n_queries_eval){
   ## Analysis -----
   
   ### Total Number of Results
-  defX_list$analysis$total <- nrow(defX_list$results$clean_datadetails)
-  defX_list$analysis$total_pretty <- format(defX_list$analysis$total, big.mark = ",", scientific = FALSE) ## Pretty Version
+  defX_list$analysis$total <- nrow(defX_list$results$clean_datadetails) # Number of DataDetails records (per definition)
+  defX_list$analysis$total_pretty <- format(defX_list$analysis$total, big.mark = ",", scientific = FALSE) # Number of DataDetails records (formatted)
   
   ### Definition Elements detected in free-text field(s) of interest
   list_detect_elements <- list()
   
-  #### For each field (stored as a separate list element), the definition is applied to, search for the presence (0/1) of each query syntax component
-  for(j in seq_along(defX_list$setup$detect_elements_fields)){
-    list_detect_elements[[j]] <- detect_elements(data = defX_list$results$clean_datadetails, 
-                                                 terms = defX_list$setup$elements,
-                                                 text_field = defX_list$setup$detect_elements_fields[j])
-  }
+  #### For each field (stored as a separate list element) the definition is applied to, search for the presence (0/1) of each query syntax component
   
-  #### Combine all field-specific detect elements into one data frame
-  defX_list$analysis$elements_detected <- reduce(.x = list_detect_elements, 
-           .f = left_join, by = "C_BioSense_ID") %>%
-    mutate(TruePositive = NA) %>%
-    mutate(across(
-      .cols = where(is.numeric),
-      .fns = ~ ifelse(is.na(.), 0, .))) %>%
-    select(C_BioSense_ID, TruePositive, all_of(defX_list$setup$detect_elements_fields),
-           everything())
-  
+  suppressMessages({
+    
+    for(j in seq_along(defX_list$setup$detect_elements_fields)){
+      list_detect_elements[[j]] <- detect_elements(data = defX_list$results$clean_datadetails, 
+                                                   terms = defX_list$setup$elements,
+                                                   text_field = defX_list$setup$detect_elements_fields[j])}
+    
+    #### Combine all field-specific detect elements into one data frame
+    defX_list$analysis$elements_detected <- reduce(.x = list_detect_elements, .f = left_join, by = "C_BioSense_ID") %>%
+      mutate(TruePositive = NA) %>%
+      mutate(across(
+        .cols = where(is.numeric),
+        .fns = ~ ifelse(is.na(.), 0, .))) %>%
+      select(C_BioSense_ID, TruePositive, all_of(defX_list$setup$detect_elements_fields), everything())
+
+  })
+
   #### Elements Detected Table
   defX_list$analysis$elements_detected_table <- defX_list$analysis$elements_detected %>%
     pivot_longer(cols = where(is.numeric), names_to = "Syndrome Element", values_to = "Match") %>%
@@ -123,16 +128,22 @@ for(i in 1:params$n_queries_eval){
     summarize(Matches = sum(Match, na.rm = TRUE)) %>%
     arrange(desc(Matches))
     
-  # rename the list to match the number of the definition
-  assign(paste0("def",i,"_list"), defX_list) ## Consider using params$queries_
   
-  # create a simple, easy to access list
+  # Output Data (List Named to Match the Number of the Definition)
+  assign(paste0("def",i,"_list"), defX_list)
+  
+  # Create a Simplified Output Data List
   defX_list_simple$clean_datadetails <- defX_list$results$clean_datadetails
   defX_list_simple$elements_detected <- defX_list$analysis$elements_detected
   
-  # rename the simple list to match the name of the definition
+  # Output Data (List Named to Match Query Abbreviation)
   assign(params$queries_abbrev[i],defX_list_simple)
+  
+  # Free Up Memory/RAM
+  gc()
 }
+
+rm(defX_list, defX_list_simple) # Remove placeholder lists (duplicate, have already been renamed to new objects)
 
 # Assess Definition Overlap (Across All Visits) -----
 
@@ -173,7 +184,7 @@ if(params$n_queries_eval == 2){
            !!params$queries_abbrev[3] := def3)
 }
   
-## Create Combinations Variable to Categorize Overlap
+## Create Definitions Variable to Categorize A Visit Record by What Combination of Definitions It Is Detected By (Overlap)
 if(params$n_queries_eval > 1){
  
   All_Visits$Definitions <- apply(All_Visits[,params$queries_abbrev], 
@@ -190,14 +201,14 @@ for(i in 1:params$n_queries_eval){
   syndrome_eval_list[[i]] <- get(paste0("def",i,"_list"))
 }
 
+## Rename List Elements using Query Abbreviations
 names(syndrome_eval_list) <- params$queries_abbrev
 
-paste0(params$queries_abbrev, "_All")
 
 ## Add Overlap DF
 if(params$n_queries_eval > 1){
   
-  syndrome_eval_list[[params$overlap_name]] <- All_Visits %>%
+  syndrome_eval_list[[params$allvisits_name]] <- All_Visits %>%
     select(Date, C_BioSense_ID, all_of(params$queries_abbrev), Total_Defs, Definitions, everything()) # Reorder columns
 }
 
@@ -206,13 +217,13 @@ if(params$n_queries_eval == 1){
   
   syndrome_eval_list$defs_total <- nrow(syndrome_eval_list[[1]]$results$clean_datadetails)
     
-}else if(params$n_queries_eval > 1){syndrome_eval_list$defs_total <- nrow(syndrome_eval_list[[params$overlap_name]])}
+}else if(params$n_queries_eval > 1){syndrome_eval_list$defs_total <- nrow(syndrome_eval_list[[params$allvisits_name]])}
 
 syndrome_eval_list$defs_total_pretty <- format(syndrome_eval_list$defs_total, big.mark = ",", scientific = FALSE)
 
 
 ## Rename All Visits Object
-assign(params$overlap_name, All_Visits)
+if(params$n_queries_eval > 1){assign(params$allvisits_name, All_Visits)} # All_Visits --> object named Query Abbreviations separated by _
 
 
 # Save Data -----
@@ -220,7 +231,7 @@ assign(params$overlap_name, All_Visits)
 ## Only save the objects that exist in the global environment (if they don't exist, continue to save the ones that do). Source: https://stackoverflow.com/questions/69742005/saving-r-objects-conditional-on-whether-they-exist)
 save(list = intersect(ls(), c("params", "syndrome_eval_list", 
                               params$queries_abbrev, # Our Easy Access Data ($clean_datadetails & $elements_detected) for all definitions
-                              params$overlap_name)), # All Visits data frame show how the definitions apply (and possibly overlap) within pulled records
+                              params$allvisits_name)), # All Visits data frame show how the definitions apply (and possibly overlap) within pulled records
      file = paste0(params$filepaths$output,paste(params$queries_abbrev, collapse="_"),".RData"))
 
 
@@ -232,30 +243,30 @@ for(i in 1:params$n_queries_eval){
 }
 
 
-## Definition Overlap (.csv)
+## Definition All Visit Comparison (.csv)
 if(params$n_queries_eval > 1){
   
   ### Pull out all unique combinations into individual data frames
-  definition_overlap_list <- split(syndrome_eval_list[[params$overlap_name]], syndrome_eval_list[[params$overlap_name]]$Definitions)
+  definition_comparison_list <- split(syndrome_eval_list[[params$allvisits_name]], syndrome_eval_list[[params$allvisits_name]]$Definitions)
   
   ### Add name prefixes indicating the number of definitions in a combination
-  names(definition_overlap_list) <- case_when(
-    str_count(names(definition_overlap_list), pattern = "\\,") == 0 ~ paste0("1_",names(definition_overlap_list)),
-    str_count(names(definition_overlap_list), pattern = "\\,") == 1 ~ paste0("2_",names(definition_overlap_list)),
-    str_count(names(definition_overlap_list), pattern = "\\,") == 2 ~ paste0("3_",names(definition_overlap_list)))
+  names(definition_comparison_list) <- case_when(
+    str_count(names(definition_comparison_list), pattern = "\\,") == 0 ~ paste0("1_",names(definition_comparison_list)),
+    str_count(names(definition_comparison_list), pattern = "\\,") == 1 ~ paste0("2_",names(definition_comparison_list)),
+    str_count(names(definition_comparison_list), pattern = "\\,") == 2 ~ paste0("3_",names(definition_comparison_list)))
   
   ### Clean data frame names
-  names(definition_overlap_list) <- names(definition_overlap_list) %>%
+  names(definition_comparison_list) <- names(definition_comparison_list) %>%
     str_remove_all(., pattern = " ") %>%
     str_replace_all(., pattern = "\\,", replacement = "\\_")
   
   ### Save all data frames in list
-  lapply(names(definition_overlap_list), function(name) { write_csv(definition_overlap_list[[name]], 
-                                                                    file = paste0(params$filepaths$definition_overlap,name,".csv"))})
+  lapply(names(definition_comparison_list), function(name) { write_csv(definition_comparison_list[[name]], 
+                                                                    file = paste0(params$filepaths$definition_comparison,name,".csv"))})
   
   ## All Visits (Regardless of Matching/Overlap)
-  syndrome_eval_list[[params$overlap_name]] %>%
-    write.csv(file = paste0(params$filepaths$definition_overlap, "All Visits.csv"))
+  syndrome_eval_list[[params$allvisits_name]] %>%
+    write.csv(file = paste0(params$filepaths$definition_comparison, "All Visits.csv"))
 }
 
 
@@ -323,4 +334,4 @@ if(params$validation_review$enable_validation_review == TRUE){
 }
 
 # Clean Up -----
-rm(list = ls(pattern="def\\d_list|defX_list|All_Visits|list_detect_elements|vr_list|definition_overlap_list")) # Remove unneeded objects
+rm(list = ls(pattern="def\\d_list|defX_list|All_Visits|list_detect_elements|vr_list|definition_comparison_list")) # Remove unneeded objects

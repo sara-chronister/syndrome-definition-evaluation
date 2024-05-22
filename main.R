@@ -8,16 +8,21 @@
 
 #  ***USERS: CHANGE n_queries_eval BASED ON NEEDS*** -----
 
-## Define Number of Queries Being Evaluated (def1, def2, def3)
-n_queries_eval <- 3
+## Define Number of Queries Being Evaluated (1-3: def1, def2, def3)
+n_queries_eval <- 1
 
 if(n_queries_eval > 3){stop("This tool can only analyze up to 3 syndromes simultaneously. Please change n_queries_eval to a value <= 3.")}
+
+
+
+
 
 
 # Set Up -----
 
 ## Load ESSENCE Credentials
-myProfile <- load("~/myProfile.rda")
+tryCatch({load("~/myProfile.rds")}, # Load myProfile credentials
+  error = function(e) {Rnssp::create_user_profile_gui()}) # If myProfile credentials are not available, recreate them! 
 
 ## Install/Load Packages & Custom Functions
 files.source <- list.files("Scripts\\SupportCode", pattern = "\\.R")

@@ -10,6 +10,8 @@
 # Define params list  -----
 params <- list()
 
+params$DefinitionInformation <- DefinitionInformation
+
 # Define Analysis Parameters -----
 
 ### Number of Queries to Evaluate
@@ -18,6 +20,8 @@ params$n_queries_eval <- n_queries_eval
 ### Vector of Query Abbreviations to Evaluate
 params$queries <- DefinitionInformation[["DefinitionInformation"]]$Syndrome[1:params$n_queries_eval] # Query Names
 params$queries_abbrev <- DefinitionInformation[["DefinitionInformation"]]$Abbreviation[1:params$n_queries_eval] # Query Abbrev
+params$queries_abbrev_crosswalk <- DefinitionInformation[["DefinitionInformation"]][1:params$n_queries_eval, c("Syndrome", "Abbreviation")]
+
 params$allvisits_name <- paste0(paste(params$queries_abbrev, collapse="_"), "_All_Visits") # Query Abbrev's pasted together
 
 

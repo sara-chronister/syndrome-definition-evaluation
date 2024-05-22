@@ -205,14 +205,14 @@ for(i in 1:params$n_queries_eval){
 names(syndrome_eval_list) <- params$queries_abbrev
 
 
-## Add Overlap DF
+## Add All Visits Comparison DF
 if(params$n_queries_eval > 1){
   
   syndrome_eval_list[[params$allvisits_name]] <- All_Visits %>%
     select(Date, C_BioSense_ID, all_of(params$queries_abbrev), Total_Defs, Definitions, everything()) # Reorder columns
 }
 
-## Add Row Totals (via Overlap DF)
+## Add Row Totals (via All Visits Comparison DF)
 if(params$n_queries_eval == 1){
   
   syndrome_eval_list$defs_total <- nrow(syndrome_eval_list[[1]]$results$clean_datadetails)
@@ -313,7 +313,7 @@ if(params$validation_review$enable_validation_review == TRUE){
     
     # Step 4: Set up Consensus Review Code for each definition's Validation Review Folder
     
-    # Step 4c: Copy Validation Summary R Markdown code template(s) to each definition validation review folder.
+    # Step 4a: Copy Validation Summary R Markdown code template(s) to each definition validation review folder.
     
     if(params$validation_review$n_reviewers == 1){ # Consensus Review not feasible with 1 reviewer --> Singular Validation_Summary.Rmd
       
@@ -330,6 +330,10 @@ if(params$validation_review$enable_validation_review == TRUE){
       file.copy(from = "Scripts/SupportCode/Validation_Review/Validation_Summary_Post_Consensus_Review.Rmd",
                 to = paste0(params$filepaths$validation_review,"/",params$queries_abbrev[i]))
     }
+    
+    
+    # Step 4b: Save Parameter Files to All Validation Review Folders
+    save(params, file = paste0(params$filepaths$validation_review,"/", params$queries_abbrev[i],"/Resources/Parameters.RData"))
   }
 }
 

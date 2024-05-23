@@ -69,6 +69,8 @@ if(params$n_queries_eval >= 2){
 syndrome_eval_list[[2]]$analysis$elements_detected_table %>% 
     create_def_component_tables(df=., def_num = 2)
 }
+
+# Next Line is a whitespace (`r if(params$n_queries_eval >= 2){cat("<br>")}`)
 ```
 `r if(params$n_queries_eval >= 2){cat("<br>")}`
 
@@ -93,6 +95,8 @@ if(params$n_queries_eval >= 3){
 syndrome_eval_list[[3]]$analysis$elements_detected_table %>% 
     create_def_component_tables(df=., def_num = 3)
 }
+
+# Next Line is a whitespace (`r if(params$n_queries_eval >= 3){cat("<br>")}`)
 ```
 `r if(params$n_queries_eval >= 3){cat("<br>")}`
 

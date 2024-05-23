@@ -1,0 +1,454 @@
+---
+title: "Definition Evaluation: `r params$report$query_title`"
+output:
+  html_document:
+    self_contained: true
+    toc: true
+    toc_depth: 3
+    toc_float:
+      collapsed: no
+      smooth_scroll: yes
+---
+<!-- Setup -->
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+ 
+**Jurisdiction**: `r params$jurisdiction`  
+**Report Created**: `r Sys.Date()`    
+**Point of Contact**: `r DefinitionInformation[["Setup"]]$PointOfContact` (`r DefinitionInformation[["Setup"]]$POCEmail`)    
+**Organization**: `r DefinitionInformation[["Setup"]]$Organization`
+
+
+***  
+## Definition Information  {.tabset}
+  
+Inclusion terms and codes are displayed in the table below (exclusion terms are not shown in the table)  
+
+<!-- Definition #1 --> 
+
+`r if(params$n_queries_eval >= 1){paste0('### ',syndrome_eval_list[[1]]$setup$info$Syndrome,' (',syndrome_eval_list[[1]]$setup$info$Abbreviation,')')}`
+
+`r if(params$n_queries_eval >= 1){paste0('**Total Visits Identified:**')}`
+`r if(params$n_queries_eval >= 1){syndrome_eval_list[[1]]$analysis$total_pretty}`
+
+`r if(params$n_queries_eval >= 1){paste0('**Query description:**')}`
+`r if(params$n_queries_eval >= 1){syndrome_eval_list[[1]]$setup$info$Description}`
+
+`r if(params$n_queries_eval >= 1){paste0('**Full query:**')}`
+`r if(params$n_queries_eval >= 1){syndrome_eval_list[[1]]$setup$structure_print}` 
+
+<br>
+
+```{r def1_table, echo=FALSE, message=FALSE, warning=FALSE}
+
+syndrome_eval_list[[1]]$analysis$elements_detected_table %>%
+  create_def_component_tables(df=., def_num = 1)
+
+```
+<br>
+
+<!-- Definition #2 --> 
+
+`r if(params$n_queries_eval >= 2){paste0('### ',syndrome_eval_list[[2]]$setup$info$Syndrome,' (',syndrome_eval_list[[2]]$setup$info$Abbreviation,')')}`
+
+`r if(params$n_queries_eval >= 2){paste0('**Total Visits Identified:**')}`
+`r if(params$n_queries_eval >= 2){syndrome_eval_list[[2]]$analysis$total_pretty}`
+
+`r if(params$n_queries_eval >= 2){paste0('**Query description:**')}`
+`r if(params$n_queries_eval >= 2){syndrome_eval_list[[2]]$setup$info$Description}`
+
+`r if(params$n_queries_eval >= 2){paste0('**Full query:**')}`
+`r if(params$n_queries_eval >= 2){syndrome_eval_list[[2]]$setup$structure_print}`
+
+`r if(params$n_queries_eval >= 2){cat("<br>")}`
+
+```{r def2_table, echo=FALSE, message=FALSE, warning=FALSE}
+if(params$n_queries_eval >= 2){
+  
+syndrome_eval_list[[2]]$analysis$elements_detected_table %>% 
+    create_def_component_tables(df=., def_num = 2)
+}
+
+# Next Line is a whitespace (`r if(params$n_queries_eval >= 2){cat("<br>")}`)
+```
+`r if(params$n_queries_eval >= 2){cat("<br>")}`
+
+<!-- Definition #3 --> 
+
+`r if(params$n_queries_eval >= 3){paste0('### ',syndrome_eval_list[[3]]$setup$info$Syndrome,' (',syndrome_eval_list[[3]]$setup$info$Abbreviation,')')}`
+
+`r if(params$n_queries_eval >= 3){paste0('**Total Visits Identified:**')}`
+`r if(params$n_queries_eval >= 3){syndrome_eval_list[[3]]$analysis$total_pretty}`
+
+`r if(params$n_queries_eval >= 3){paste0('**Query description:**')}`
+`r if(params$n_queries_eval >= 3){syndrome_eval_list[[3]]$setup$info$Description}`
+
+`r if(params$n_queries_eval >= 3){paste0('**Full query:**')}`
+`r if(params$n_queries_eval >= 3){syndrome_eval_list[[3]]$setup$structure_print}`
+
+`r if(params$n_queries_eval >= 3){cat("<br>")}`
+
+```{r def3_table, echo=FALSE, message=FALSE, warning=FALSE}
+if(params$n_queries_eval >= 3){
+  
+syndrome_eval_list[[3]]$analysis$elements_detected_table %>% 
+    create_def_component_tables(df=., def_num = 3)
+}
+
+# Next Line is a whitespace (`r if(params$n_queries_eval >= 3){cat("<br>")}`)
+```
+`r if(params$n_queries_eval >= 3){cat("<br>")}`
+
+
+<!-- Definition Evaluation --> 
+
+## Definition Evaluation
+
+<!-- Visit Counts --> 
+`r if(params$n_queries_eval >= 2){paste0('### Visit Counts')}`
+
+`r if(params$n_queries_eval >= 2){paste0('#### The total number of visits identified by all definitions combined was **',syndrome_eval_list$defs_total_pretty,'**')}`
+  
+`r if(params$n_queries_eval >= 2){paste0('#### Number and percent of all identified visits captured by each definition:')}`
+```{r def_summary, echo=FALSE, message=FALSE, warning=FALSE, fig.height=3}
+if(params$n_queries_eval >= 2){
+
+  all_def_summary <- syndrome_eval_list[[params$allvisits_name]] %>%
+  select(all_of(params$queries_abbrev)) %>%
+  summarize(across(
+    .cols = everything(),
+    .fns = ~ sum(.))) %>%
+  pivot_longer(., cols = everything(), names_to = "Def", values_to = "Count") %>%
+  mutate(Total = syndrome_eval_list$defs_total,
+         Percent = round(Count/Total,3),
+         Percent.Display = paste0(Percent*100,"%"))
+
+all_def_summary %>%
+  ggplot(data=., aes(x = Percent, y = reorder(Def,Percent))) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label=Count, x = Percent-.01), hjust="top", color = "white", size = 3) +
+  geom_text(aes(label=Percent.Display, x = Percent+.01), hjust="bottom", color = "black", size = 3) +
+  geom_segment(aes(x = 0, xend = 1, y = 0.4, yend = 0.4)) +
+  scale_x_continuous(limits = c(0,1.2), expand = c(0,0), breaks = c(0,.25,.50,.75,1), labels = scales::percent_format()) +
+  theme_minimal() +
+  theme(panel.grid = element_blank(),
+        axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        legend.position = "none")
+
+}
+```
+
+
+<!-- Definition Comparison --> 
+`r if(params$n_queries_eval >= 2){paste0('### Definition Overlap {.tabset}')}`
+```{r def_comp_table, echo=FALSE, message=FALSE, warning=FALSE}
+if(params$n_queries_eval >= 2){
+  
+  ## Generate Def Comparison Metrics
+  all_def_summary <- syndrome_eval_list[[params$allvisits_name]] %>%
+  count(Definitions, name = "Visits") %>%
+  mutate(Total = syndrome_eval_list$defs_total,
+         Percent = paste0(round(Visits/Total,3)*100,"%")) %>%
+  replace_na(list(Visits=0, Percent="0%")) %>%
+  arrange(desc(Visits))
+
+  ## Generate DT Table
+  all_def_summary %>%
+    DT::datatable(., class='hover cell-border stripe',
+                  caption = "Visits Identified by Unique Combinations of Syndromes",
+                  rownames=FALSE, escape = FALSE,
+                  filter = "none",
+                  extensions = c("Buttons", "KeyTable"),
+                  options = list(
+                  pageLength = nrow(table), # Set Page Length to Show all Demographic Categories
+                  dom='t', # Source: https://datatables.net/reference/option/dom
+                  autowidth = TRUE,
+                  keys = TRUE,
+                  buttons = list(
+                      list(extend = 'colvis', text = 'Filter Columns'),
+                      list(extend = 'csv', text = 'Download CSV', filename = 'Definition Overlap Table'),
+                      list(extend = 'excel', text = 'Download Excel', filename = 'Definition Overlap Table')
+                      )
+                    )
+                  )
+  }
+```
+
+`r if(params$n_queries_eval >= 2){paste0('#### Venn Diagram (Overlap - Not to Scale)')}`
+```{r def_comp_venn, echo=FALSE, message=FALSE, warning=FALSE}
+if(params$n_queries_eval >= 2){
+ plot(eulerr::venn(syndrome_eval_list[[params$allvisits_name]] %>% select(all_of(params$queries_abbrev))), 
+      labels = TRUE, legend = list(side = "right"), quantities = TRUE)
+}
+```
+
+`r if(params$n_queries_eval >= 2){paste0('#### Eulerr Plot (Overlap - to Scale)')}`
+```{r def_comp_euler, echo=FALSE, message=FALSE, warning=FALSE}
+if(params$n_queries_eval >= 2){
+ plot(eulerr::euler(syndrome_eval_list[[params$allvisits_name]] %>% select(all_of(params$queries_abbrev))), 
+      labels = TRUE, legend = list(side = "right"), quantities = TRUE)
+}
+```
+
+
+<!-- Time Series --> 
+`r if(params$n_queries_eval == 1){paste0('### Visits Over Time')}`
+`r if(params$n_queries_eval >= 2){paste0('### Visits Over Time {.tabset}')}`
+Use the slider at the bottom of the figures to adjust the start and end dates visible in the graph(s).   
+  
+`r if(params$n_queries_eval >= 1){paste0('#### Same Scale')}`
+```{r ts_same_scale, echo=FALSE, message=FALSE, warning=FALSE}
+
+## Initiate Plotly Plot
+ts_plot_same <- plot_ly()
+
+## Add lines for each definition
+for(i in 1:params$n_queries_eval){
+  
+  ts_plot_same <- ts_plot_same %>%
+    add_lines(data = syndrome_eval_list[[i]]$results$timeseries,
+            x = ~Date, y = ~Visits, name = ~Syndrome,
+            line = list(color = params$report$ts_linecolors[i]))
+}
+rm(i)
+
+## Adding Layout
+ts_plot_same %>%
+  layout(
+    hovermode = "compare",
+    xaxis = list(
+      range = c(params$start_date,params$end_date),
+      rangeslider = list(type = "date", thickness = 0.1)))
+
+```
+
+`r if(params$n_queries_eval >= 2){paste0('#### Independent Scales')}`
+```{r ts_separate_scale, echo=FALSE, message=FALSE, warning=FALSE}
+if(params$n_queries_eval >= 2){
+
+  ## Define Storage List
+list_ts_plot <- list()
+
+for(i in 1:params$n_queries_eval){
+  
+  list_ts_plot[[i]] <- plot_ly() %>%
+    add_lines(data = syndrome_eval_list[[i]]$results$timeseries,
+            x = ~Date, y = ~Visits, name = ~Syndrome,
+            line = list(color = params$report$ts_linecolors[i])) %>%
+    layout(
+    hovermode = "compare",
+    xaxis = list(
+      range = c(min(params$all_dates$Date),max(params$all_dates$Date)),
+      rangeslider = list(type = "date", thickness = 0.1)))
+}
+
+switch(params$n_queries_eval,
+       subplot(list_ts_plot[[1]]),
+       subplot(list_ts_plot[[1]], list_ts_plot[[2]],
+               nrows = 2, shareX = TRUE, margin = 0.05),
+       subplot(list_ts_plot[[1]], list_ts_plot[[2]], list_ts_plot[[3]], 
+               nrows = 3, shareX = TRUE, margin = 0.05))
+
+}
+```
+
+
+<!-- Demographics --> 
+
+### Demographics
+
+```{r prep_demographics_table_data, echo=FALSE, message=FALSE, warning=FALSE}
+
+## 1) Bind Demographic Data Together
+df_demo <- switch(params$n_queries_eval,
+                  bind_rows(syndrome_eval_list[[1]]$results$clean_datadetails, .id = "id"),
+                  bind_rows(syndrome_eval_list[[1]]$results$clean_datadetails,
+                            syndrome_eval_list[[2]]$results$clean_datadetails, .id = "id"),
+                  bind_rows(syndrome_eval_list[[1]]$results$clean_datadetails,
+                            syndrome_eval_list[[2]]$results$clean_datadetails, 
+                            syndrome_eval_list[[3]]$results$clean_datadetails, .id = "id"))
+
+df_demo <- df_demo %>%
+  pivot_longer(.,
+               cols = starts_with("def", ignore.case = FALSE),
+               names_to = "Syndrome",
+               values_to = "Present") %>%
+  filter(!is.na(Present)) %>%
+  mutate(Syndrome = case_when(
+    Syndrome == 'def1' ~ params$queries[1],
+    Syndrome == 'def2' ~ params$queries[2],
+    Syndrome == 'def3' ~ params$queries[3],
+    TRUE ~ NA))
+
+
+## 2) Generate gtsummary table & convert to tibble for DT import
+demo_table <- df_demo %>%
+  tbl_summary(include = all_of(params$report$demographics), by = Syndrome) %>%
+  modify_header(label = "Demographic") %>%
+  bold_labels() %>%
+  as_tibble(.) %>% # Convert gtsummary to tibble Source:https://www.danieldsjoberg.com/gtsummary/reference/as_tibble.gtsummary.html
+  mutate(Demographic = str_remove_all(Demographic, pattern = "\\_"))
+
+## 3) Clean Variable Names
+names(demo_table) <- str_remove_all(string = names(demo_table), pattern = "\\*")
+
+## 4) Adjust gtsummary structure to have both Demographic (Demographic Category) and Identity (Patient Demographics) vars.
+demo_table <- demo_table %>%
+  mutate(Demographic_Category = lag(Demographic)) %>%
+  filter(!Demographic %in% params$report$demographics) %>%
+  mutate(Demographic_Category = ifelse(Demographic_Category %in% params$report$demographics, Demographic_Category, NA),
+         Demographic_Category = zoo::na.locf(Demographic_Category)) %>% # Source: https://stackoverflow.com/questions/40334837/how-to-group-data-when-data-are-interspersed-with-group-headers-in-the-same-colu
+  select(`Demographic Category` = Demographic_Category, Demographic, everything())
+
+```
+
+```{r demographics_table, echo=FALSE, message=FALSE, warning=FALSE}
+
+## Render DT table
+demo_table %>% 
+  DT::datatable(., class='hover cell-border stripe',
+                caption = paste0("Demographic Comparison of Patients Identified by ",
+                                 params$report$query_title," Syndrome(s)"),
+                rownames=FALSE, escape = FALSE, 
+                filter = "top", 
+                height = '100%', width = '100%',
+                fillContainer = TRUE,
+                extensions = c("RowGroup",
+                             "Buttons",
+                             "ColReorder",
+                             "FixedColumns",
+                             "KeyTable",
+                             "Scroller", # Helps ensure the entire table is shown
+                             "Select"), # https://rstudio.github.io/DT/extensions.html
+                options = list(
+                  pageLength = nrow(table), # Set Page Length to Show all Demographic Categories
+                  dom='Bt', # Source: https://datatables.net/reference/option/dom
+                  autowidth = TRUE,
+                  colReorder = TRUE,
+                  deferRender = TRUE,
+                  scroller = TRUE, 
+                  scrollY = 850, # px (Show the entire table with scrolling)
+                  fixedColumn = TRUE,
+                  pageLength = nrow(demo_table),
+                  rowGroup = list(dataSrc = 0), # Set Row Group to 1st Var in Data Set (Demographic)
+                  columnDefs = list(
+                    list(targets = c(0),visible = FALSE)), # # Hide Demographic in table (except for Row Group Headers) # Source: https://stackoverflow.com/questions/75952195/remove-grouping-variable-when-using-rowgroup-extension-in-dt-r-package
+                  buttons = list(
+                    list(extend = 'colvis', text = 'Filter Columns'),
+                    list(extend = 'csv', text = 'Download CSV', filename = 'Demographic Table'),
+                    list(extend = 'excel', text = 'Download Excel', filename = 'Demographic Table')
+                  )
+                )
+              )
+
+```
+
+
+<!-- Text Analysis --> 
+
+<br><br>
+
+## Text Analysis {.tabset}
+
+`r paste0('Top ', params$text_analysis_number_ngrams,' words (unigrams) and phrases (bigrams) for each definition and text analysis field.')`
+
+```{r text_analysis, echo=FALSE, message = FALSE, warning = FALSE, fig.width=10, fig.height=8}
+
+## Create TM Lists
+unigram_list <- list()
+bigram_list <- list()
+
+
+## Text Mine
+for(i in 1:params$n_queries_eval){
+  
+  ## Unigrams
+  unigram_list[[i]] <- syndrome_eval_list[[i]]$results$clean_datadetails %>%
+    textmine(df=., 
+             variables = params$fields_text_analysis, 
+             n_grams = 1, # Unigrams
+             metric = "n", 
+             top_n = params$text_analysis_number_ngrams, top_n_by_variable = TRUE)
+  
+  ## Bigrams
+  bigram_list[[i]] <- syndrome_eval_list[[i]]$results$clean_datadetails %>%
+    textmine(df=., 
+             variables = params$fields_text_analysis,
+             n_grams = 2, # Bigrams
+             metric = "n", 
+             top_n = params$text_analysis_number_ngrams, top_n_by_variable = TRUE)
+  
+  names(unigram_list)[i] <- names(syndrome_eval_list)[i]
+  names(bigram_list)[i] <- names(syndrome_eval_list)[i]
+}
+rm(i)
+
+
+## Bind All Text Mining (of Individual Definition(s)) Together
+unigrams <- bind_results_tm(listDF = unigram_list, ngram = "Unigram")
+
+bigrams <- bind_results_tm(listDF = bigram_list, ngram = "Bigram")
+
+rm(unigram_list, bigram_list)
+```
+
+### Unigrams
+```{r top_unigrams, echo=FALSE, message = FALSE, warning = FALSE, fig.width=10, fig.height=8}
+unigrams %>% plot_tm(df=.)
+```
+
+### Bigrams
+```{r top_bigrams, echo=FALSE, message = FALSE, warning = FALSE, fig.width=10, fig.height=8}
+bigrams %>% plot_tm(df=.)
+```
+
+### Table
+
+#### Instructions
+The table below provides an extract of the text analysis results which examined the top `r params$text_analysis_number_ngrams` words (unigrams) and phrases (bigrams) present in the following free-text clinical fields: `r params$fields_text_analysis`
+
+Results are presented in descending order with the most frequently occurring words and phrases being presented first. [A few quick tips:]{.underline}
+
+- Use the filter boxes at the top of the table, to filter to syndromes, fields of interest, and terms of interest (or a combination of all three). 
+- Use the arrow icons (to the right of table headers) to apply custom sorting by syndromes, fields of interest, and terms of interest (or a combination of all three).
+- Use the Download buttons to export the text analysis results.
+
+<br>
+
+```{r ngram_table, top_ngrams, echo=FALSE, message = FALSE, warning = FALSE}
+
+n_grams <- bind_rows(unigrams, bigrams) %>% 
+  mutate(unit = factor(unit, levels = c("Unigram","Bigram"))) %>%
+  arrange(desc(n)) %>%
+  select(Syndrome = def, `Unigram or Bigram` = unit, Field = field, `Word or Phrase` = n_gram, `Number of Occurrences` = n)
+
+n_grams %>%
+   DT::datatable(., 
+                  class='hover cell-border stripe',
+                  caption = paste0("Top ",params$text_analysis_number_ngrams," Unigrams & Bigrams (by Field)"),
+                  rownames=FALSE, escape = FALSE, 
+                  filter = "top", 
+                  extensions = c("Buttons", "KeyTable", "FixedHeader"), # https://rstudio.github.io/DT/extensions.html
+                  options = list(
+                    lengthMenu = list(c(10, 25, 50, -1), c('10', '25', '50', 'All')), # Source: https://stackoverflow.com/questions/67484426/how-can-i-show-all-the-entries-with-datatable-in-r-dt-package
+                    dom='Blfrtp', # Source: https://datatables.net/reference/option/dom
+                    fixedHeader = TRUE,
+                    keys = TRUE,
+                    buttons = list(
+                      list(extend = 'colvis', text = 'Filter Columns'),
+                      list(extend = 'csv', text = 'Download CSV', 
+                           filename = paste0("Top ",params$text_analysis_number_ngrams," Free-Text N-Grams (by Field)")),
+                      list(extend = 'excel', text = 'Download Excel', 
+                           filename = paste0("Top ",params$text_analysis_number_ngrams," Free-Text N-Grams (by Field)"))
+                    ),
+                    columnDefs = list(
+                      list(targets = 4, searchable = FALSE)
+                      )
+                  )
+                )
+```
+___
+
+*The template for this report was created by Sara Chronister & Tyler Bonnell. For questions or ideas for improvement/collaboration, please [create a new GitHub Issue at our repository](https://github.com/sara-chronister/syndrome-definition-evaluation/issues).*

@@ -26,7 +26,7 @@ pull_no_na <- function(df, variable){
 
 ## Create Definition Review Folder Name
 
-name_def_review_folder <- function(definition){
+name_validation_review_folder <- function(definition){
   
   if(definition == "def1"){
     def_review_folder_name <- paste0("Def1 (",def1_name,")")

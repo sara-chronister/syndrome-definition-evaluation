@@ -26,29 +26,31 @@ clean_query_essence <- function(query) {
   
 }
 
+## Create 0/1 Indicators for the Presence of Definition Elements in Fields
 
 detect_elements <- function(data, terms, text_field) {
   
   terms_colnames <- str_replace_all(terms," ",".")
   
   terms_detected_setup <- data %>%
-    select(EssenceID,field = !!text_field) %>%
-    mutate(field = str_to_lower(field),
-           TruePositive = "")
+    select(C_BioSense_ID, field = !!text_field) %>%
+    mutate(field = str_to_lower(field))
   
   terms_detected_list <- list()
   
-  for (i in 1:length(terms)) {
-    terms_detected_list[[i]] <- terms_detected_setup %>%
-      dplyr::mutate(term = str_detect(field,terms[i])) %>%
-      dplyr::mutate(term = ifelse(term==TRUE,1,0))
+  for (i in seq_along(terms)) {
     
-    names(terms_detected_list[[i]]) <- c("EssenceID",text_field,"TruePositive",paste("element",terms_colnames[i],sep="_"))
+    terms_detected_list[[i]] <- terms_detected_setup %>%
+      mutate(term = str_detect(field,terms[i]),
+             term = ifelse(term==TRUE, 1,0))
+    
+    names(terms_detected_list[[i]]) <- c("C_BioSense_ID",text_field,
+                                         paste0(text_field,"_",terms_colnames[i]))
   }
   
-  terms_detected <- purrr::reduce(terms_detected_list,full_join) %>%
-    select(EssenceID,TruePositive,text_field,everything()) %>%
+  terms_detected <- purrr::reduce(terms_detected_list, full_join) %>%
+    select(C_BioSense_ID, text_field, everything()) %>%
     distinct()
-  return(terms_detected)  
   
+  return(terms_detected)  
 }

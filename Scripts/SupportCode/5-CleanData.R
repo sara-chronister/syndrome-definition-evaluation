@@ -35,7 +35,8 @@ clean_demographics <- function(df){
       mutate(Sex = case_when(
         Sex == "M" ~ "Male",
         Sex == "F" ~ "Female",
-        Sex == "U" ~ "Unknown"),
+        Sex == "U" ~ "Unknown",
+        TRUE ~ "Unknown"),
         Sex = factor(Sex, levels = c("Female", "Male", "Unknown")))
     }
   

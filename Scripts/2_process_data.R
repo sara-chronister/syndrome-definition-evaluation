@@ -333,7 +333,8 @@ if(params$validation_review$enable_validation_review == TRUE){
     
     
     # Step 4b: Save Parameter Files to All Validation Review Folders
-    save(params, file = paste0(params$filepaths$validation_review,"/", params$queries_abbrev[i],"/Resources/Parameters.RData"))
+    save(params, DefinitionInformation,
+         file = paste0(params$filepaths$validation_review,"/", params$queries_abbrev[i],"/Resources/Parameters.RData"))
   }
 }
 

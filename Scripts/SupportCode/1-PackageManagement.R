@@ -23,6 +23,7 @@ pacman::p_load(
   readxl,
   rmarkdown,
   Rnssp,
+  rstudioapi,
   splitstackshape,
   stringr,
   tictoc,

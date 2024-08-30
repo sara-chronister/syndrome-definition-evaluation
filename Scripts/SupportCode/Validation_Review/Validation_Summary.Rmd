@@ -67,7 +67,7 @@ assign_review_label <- function(df, review_scale_low = ReviewScaleLow, review_sc
 prep_cm <- function(df, use_case){
   
   df_prepped <- df %>%
-    mutate(Definition = "Positive", # Prediction Variable (aka whether the query tagged/identified the record) --> Will always be 1. 
+    mutate(Definition = "Positive", # Prediction Variable (aka whether the syndrome definition tagged/identified the record) --> Will always be 1. 
          Definition = factor(Definition, levels = c("Positive", "Negative")))
   
   if(use_case == "reviewer"){
@@ -170,7 +170,7 @@ ReviewScale <- cut_review_scale(scale_low = ReviewScaleLow, scale_high = ReviewS
 
 # Extract Definition Undergoing Validation Review (from filepath)
 definition_abbrev <- str_extract(string = rstudioapi::getActiveDocumentContext()$path, # Gets the filepath of currently active R Markdown
-                          pattern = paste0(params$queries_abbrev, collapse = "|")) # Extract query abbreviation from that filepath
+                          pattern = paste0(params$queries_abbrev, collapse = "|")) # Extract syndrome definition abbreviation from that filepath
 ```
 
 ```{r Load in All Reviewer Data}
@@ -286,7 +286,7 @@ if(n_reviewers == 1){
   
   cat(paste0(
     '# Instructions\n',
-    'After rendering this R Markdown report, query performance metrics will be generated below (**Note: ** Records assigned the **Uncertain** review category will not be included in query performance metric calculations).',
+    'After rendering this R Markdown report, syndrome definition performance metrics will be generated below (**Note: ** Records assigned the **Uncertain** review category will not be included in syndrome definition performance metric calculations).',
     '<br> <br>'
   ))
   
@@ -294,7 +294,7 @@ if(n_reviewers == 1){
   
   cat(paste0(
     '# Consensus Review Instructions\n',
-    'After rendering this R Markdown report, validation reviews by each of the participating reviewers will be compared to assess agreement and disagreement for each reviewed record. Additionally, query performance metrics (by reviewer) and interrater reliability metrics will be generated below. These metrics have been provided to assess how closely aligned participants were in their validation reviews and address any issues that may have emerged during the validation review process. (Note: Records assigned the **Uncertain** review category will not be included in query performance metric calculations). \n',
+    'After rendering this R Markdown report, validation reviews by each of the participating reviewers will be compared to assess agreement and disagreement for each reviewed record. Additionally, syndrome definition performance metrics (by reviewer) and interrater reliability metrics will be generated below. These metrics have been provided to assess how closely aligned participants were in their validation reviews and address any issues that may have emerged during the validation review process. (Note: Records assigned the **Uncertain** review category will not be included in syndrome definition performance metric calculations). \n',
     'When you are ready to discuss validation review findings and come to a consensus decision among the participating reviewers (particularly for records where there were disagreements), access the following file:  **2_Consensus_Data/Consensus_Data.xlsx**.\n',
     '\n',
     '[Within **Consensus_Data.xlsx**:]{.underline}\n',
@@ -303,7 +303,7 @@ if(n_reviewers == 1){
     '- After a consensus decision has been made, fill in the **Review_Category_Consensus** variable with the agreed upon review category.\n',
     '- (*Optional; if helpful*) Fill out the **Notes_Consensus** to explain which reviewer(s) changed their review category and rating upon coming to a consensus decision. This documentation will provide clarity as to how disagreements were resolved and what pieces of information may be useful to informing final record classifications\n',
     '\n',
-    'After completing the consensus review process and running **Validation_Summary_Post_Consensus_Review.Rmd**, query performance metrics (utilizing consensus review categories) will be generated. Additionally, **Consensus_Data.xlsx** will be copied and subset to remove the no longer needed *Reviewer* variables. This data will be called **Consensus_Data_Subset.xlsx**.',
+    'After completing the consensus review process and running **Validation_Summary_Post_Consensus_Review.Rmd**, syndrome definition performance metrics (utilizing consensus review categories) will be generated. Additionally, **Consensus_Data.xlsx** will be copied and subset to remove the no longer needed *Reviewer* variables. This data will be called **Consensus_Data_Subset.xlsx**.',
     '<br> <br>'
     ))
 }
@@ -555,7 +555,7 @@ for(i in 1:n_reviewers){
 
 if(length(ReviewScale) == 2){ # TP, FP
   
-  query_performance_template <- c(
+  definition_performance_template <- c(
     "```{r, echo=FALSE, results='asis'}\n",
     "cat(
     paste0('## ', 'Reviewer ', {{i}},' (',DefinitionInformation[['ValidationReviewInformation']]$ReviewerName[{{i}}],')','\n'))",
@@ -568,11 +568,11 @@ if(length(ReviewScale) == 2){ # TP, FP
   
 }else if(length(ReviewScale) == 3){ # TP, Uncertain, FP
   
-    query_performance_template <- c(
+    definition_performance_template <- c(
     "```{r, echo=FALSE, results='asis'}\n",
     "cat(
     paste0('## ', 'Reviewer ',{{i}},' (', DefinitionInformation[['ValidationReviewInformation']]$ReviewerName[{{i}}],')','\n'),
-    paste0('**Note: ** Records with the review category of **Uncertain** are excluded from query performance calculations.', '\n'))",
+    paste0('**Note: ** Records with the review category of **Uncertain** are excluded from syndrome definition performance calculations.', '\n'))",
     "```\n",
     "\n",
     "```{r}\n", # Initializes R code to create 1) Tabbed Widget and 2) Insert ES Text.
@@ -581,11 +581,11 @@ if(length(ReviewScale) == 2){ # TP, FP
     "\n")
 }
 
-reviewer_query_performance <- lapply(seq_along(list_reviewer), function(i) {knitr::knit_expand(text= query_performance_template)}) # Use query_performance_template above, and render it via knitr::knit_expand()
+reviewer_definition_performance <- lapply(seq_along(list_reviewer), function(i) {knitr::knit_expand(text= definition_performance_template)}) # Use definition_performance_template above, and render it via knitr::knit_expand()
 
 ```
 
-`r knitr::knit(text = unlist(reviewer_query_performance))`
+`r knitr::knit(text = unlist(reviewer_definition_performance))`
 
 ```{r Write Reviewer RData File}
 if(n_reviewers == 1){

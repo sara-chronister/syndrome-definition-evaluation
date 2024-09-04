@@ -1,8 +1,11 @@
 # Syndrome Definition Evaluation Toolkit
 
-## Resources:
 > [!NOTE]
 > If you are planning to use this tool for syndrome development, I would recommed starting with the steps laid out in the [Syndrome Definition Guidance document](https://prod-knowledge-repository.s3-us-gov-west-1.amazonaws.com/references/SDC_Syndrome%20Definition%20Guidance%20document_FINAL.PDF) prior to starting with this tool. This document was developed by members of the NSSP Syndrome Definition Committee with the purpose of providing a recommended protocol for developing and testing a new syndrome definition. This tool is particularly useful and revelant to the "Refining the Syndrome" section of the document.
+
+## Authors:
+1. [Sara Chronister](sara.chronister@doh.wa.gov), Washington State Department of Health - Rapid Health Information NetwOrk (RHINO)
+2. [Tyler Bonnell](tyler.bonnell@co.snohomish.wa.us), Snohomish County Health Department - Epidemiology & Informatics
 
 ## Background:
 The purpose of this tool is to allow ESSENCE users to evaluate the data details (line level) results of one, two, or three syndrome definitions at a time. This project produces several important outputs: 
@@ -49,7 +52,7 @@ The purpose of this tool is to allow ESSENCE users to evaluate the data details 
 
 
 ## Validation Review:
-**This tool also supports a linelist, consensus manual review process (referred to as Validation Review) to calculate performance/accuracy metrics of evaluated syndrome definitions. This section of the toolkit may be most helpful when you are finalizing a syndrome definition, and are hoping to calculate and disseminate performance/accuracy metrics of the definition to interested stakeholders.**
+**This tool also supports a linelist, consensus manual review process (referred to as Validation Review) to calculate performance/accuracy metrics of evaluated syndrome definitions. This section of the toolkit may be most helpful when you are finalizing a syndrome definition, and are hoping to calculate and disseminate performance/accuracy metrics of the syndrome definition to interested stakeholders.**
 
 >[!TIP]
 > Validation Review is set to run by default. To turn off the Validation Review, go to the "Setup" tab of `"DefinitionInformationTable.xlsx"` and set the value for Column G Row 3 to to FALSE.

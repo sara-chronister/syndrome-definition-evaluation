@@ -1,15 +1,15 @@
 # =======================================================================
-# Title: main.R
+# Title: run_tool.R
 
 # Description: 
 # Runs the syndrome evaluation toolkit.
 
 # =======================================================================
 
-#  ***USERS: CHANGE n_queries_eval BASED ON NEEDS*** -----
+# Number of Definitions to Evaluate -----
 
-## Define Number of Queries Being Evaluated (1-3: def1, def2, def3)
-n_queries_eval <- 2
+## [USERS CHANGE]: Define Number of Queries Being Evaluated (1-3: def1, def2, def3)
+n_queries_eval <- 2 # Change this to 1, 2, or 3.
 
 if(n_queries_eval > 3){stop("This tool can only analyze up to 3 syndromes simultaneously. Please change n_queries_eval to a value <= 3.")}
 

@@ -1,77 +1,95 @@
 # Syndrome Definition Evaluation Toolkit
 
+> [!NOTE]
+> If you are planning to use this tool for syndrome development, I would recommed starting with the steps laid out in the [Syndrome Definition Development Toolkit](https://knowledgerepository.syndromicsurveillance.org/syndrome-definition-development-toolkit) prior to starting with this tool. This document was developed by members of the NSSP Syndrome Definition Committee in collaboration with the CDC NSSP team for the purpose of providing a recommended protocol for developing and testing a new syndrome definition. This tool is particularly useful and revelant to the "Iterative Testing and Validation" and "External Validation" sections of the document.
+
+## Authors:
+1. [Sara Chronister](sara.chronister@doh.wa.gov), Washington State Department of Health - Rapid Health Information NetwOrk (RHINO)
+2. [Tyler Bonnell](tyler.bonnell@co.snohomish.wa.us), Snohomish County Health Department - Epidemiology & Informatics
+
 ## Background:
 The purpose of this tool is to allow ESSENCE users to evaluate the data details (line level) results of one, two, or three syndrome definitions at a time. This project produces several important outputs: 
 1. An **HTML report** that can be shared with others and opened using either Chrome or Firefox browsers. This document contains no identifiable data, only aggregate results, for security purposes.
-2. A **csv file** for each combination of definitions possible containing a subset of variables important in the manual review process. These files do contain identifiable information and should be handled accordingly.
-3. A **csv file** containing details about the definition elements (codes and terms) that can be used to evaluate the performance of individual elements in query results. These files do contain identifiable information and should be handled accordingly.
-   
-> [!NOTE]
-> If you are planning to use this tool for syndrome development, I would recommed starting with the steps laid out in the [Syndrome Definition Guidance document](https://prod-knowledge-repository.s3-us-gov-west-1.amazonaws.com/references/SDC_Syndrome%20Definition%20Guidance%20document_FINAL.PDF) prior to starting with this tool. This document was developed by members of the NSSP Syndrome Definition Committee with the purpose of providing a recommended protocol for developing and testing a new syndrome definition. This tool is particularly useful and revelant to the "Refining the Syndrome" section of the document.
+2. A **.csv file** for each combination of definitions possible containing a subset of variables important in the manual review process. These files contain identifiable information and should be handled accordingly.
+3. A **.csv file** containing details about the definition elements (codes and terms) that can be used to evaluate the performance of individual elements in query results. These files contain identifiable information and should be handled accordingly.
+4. One or multiple **.xlsx file(s)** containing details about records captured by provided definitions that can be used to facilitate manual reviews and a consensus decision-making process to calculate query performance metrics by one or multiple reviewers. These files contain identifiable information and should be handled accordingly.
 
 ## Instructions:
 
 ### 1) Download and set up files:
 * Download the project files by clicking the green "Code" button and selecting "Download ZIP".
-* Unzip the files to the location that you want the project files to be stored.
+* Unzip the files to the location that you want the project files to be stored. This will be your Working Directory for this project.
 
 ### 2) In Excel:
 * Open the `"DefinitionInformationTable.xlsx"` file.
 * **Follow the instructions for setting up the evaluation in all tabs.** Detailed information about each of the fields is in the top row. **DO NOT CHANGE THE LOCATIONS OF ANY OF THE FIELDS**. The program will fail if you do.
-* Keep in mind that if you want to evaluate one definition, you must update the def1 row of the "DefinitionInformation" tab. For evaluation of two definitions, update the def1 and def2 rows, and for three definitions update all rows in the "DefinitionInformation" tab. 
-* Save (without changing the name of the file) once you have all the information you need about your definitions.
+* Keep in mind that if you want to evaluate one definition, you must update the def1 row of the "DefinitionInformation" tab. For evaluation of two definitions, update the def1 and def2 rows, and for three definitions update the def1, def2, and def3 rows in the "DefinitionInformation" tab. Additional definition information may be saved/stored in subsequent rows, which may be helpful for record-keeping purposes, but only the information in the three defX rows will be used for their respective evaluations.
+* Save (without changing the name of the file) once you have entered all the information you need about your definitions.
 
 ### 3) In RStudio: 
-* In your file location, open the `"SyndromeEvaluation.Rproj"` file.
-* In RStudio navigate to the Files tab (by default in the bottom right pane) and open the `"SupportCode"` folder.
-  + Open the `"2-UserCredentials.R"` file and follow the instructions. Remember to comment out all lines again by adding a # at the beginning of each line when you have finished.
-* Open either the `"Evaluation_OneDef.Rmd"`, `"Evaluation_TwoDefs.Rmd"`, or `"Evaluation_OneDef.Rmd"` file (based on the number of queries you wish to evaluate).
-  + You can rename any of these files to reflect the definition(s) you are evaluating. This will be the file name of the HTML report generated.
-* To run the report, look for a button at the top of the script that says `"Knit"` :yarn:. Click that button and wait for your report to run. When it is finished it will generate an HTML file that can be opened using any browser (except Internet Explorer) and can be shared with anyone via email, shared folder location, etc.
+* In your Working Directory file location, open the `"SyndromeEvaluation.Rproj"` file.
+* Open `"run_tool.R"`.
 
-> [!TIP]
-> * For subsequent uses, be sure your user credentials (ESSENCE and local, if necessary) are up to date. Update your credentials in the `"SupportCode/2-UserCredentials.R"` file as needed.
+> [!IMPORTANT]  
+> * Edit the `n_queries_eval` object in the `"run_tool.R"` code (line 12) to either be `1`, `2`, or `3`. This will determine the number of definitions you are evaluating.
+>   + `1` = toolkit evaluates def1, `2` = toolkit evaluates def1 and def2, `3` = toolkit evaluates def1, def2, and def3.
+> * **Select all and run the entire code in `"run_tool.R"`. Wait for your report to run. When it is finished it will generate an HTML file that can be opened using any browser (except Internet Explorer) and can be shared with anyone via email, shared folder location, etc.**
+>      + To select all the code, you can highlight everything with your mouse, or use the following shortcuts (Windows: ctrl+A, macOS: command+A).
+>      + To run the code, you can click the "Run" button (top right corner of the R script window) or use the following shortcuts (Windows: ctrl+Enter, macOS: command+return).
 
-> [!IMPORTANT]
-> * Result files with be stored in the `Output_` folder corresponding to the `Evaluation_#Defs.Rmd` you ran. (Example: If you run `Evaluation_OneDef.Rmd` then result files will be stored in `Output_OneDef`).
+## Accessing Toolkit Results:
+* Result files from this tool will be available in the `Output` subfolder of your Working Directory file location, and will be organized by the number of definitions you are evaluating.
+   + When a One, Two, or Three definition evaluation is run, their results will be stored in the respective filepaths: `Output/OneDef/`, `Output/TwoDefs/`, `Output/ThreeDefs/`.
+   + If a One, Two, or Three definition evaluation has not yet been run, these filepaths will not yet exist.
 
-### 4) Validation Review:
-**This tool also supports a linelist, consensus manual review process (referred to as Validation Review) to estimate accuracy metrics of syndrome definitions.**
+### Results Files & Folders
+1. `Syndrome Evaluation Report.html` - The **main syndrome definition evaluation report** which includes syndrome definition syntax, visit volumes, demographics, and the relative overlap between multiple syndromic definitions.
+2. `[INSERT_CUSTOM_NAME].RData` - This `.RData` file will flexibly named by pasting together the abbreviations of the definitions being evaluated by the tool (see example below). It contains all of the data written to the `Definition_Comparison` and `Matched_Elements` subfolders, in a single, easy-to-access file for R users to access. This may be useful for R users to load instead of trying to work with many disparate `.xlsx` files.
+   + Example: A 2 syndrome definition evaluation report is run for AIRQUAL (Air Quality-related Respiratory Illness v1) and ILI (Influenza Like Illness), the `.RData` file name would be `AIRQUAL_ILI.RData`.
+4. `Definition_Comparison` subfolder - Contains `.xlsx` files of ESSENCE DataDetails records based on the syndrome definition(s) (singular or multiple overlap) they fall under. These may be useful for separate, custom analyses.
+5. `Matched_Elements` subfolder - Contains `.xlsx` files of C_BioSense_IDs and multiple 0/1 indicator variables indicating whether individual syndrome definition syntax components were identified within each respective ESSENCE DataDetails record.
+6. `Validation_Review` subfolder - Contains multiple files to support manual reviews and a consensus decision-making process to calculate query performance metrics by one or multiple reviewers (see more detail on `Validation Review` below).
+
+
+## Validation Review:
+**This tool also supports a linelist, consensus manual review process (referred to as Validation Review) to calculate performance/accuracy metrics of evaluated syndrome definitions. This section of the toolkit may be most helpful when you are finalizing a syndrome definition, and are hoping to calculate and disseminate performance/accuracy metrics of the syndrome definition to interested stakeholders.**
 
 >[!TIP]
-> Validation Review is set to run by default. To turn off the Validation Review, go to the "Setup" tab of `"DefinitionInformationTable.xlsx"` and set the value for Column G Row 3 to to FALSE. 
+> Validation Review is set to run by default. To turn off the Validation Review, go to the "Setup" tab of `"DefinitionInformationTable.xlsx"` and set the value for Column G Row 3 to to FALSE.
 
-* In the `Output_#Defs` folder there will be a `Validation_Review` folder
-* Within the `Validation_Review` folder, navigate to the syndrome(s) of interest and then to the `1_Reviewed_Data` subfolder. For each reviewer, there will be a separate folder (`Reviewer_#`) and excel file (`Reviewer_#_Data.xlsx`) for their manual linelist review of ESSENCE DataDetails records.
-* Within the excel file, each review should review all records independently and record:
-  + Accuracy rating (in the `Review_Rating` column) for each row using the numeric scale set in Columns G and H of the `ValidationReviewInformation` tab in the `DefinitionInformationTable` Excel file
-  + (*Optional*) contextual notes for that rating (in the `Notes` column)
+### Instructions:
+* After running the syndrome definition evaluation toolkit, navigate to the `Validation_Review` folder at the following filepath `Output/#Defs/Validation_Review/`.
+  + `#Defs` refers to the number of syndrome definitions evaluated by the toolkit (i.e., `OneDef`, `TwoDefs`, or `ThreeDefs`).
+* Within the `Validation_Review` folder, there will be separate subfolders for each of the syndrome definitions being evaluated. These subfolders will serve as separate Validation Review sandbozes for each syndrome definition, and they will be labelled using the syndrome definition's abbreviation.
+  + Labelling Example: Air Quality-related Respiratory Illness v1 --> AIRQUAL 
+  + **Users may choose whether they want to conduct Validation Reviews for all, some, or none of the specified definitions -- it is flexible!**
+* Click on the Syndrome Definition folder of interest and begin a Validation Review.
 
-* **1 reviewer**, run `Validation_Summary.Rmd` (found in `Output_#Defs/ValidationReview/DefX` folder) to generate a short report detailing the syndrome definition's accuracy.
-* **2+ reviewers**, run `Validation_Summary_Pre_Consensus.Rmd` (found in `Output_#Defs/ValidationReview/DefX` folder) to generate a short report detailing **preliminary estimates** of the syndrome definition's accuracy, **and to begin the Consensus Review process to ajudicate records where reviewers had differing `Review_Rating`'s.**
+> [!NOTE]  
+> Example: I run a 2 syndrome definition report for AIRQUAL (Air Quality-related Respiratory Illness v1) and ILI (Influenza Like Illness). I only want to do a Validation Review for ILI (and not AIRQUAL). I will navigate to `Output/TwoDefs/Validation_Review/ILI` which will serve as my "home folder" for Validation Review.
+>   + In this scenario, I can leave the `Output/TwoDefs/Validation_Review/AIRQUAL` folder alone as I do not want to conduct a Validation Review for that syndrome definition.
+ 
+    
+* Within the syndrome definition folder, navigate to the `1_Reviewer_Data` subfolder. For each reviewer, there will be a separate folder (`Reviewer_#`) and excel file (`Reviewer_#_Data.xlsx`) for their manual linelist review of ESSENCE DataDetails.
+  + Reviewer IDs are specified in the `ReviewerID` and `ReviewerName` columns of the `ValidationReviewInformation` tab in `DefinitionInformationTable.xlsx` Excel file.
+     
+* Within the `Reviewer_#_Data.xlsx` file, each reviewer should assess all records independently and record:
+  + Accuracy rating (in the `Review_Rating` column) for each row using the numeric scale set in Columns G and H of the `ValidationReviewInformation` tab in  `DefinitionInformationTable.xlsx` Excel file
+  + (*Optional*) Contextual notes for that rating (in the `Notes` column)
 
-* Navigate to `Output_#Defs/ValidationReview/2_Consensus_Data/Consensus_Data.xlsx` to discuss disagreements between reviewers (records where `Agreement = FALSE`).
-* After coming to a consensus, update the `Review_Category_Consensus` column to indicate the final status of the record(s). (*Optional*) You may record the conversations and/or information that caused reviewer(s) to change their initial rating in `Note_Consensus` (if this contextual information may be helpful in the future).
-  + At this stage of consensus review, the intent is to reach consensus on whether a visit is either a `True Positive` or a `False Positive` rather than a number on a numeric scale, therefore the `Review Category_Consensus` column should only have values of either `True Positive`, or `False Positive`. Note that `Uncertain` is also an option, though it should be used sparingly and will only appear if there is a scale that starts and ends on an odd number, i.e., 1-3 or 1-5. 
-* **The Consensus Review process is complete, save and exit `Consensus_Data.xlsx`**
-* Run `Validation_Summary_Post_Consensus.Rmd` to generate a short report detailing **final estimates** of the syndrome definition's accuracy.
+* If there is **only 1 manual reviewer**:
+  + Run `Validation_Summary.Rmd` found in `Output/#Defs/Validation_Review/DEFINITION_ABBREV` to generate a short report detailling the syndrome definition's performance/accuracy metrics.
 
-
-  ### Output File Inventory
-
-| Folder | File  | Description | 
-| ------------- | ------------- | ------------- |
-| `SupportCode` | | R scripts containing custom functions **to support loading ESSENCE credentials** as well as pulling/cleaning data for reports. |
-| | `DefinitionInformationTable.xlsx`| Define evaluation process parameters and supply the syndrome definitions you wish to evaluate. |
-| | `Evaluation_#Defs.Rmd` | R markdown report used to launch entire syndrome validation process. Choose the respective `.Rmd` template based on the number of syndromes you wish to evaluate. |
-| | `Evaluation_#Defs.html` | Rendered R markdown report showcasing syndrome syntax, volumes of emergency department visits, and relative overlap between multiple syndromes. |
-|`Output_#Defs` | *Filenames reflect syndrome abbrevations*  | Multiple linelist files of ESSENCE DataDetails records based on the syndrome definition(s) (singular or multiple overlap) they fall under. |
-|`Output_#Defs/Matched_Elements` | *Filenames reflect syndrome abbreviations* | Mulitple files of C_BioSense_IDs and a matrix of 0/1 variables indicating the syndrome syntax components that were identified within the respective record. | 
-|`Output_#Defs/Validation_Review`|*Nested subfolders supporting Validation Review for each syndrome being evaluated*||
-|`Output_#Defs/Validation_Review/1_Reviewed_Data`|`Reviewer_#_Data.xlsx`| Contains separate validation review excel files for each reviewer. |
-|`Output_#Defs/Validation_Review`|`Validation_Summary.Rmd` (1 reviewer only) or `Validation_Summary_Pre_Consensus.Rmd` (2+ reviewers only)| R Markdown report that calculates syndrome accuracy metrics (1 reviewer: final metrics, 2+ reviewers: preliminary metrics). For 2+ reviewers, it also generates `Consensus_Data.xlsx`. |
-|`Output_#Defs/Validation_Review/2_Consensus_Data`|`Consensus_Data.xlsx`| Linelist file that facilitates consensus review/discussion of record(s) with disagreement between reviewers (records that have `Agreement = FALSE`. After coming to a consensus decision, the final status of the record is updated in `Review_Category_Consensus`. |
-|`Output_#Defs/Validation_Review`|`Validation_Summary_Post_Consensus.Rmd` (2+ reviewers only)| R Markdown report that calculates final, consensus syndrome accuracy metrics. |
-
-___
-*For questions, ideas for improvement/collaboration, or attribution, please reach out to <sara.chronister@doh.wa.gov>.*
+* If there are **2 or more manual reviewers**:
+  + Run `Validation_Summary_Pre_Consensus.Rmd` found in `Output/#Defs/Validation_Review/DEFINITION_ABBREV` to generate a short report detailing **preliminary performance/accuracy estimates** according to each manual reviewer, **and begin the Consensus Review process to adjudicate records where reviewers had differing `Review_Rating`'s.**
+  + Conduct a Consensus Review Process by:
+    + Open `Output/#Defs/Validation_Review/DEFINITION_ABBREV/2_Consensus_Data/Consensus_Data.xlsx`.
+    + Discuss disagreements between manual reviewers (records where `Agreement = FALSE`).
+      + The purpose of this step is to reach consensus on whether a visit is either a `True Positive` or a `False Positive` (rather than a number on a numeric rating scale). 
+    + After coming to a consensus agreement for each record:
+      + Update the `Review_Category_Consensus` column to indicate the final classification of the record(s).
+        + The `Review Category_Consensus` column should only have values of either `True Positive`, or `False Positive`. Note that `Uncertain` is also an option, though it should be used sparingly and will only appear if there is a scale that starts and ends on an odd number, i.e., 1-3 or 1-5.
+      + (*Optional*) You may record the conversations and/or information that caused reviewer(s) to change their initial rating in `Note_Consensus` (if this contextual information may be helpful in the future).
+  + **The Consensus Review process is complete!** Save and exit `Consensus_Data.xlsx`.
+  + Run `Validation_Summary_Post_Consensus.Rmd` to generate a short report detailing finalized consensus **performance/accuracy estimates** of the syndrome definition.
+  + A final dataset (with all enter consensus review decisions) will be available at `Output/#Defs/Validation_Review/DEFINITION_ABBREV/2_Consensus_Data/Consensus_Data_Final.xlsx`.

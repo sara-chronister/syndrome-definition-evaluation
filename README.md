@@ -1,7 +1,7 @@
 # Syndrome Definition Evaluation Toolkit
 
 > [!NOTE]
-> If you are planning to use this tool for syndrome development, I would recommed starting with the steps laid out in the [Syndrome Definition Guidance document](https://prod-knowledge-repository.s3-us-gov-west-1.amazonaws.com/references/SDC_Syndrome%20Definition%20Guidance%20document_FINAL.PDF) prior to starting with this tool. This document was developed by members of the NSSP Syndrome Definition Committee with the purpose of providing a recommended protocol for developing and testing a new syndrome definition. This tool is particularly useful and revelant to the "Refining the Syndrome" section of the document.
+> If you are planning to use this tool for syndrome development, I would recommed starting with the steps laid out in the [Syndrome Definition Development Toolkit](https://knowledgerepository.syndromicsurveillance.org/syndrome-definition-development-toolkit) prior to starting with this tool. This document was developed by members of the NSSP Syndrome Definition Committee in collaboration with the CDC NSSP team for the purpose of providing a recommended protocol for developing and testing a new syndrome definition. This tool is particularly useful and revelant to the "Iterative Testing and Validation" and "External Validation" sections of the document.
 
 ## Authors:
 1. [Sara Chronister](sara.chronister@doh.wa.gov), Washington State Department of Health - Rapid Health Information NetwOrk (RHINO)
@@ -10,25 +10,25 @@
 ## Background:
 The purpose of this tool is to allow ESSENCE users to evaluate the data details (line level) results of one, two, or three syndrome definitions at a time. This project produces several important outputs: 
 1. An **HTML report** that can be shared with others and opened using either Chrome or Firefox browsers. This document contains no identifiable data, only aggregate results, for security purposes.
-2. A **.csv file** for each combination of definitions possible containing a subset of variables important in the manual review process. These files do contain identifiable information and should be handled accordingly.
-3. A **.csv file** containing details about the definition elements (codes and terms) that can be used to evaluate the performance of individual elements in query results. These files do contain identifiable information and should be handled accordingly.
-4. One or multiple **.xlsx file(s)** containing details about records captured by provided definitions that can be used to facilitate manual reviews and a consensus decision-making process to calculate query performance metrics by one or multiple reviewers. These files do contain identifiable information and should be handled accordingly.
+2. A **.csv file** for each combination of definitions possible containing a subset of variables important in the manual review process. These files contain identifiable information and should be handled accordingly.
+3. A **.csv file** containing details about the definition elements (codes and terms) that can be used to evaluate the performance of individual elements in query results. These files contain identifiable information and should be handled accordingly.
+4. One or multiple **.xlsx file(s)** containing details about records captured by provided definitions that can be used to facilitate manual reviews and a consensus decision-making process to calculate query performance metrics by one or multiple reviewers. These files contain identifiable information and should be handled accordingly.
 
 ## Instructions:
 
 ### 1) Download and set up files:
 * Download the project files by clicking the green "Code" button and selecting "Download ZIP".
-* Unzip the files to the location that you want the project files to be stored.
+* Unzip the files to the location that you want the project files to be stored. This will be your Working Directory for this project.
 
 ### 2) In Excel:
 * Open the `"DefinitionInformationTable.xlsx"` file.
 * **Follow the instructions for setting up the evaluation in all tabs.** Detailed information about each of the fields is in the top row. **DO NOT CHANGE THE LOCATIONS OF ANY OF THE FIELDS**. The program will fail if you do.
-* Keep in mind that if you want to evaluate one definition, you must update the def1 row of the "DefinitionInformation" tab. For evaluation of two definitions, update the def1 and def2 rows, and for three definitions update all rows in the "DefinitionInformation" tab. 
-* Save (without changing the name of the file) once you have all the information you need about your definitions.
+* Keep in mind that if you want to evaluate one definition, you must update the def1 row of the "DefinitionInformation" tab. For evaluation of two definitions, update the def1 and def2 rows, and for three definitions update the def1, def2, and def3 rows in the "DefinitionInformation" tab. Additional definition information may be saved/stored in subsequent rows, which may be helpful for record-keeping purposes, but only the information in the three defX rows will be used for their respective evaluations.
+* Save (without changing the name of the file) once you have entered all the information you need about your definitions.
 
 ### 3) In RStudio: 
-* In your file location, open the `"SyndromeEvaluation.Rproj"` file.
-* To run the tool, open `"run_tool.R"`.
+* In your Working Directory file location, open the `"SyndromeEvaluation.Rproj"` file.
+* Open `"run_tool.R"`.
 
 > [!IMPORTANT]  
 > * Edit the `n_queries_eval` object in the `"run_tool.R"` code (line 12) to either be `1`, `2`, or `3`. This will determine the number of definitions you are evaluating.
@@ -38,12 +38,12 @@ The purpose of this tool is to allow ESSENCE users to evaluate the data details 
 >      + To run the code, you can click the "Run" button (top right corner of the R script window) or use the following shortcuts (Windows: ctrl+Enter, macOS: command+return).
 
 ## Accessing Toolkit Results:
-* Result files from this tool will be available in the `Output` subfolder, and will be organized by the number of definitions you are evaluating.
-   + When a One, Two, or Three definition syndrome definition evaluation is run, their results will be stored in the respective filepaths: `Output/OneDef/`, `Output/TwoDefs/`, `Output/ThreeDefs/`.
-   + If a One, Two, or Three definition syndrome evaluation has not yet been run, these filepaths will not yet exist.
+* Result files from this tool will be available in the `Output` subfolder of your Working Directory file location, and will be organized by the number of definitions you are evaluating.
+   + When a One, Two, or Three definition evaluation is run, their results will be stored in the respective filepaths: `Output/OneDef/`, `Output/TwoDefs/`, `Output/ThreeDefs/`.
+   + If a One, Two, or Three definition evaluation has not yet been run, these filepaths will not yet exist.
 
 ### Results Files & Folders
-1. `Syndrome Evaluation Report.html` - The **main syndrome definition evaluation report** which includes syndrome definition syntax, volumes of emergency department visits, demographics, and the relative overlap between multiple syndromic definitions.
+1. `Syndrome Evaluation Report.html` - The **main syndrome definition evaluation report** which includes syndrome definition syntax, visit volumes, demographics, and the relative overlap between multiple syndromic definitions.
 2. `[INSERT_CUSTOM_NAME].RData` - This `.RData` file will flexibly named by pasting together the abbreviations of the definitions being evaluated by the tool (see example below). It contains all of the data written to the `Definition_Comparison` and `Matched_Elements` subfolders, in a single, easy-to-access file for R users to access. This may be useful for R users to load instead of trying to work with many disparate `.xlsx` files.
    + Example: A 2 syndrome definition evaluation report is run for AIRQUAL (Air Quality-related Respiratory Illness v1) and ILI (Influenza Like Illness), the `.RData` file name would be `AIRQUAL_ILI.RData`.
 4. `Definition_Comparison` subfolder - Contains `.xlsx` files of ESSENCE DataDetails records based on the syndrome definition(s) (singular or multiple overlap) they fall under. These may be useful for separate, custom analyses.

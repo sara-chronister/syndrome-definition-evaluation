@@ -33,7 +33,7 @@ The purpose of this tool is to allow ESSENCE users to evaluate the data details 
 > [!IMPORTANT]  
 > * Edit the `n_defs_eval` object in the `"run_tool.R"` code (line 19) to either be `1`, `2`, or `3`. This will determine the number of definitions you are evaluating.
 >   + `1` = toolkit evaluates def1, `2` = toolkit evaluates def1 and def2, `3` = toolkit evaluates def1, def2, and def3.
-> * OPTIONAL: If you would like to see how long the tool takes to run, set `"timed = TRUE"`
+> * OPTIONAL: If you would like to see how long the tool takes to run, set `"timed = TRUE"` (line 20)
 > * **Select all and run the entire code in `"run_tool.R"`. Wait for your report to run. When it is finished it will generate an HTML file that can be opened using any browser (except Internet Explorer) and can be shared with anyone via email, shared folder location, etc.**
 >      + To select all the code, you can highlight everything with your mouse, or use the following shortcuts (Windows: ctrl+A, macOS: command+A).
 >      + To run the code, you can click the "Run" button (top right corner of the R script window) or use the following shortcuts (Windows: ctrl+Enter, macOS: command+return).

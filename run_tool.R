@@ -17,7 +17,6 @@ files.source <- list.files("Scripts/SupportCode", pattern = "\\.R")
 sapply(paste0("Scripts/SupportCode/",files.source),source)
 
 run_evaluation(n_defs_eval = 2, # check before running - MAX 3
-               def_info_table = "DefinitionInformationTable.xlsx",
                timed = FALSE)
 
 # =======================================================================

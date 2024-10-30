@@ -1,3 +1,11 @@
+## Load ESSENCE Credentials
+tryCatch({load("~/myProfile.rda")}, # Load myProfile credentials
+         
+         # If myProfile credentials are not available at the home directory, regenerate them! 
+         error = function(e) {Rnssp::create_user_profile_gui()}) # Note: Select .rda option! 
+
+
+## Manual instructions below if needed
 ## https://cdn.ymaws.com/www.cste.org/resource/resmgr/docs/RStudio_ESSENCE_API_Guide_J.html#RStudio_-_Securely_Saving_AMC_Credentials
 
 
@@ -22,7 +30,7 @@
 # save(myProfile, file = "~/myProfile.rda")
 #---
 
-load("~/myProfile.rda")
+# load("~/myProfile.rda")
   
 # IF your organization uses proxy settings, enter the information in the lines below and uncomment lines 33-36 (leave uncommented)
 # look for proxy settings (windows) under settings > network and internet > proxy and look for the "Address" for url and "Port" for port

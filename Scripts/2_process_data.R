@@ -48,6 +48,7 @@ for(i in 1:params$n_queries_eval){
     ### Correct Labeling to Align with ESSENCE Variable Names ###
     mutate(Fields = case_when(Fields == "Discharge_Diagnosis" ~ "DischargeDiagnosis",
                               Fields == "Chief_Complaint_History" ~ "ChiefComplaintUpdates",
+                              Fields == "CC__DD_Parsed_Free_Text" ~ "CCDDParsed",
                               TRUE ~ Fields)) %>% # Correct Labeling to Align with ESSENCE Variable Names
     pull(Fields)
   

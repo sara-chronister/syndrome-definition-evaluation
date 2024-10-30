@@ -15,7 +15,7 @@ params$DefinitionInformation <- DefinitionInformation
 # Define Analysis Parameters -----
 
 ### Number of Queries to Evaluate
-params$n_queries_eval <- n_queries_eval
+params$n_queries_eval <- n_defs_eval
 
 ### Vector of Query Abbreviations to Evaluate
 params$queries <- DefinitionInformation[["DefinitionInformation"]]$Syndrome[1:params$n_queries_eval] # Query Names

@@ -52,7 +52,7 @@ get_longterm_details <- function(url, start_date = NULL, end_date = NULL, by = 1
   
   loop_dates <- data.frame(start = seq.Date(from = loop_start, to = loop_end, by = by)) %>%
     mutate(end = start+(by-1)) %>%
-    mutate(end = ifelse((loop_end>start&end>loop_end),loop_end,end)) %>%
+    mutate(end = ifelse((loop_end>=start&end>loop_end),loop_end,end)) %>%
     mutate(end = as.Date.numeric(end, origin = "1970-01-01"))
   
   # initiate a blank list to store the output from the loop

@@ -28,29 +28,46 @@ clean_query_essence <- function(query) {
 
 ## Create 0/1 Indicators for the Presence of Definition Elements in Fields
 
-detect_elements <- function(data, terms, text_field) {
+detect_elements <- function(df, text_field, terms, id_field = "C_BioSense_ID", group_name = NULL) {
   
-  terms_colnames <- str_replace_all(terms," ",".")
+  terms <- stringr::str_to_lower(terms)
+  terms_colnames <- stringr::str_replace_all(terms," ",".")
   
-  terms_detected_setup <- data %>%
-    select(C_BioSense_ID, field = !!text_field) %>%
-    mutate(field = str_to_lower(field))
+  terms_detected_setup <- df %>%
+    dplyr::select(id = !!id_field, field = !!text_field) %>%
+    dplyr::mutate(field = stringr::str_to_lower(field))
   
   terms_detected_list <- list()
   
-  for (i in seq_along(terms)) {
-    
+  for (i in 1:length(terms)) {
     terms_detected_list[[i]] <- terms_detected_setup %>%
-      mutate(term = str_detect(field,terms[i]),
-             term = ifelse(term==TRUE, 1,0))
+      dplyr::mutate(term = stringr::str_detect(field,terms[i])) %>%
+      dplyr::mutate(term = ifelse(term==TRUE,1,0))
     
-    names(terms_detected_list[[i]]) <- c("C_BioSense_ID",text_field,
-                                         paste0(text_field,"_",terms_colnames[i]))
+    names(terms_detected_list[[i]]) <- c(id_field,text_field,paste(terms_colnames[i],"in",text_field,sep="_"))
   }
   
-  terms_detected <- purrr::reduce(terms_detected_list, full_join) %>%
-    select(C_BioSense_ID, text_field, everything()) %>%
-    distinct()
+  terms_detected <- purrr::reduce(terms_detected_list,dplyr::full_join) %>%
+    dplyr::select(tidyselect::all_of(id_field),tidyselect::everything(),-text_field) %>%
+    dplyr::distinct()
   
-  return(terms_detected)  
+  group_name <- group_name
+  
+  if (is.null(group_name)) {
+    df_to_return <- dplyr::full_join(df, terms_detected, by = id_field)
+  } else {
+    group_name_added <- terms_detected
+    group_name_added$sumTerm <- terms_detected %>%
+      select(tidyselect::contains("in")) %>%
+      rowSums()
+    group_name_added <- group_name_added %>%
+      dplyr::mutate(AnyTerm = ifelse(sumTerm>0,1,0))%>%
+      dplyr::select(tidyselect::all_of(id_field), AnyTerm)
+    colnames(group_name_added) <- c(id_field, group_name)
+    df_to_return <- dplyr::full_join(df, group_name_added, by = id_field) %>%
+      dplyr::full_join(terms_detected, by = id_field)
+  }
+  
+  return(df_to_return)
+  
 }

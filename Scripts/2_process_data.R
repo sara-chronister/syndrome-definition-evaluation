@@ -101,7 +101,7 @@ for(i in 1:params$n_queries_eval){
   suppressMessages({
     
     for(j in seq_along(defX_list$setup$detect_elements_fields)){
-      list_detect_elements[[j]] <- detect_elements(data = defX_list$results$clean_datadetails, 
+      list_detect_elements[[j]] <- detect_elements(df = defX_list$results$clean_datadetails, 
                                                    terms = defX_list$setup$elements,
                                                    text_field = defX_list$setup$detect_elements_fields[j])}
     

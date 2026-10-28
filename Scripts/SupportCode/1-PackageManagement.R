@@ -3,6 +3,7 @@
 #### Setup for install and loading via pacman -------------------
 if ("renv" %in% rownames(installed.packages()) == FALSE) {install.packages("renv")}
 if ("pacman" %in% rownames(installed.packages()) == FALSE) {install.packages("pacman")}
+if ("Rnssp" %in% rownames(installed.packages()) == FALSE) {devtools::install_github("cdcgov/Rnssp")}
 
 #### Load renv packages --------------------------------------
 # renv::restore()
